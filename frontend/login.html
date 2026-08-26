@@ -17,11 +17,11 @@
   </head>
   <body>
     <!-- Container bao bọc toàn bộ giao diện, dùng để căn giữa nội dung -->
-    <div class="auth-container">
+    <main class="auth-container">
       <!-- Khối hộp chứa form đăng nhập (có nền trắng, đổ bóng) -->
-      <div class="auth-box">
+      <section class="auth-box">
         <!-- Phần đầu của hộp (Header): Chứa logo và tên ứng dụng -->
-        <div class="auth-header">
+        <header class="auth-header">
           <div class="logo-container">
             <div class="logo-icon">
               <svg
@@ -43,7 +43,7 @@
               <p>LƯU TRỮ BẢO MẬT</p>
             </div>
           </div>
-        </div>
+        </header>
 
         <!-- Biểu mẫu (Form) đăng nhập, id="loginForm" để JS có thể bắt được sự kiện submit -->
         <form id="loginForm" class="auth-form" novalidate>
@@ -96,11 +96,11 @@
         </form>
 
         <!-- Phần chân của form chứa liên kết điều hướng sang trang Đăng ký -->
-        <div class="auth-footer">
+        <footer class="auth-footer">
           <p>Chưa có tài khoản? <a href="register.html">Đăng ký tại đây</a></p>
-        </div>
-      </div>
-    </div>
+        </footer>
+      </section>
+    </main>
 
     <!-- Nhúng file JavaScript chứa logic xử lý đăng nhập -->
     <script src="js/auth.js"></script>
