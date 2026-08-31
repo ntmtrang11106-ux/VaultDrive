@@ -1,0 +1,145 @@
+<!-- Khai báo chuẩn HTML5 -->
+<!doctype html>
+<html lang="vi">
+  <head>
+    <!-- Thiết lập hiển thị và font chữ, nhúng CSS -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VaultDrive - Đăng ký</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/auth.css" />
+  </head>
+
+  <body>
+    <main class="auth-container">
+      <section class="auth-box">
+        <header class="auth-header">
+          <div class="logo-container">
+            <div class="logo-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.1325 20.176 10.2077 17.8596 10.0116C17.4326 6.64368 14.5683 4 11 4C7.13401 4 4 7.13401 4 11C4 11.2372 4.01174 11.4716 4.03454 11.7027C2.29063 12.1818 1 13.784 1 15.6667C1 17.8758 2.79086 19.6667 5 19.6667H17.5Z"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <div class="logo-text">
+              <h1>VaultDrive</h1>
+              <p>LƯU TRỮ BẢO MẬT</p>
+            </div>
+          </div>
+        </header>
+
+        <!-- Biểu mẫu (Form) đăng ký, id="registerForm" để kết nối với JS -->
+        <form id="registerForm" class="auth-form" novalidate>
+          <!-- Trường Họ và tên -->
+          <div class="form-group">
+            <label for="fullname">Họ và tên</label>
+            <input
+              type="text"
+              id="fullname"
+              name="fullname"
+              required
+              placeholder="Nhập họ và tên của bạn"
+            />
+            <span class="field-error" id="fullnameError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              placeholder="Nhập địa chỉ email của bạn"
+            />
+            <span class="field-error" id="emailError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Số điện thoại</label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              required
+              placeholder="Nhập số điện thoại của bạn"
+            />
+            <span class="field-error" id="phoneError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="dob">Ngày sinh</label>
+            <input type="date" id="dob" name="dob" required />
+            <span class="field-error" id="dobError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="gender">Giới tính</label>
+            <select id="gender" name="gender" required>
+              <option value="" disabled selected>Chọn giới tính của bạn</option>
+              <option value="male">Nam</option>
+              <option value="female">Nữ</option>
+              <option value="other">Khác</option>
+            </select>
+            <span class="field-error" id="genderError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Mật khẩu</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              placeholder="Tạo mật khẩu mạnh"
+            />
+            <span class="field-error" id="passwordError"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Xác nhận mật khẩu</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              required
+              placeholder="Xác nhận lại mật khẩu của bạn"
+            />
+            <span class="field-error" id="confirmPasswordError"></span>
+          </div>
+
+          <!-- Vùng thông báo lỗi (đỏ) và thành công (xanh) được điều khiển bởi JS -->
+          <div id="errorMessage" class="error-message"></div>
+          <div id="successMessage" class="success-message"></div>
+
+          <!-- Nút Gửi form (Submit) -->
+          <button type="submit" class="btn-primary" id="registerBtn">
+            <span>Tạo tài khoản</span>
+            <!-- Icon xoay khi đang xử lý (ẩn mặc định) -->
+            <div class="loader" id="registerLoader"></div>
+          </button>
+        </form>
+
+        <!-- Phần điều hướng trở lại Đăng nhập -->
+        <footer class="auth-footer">
+          <p>Đã có tài khoản? <a href="login.html">Đăng nhập tại đây</a></p>
+        </footer>
+      </section>
+    </main>
+
+    <!-- Nhúng file logic xử lý form -->
+    <script src="js/auth.js"></script>
+  </body>
+</html>

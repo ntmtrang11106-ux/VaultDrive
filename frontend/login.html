@@ -1,0 +1,108 @@
+<!-- Khai báo chuẩn tài liệu HTML5 -->
+<!doctype html>
+<html lang="vi">
+  <head>
+    <!-- Thiết lập bộ mã ký tự và tối ưu hóa hiển thị trên các thiết bị di động -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Tiêu đề hiển thị trên tab của trình duyệt -->
+    <title>VaultDrive - Đăng nhập</title>
+    <!-- Nhúng font chữ Inter từ Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Nhúng file CSS để định dạng giao diện -->
+    <link rel="stylesheet" href="css/auth.css" />
+  </head>
+  <body>
+    <!-- Container bao bọc toàn bộ giao diện, dùng để căn giữa nội dung -->
+    <main class="auth-container">
+      <!-- Khối hộp chứa form đăng nhập (có nền trắng, đổ bóng) -->
+      <section class="auth-box">
+        <!-- Phần đầu của hộp (Header): Chứa logo và tên ứng dụng -->
+        <header class="auth-header">
+          <div class="logo-container">
+            <div class="logo-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.1325 20.176 10.2077 17.8596 10.0116C17.4326 6.64368 14.5683 4 11 4C7.13401 4 4 7.13401 4 11C4 11.2372 4.01174 11.4716 4.03454 11.7027C2.29063 12.1818 1 13.784 1 15.6667C1 17.8758 2.79086 19.6667 5 19.6667H17.5Z"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <div class="logo-text">
+              <h1>VaultDrive</h1>
+              <p>LƯU TRỮ BẢO MẬT</p>
+            </div>
+          </div>
+        </header>
+
+        <!-- Biểu mẫu (Form) đăng nhập, id="loginForm" để JS có thể bắt được sự kiện submit -->
+        <form id="loginForm" class="auth-form" novalidate>
+          <!-- Nhóm trường nhập liệu cho Email -->
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              placeholder="Nhập email của bạn"
+            />
+            <span class="field-error" id="emailError"></span>
+          </div>
+
+          <div class="form-group">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+              "
+            >
+              <label for="password" style="margin-bottom: 0">Mật khẩu</label>
+              <a href="forgot-password.html" class="forgot-link"
+                >Quên mật khẩu?</a
+              >
+            </div>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              required
+              placeholder="Nhập mật khẩu của bạn"
+            />
+            <span class="field-error" id="passwordError"></span>
+          </div>
+
+          <!-- Vùng dùng để hiển thị lỗi (ẩn mặc định, sẽ hiện lên bằng JS) -->
+          <div id="errorMessage" class="error-message"></div>
+
+          <!-- Nút Đăng nhập -->
+          <button type="submit" class="btn-primary" id="loginBtn">
+            <span>Đăng nhập</span>
+            <!-- Hiệu ứng vòng xoay loading (ẩn mặc định) -->
+            <div class="loader" id="loginLoader"></div>
+          </button>
+        </form>
+
+        <!-- Phần chân của form chứa liên kết điều hướng sang trang Đăng ký -->
+        <footer class="auth-footer">
+          <p>Chưa có tài khoản? <a href="register.html">Đăng ký tại đây</a></p>
+        </footer>
+      </section>
+    </main>
+
+    <!-- Nhúng file JavaScript chứa logic xử lý đăng nhập -->
+    <script src="js/auth.js"></script>
+  </body>
+</html>

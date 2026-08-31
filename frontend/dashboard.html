@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trang chủ - VaultDrive</title>
+  
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <i class="ph ph-cloud"></i>
+      </div>
+      <div class="logo-text">
+        <span class="brand">VaultDrive</span>
+        <span class="sub">LƯU TRỮ BẢO MẬT</span>
+      </div>
+    </div>
+
+    <button class="btn-upload-main">
+      <i class="ph ph-upload-simple"></i>
+      Tải lên tệp
+    </button>
+
+    <ul class="nav-menu">
+      <li class="nav-item">
+        <i class="ph-fill ph-folder"></i>
+        <span>Tệp của tôi</span>
+      </li>
+      <li class="nav-item">
+        <i class="ph ph-users"></i>
+        <span>Được chia sẻ</span>
+        <span class="badge">3</span>
+      </li>
+      <li class="nav-item">
+        <i class="ph ph-clock"></i>
+        <span>Gần đây</span>
+      </li>
+      <li class="nav-item">
+        <i class="ph ph-trash"></i>
+        <span>Thùng rác</span>
+      </li>
+    </ul>
+
+    <div class="nav-section-title">HỆ THỐNG</div>
+    <ul class="nav-menu">
+      <li class="nav-item">
+        <i class="ph ph-gear"></i>
+        <span>Cài đặt</span>
+      </li>
+    </ul>
+
+    <div class="sidebar-bottom">
+      <div class="storage-info">
+        <div class="storage-header">
+          <span class="storage-label">Bộ nhớ</span>
+          <span class="storage-value">38,4 / 100 GB</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="storage-remaining">61,6 GB còn lại</div>
+      </div>
+
+      <div class="user-profile">
+        <div class="avatar">TM</div>
+        <div class="user-details">
+          <span class="user-name">Trần Minh</span>
+          <span class="user-email">t.minh@congty.vn</span>
+        </div>
+        <i class="ph ph-caret-up" style="margin-left: auto; color: var(--text-muted);"></i>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="breadcrumbs">
+        Trang chủ <i class="ph ph-caret-right" style="font-size: 12px; margin: 0 4px;"></i> <span class="current">Tệp của tôi</span>
+      </div>
+
+      <div class="header-actions">
+        <div class="search-bar">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" placeholder="Tìm kiếm tệp...">
+        </div>
+
+        <div class="sort-dropdown">
+          Ngày sửa <i class="ph ph-caret-down"></i>
+        </div>
+
+        <div class="view-toggle">
+          <button class="view-btn active"><i class="ph ph-squares-four"></i></button>
+          <button class="view-btn"><i class="ph ph-list"></i></button>
+        </div>
+
+        <button class="btn-upload-outline">
+          <i class="ph ph-upload-simple"></i> Tải lên
+        </button>
+
+        <div class="notifications">
+          <i class="ph ph-bell"></i>
+          <div class="indicator">2</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <div class="content-scroll">
+      
+      <!-- Folders Section -->
+      <div class="section-title">THƯ MỤC</div>
+      <div class="grid-folders">
+        <div class="folder-card">
+          <i class="ph-fill ph-folder folder-icon blue"></i>
+          <div class="folder-name">Thiết kế sản phẩm</div>
+          <div class="folder-meta">Hôm nay</div>
+        </div>
+        <div class="folder-card">
+          <i class="ph-fill ph-folder folder-icon purple"></i>
+          <div class="folder-name">Tài liệu kỹ thuật</div>
+          <div class="folder-meta">Hôm qua</div>
+        </div>
+        <div class="folder-card">
+          <i class="ph-fill ph-folder folder-icon cyan"></i>
+          <div class="folder-name">Tài nguyên thương hiệu</div>
+          <div class="folder-meta">14/08</div>
+        </div>
+        <div class="folder-card">
+          <i class="ph-fill ph-folder folder-icon green"></i>
+          <div class="folder-name">Nghiên cứu người dùng</div>
+          <div class="folder-meta">06/08</div>
+        </div>
+      </div>
+
+      <!-- Files Section -->
+      <div class="section-title">TỆP TIN</div>
+      <div class="grid-files">
+        
+        <div class="file-card">
+          <div class="file-icon-box file-pdf">
+            <i class="ph-fill ph-file-pdf"></i>
+          </div>
+          <div class="file-name">Báo cáo tài chính Q3.pdf</div>
+          <div class="file-meta">15/08 &middot; 4,2 MB</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-icon-box file-pdf">
+            <i class="ph-fill ph-file-pdf"></i>
+          </div>
+          <div class="file-name">Tổng quan kiến trúc.pdf</div>
+          <div class="file-meta">12/08 &middot; 8,7 MB</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-icon-box file-img">
+            <i class="ph-fill ph-image"></i>
+          </div>
+          <div class="file-name">Banner chính v3.png</div>
+          <div class="file-meta">11/08 &middot; 2,1 MB</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-icon-box file-doc">
+            <i class="ph-fill ph-file-text"></i>
+          </div>
+          <div class="file-name">Kế hoạch Sprint.doc</div>
+          <div class="file-meta">10/08 &middot; 640 KB</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-icon-box file-xls">
+            <i class="ph-fill ph-file-xls"></i>
+          </div>
+          <div class="file-name">Mô hình doanh thu.xlsx</div>
+          <div class="file-meta">08/08 &middot; 1,3 MB</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-icon-box file-vid">
+            <i class="ph-fill ph-file-video"></i>
+          </div>
+          <div class="file-name">Bản ghi demo.mp4</div>
+          <div class="file-meta">07/08 &middot; 214 MB</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-icon-box file-zip">
+            <i class="ph-fill ph-file-zip"></i>
+          </div>
+          <div class="file-name">Sao lưu hệ thống.zip</div>
+          <div class="file-meta">05/08 &middot; 1,2 GB</div>
+        </div>
+
+        <div class="file-card">
+          <div class="file-icon-box file-pdf">
+            <i class="ph-fill ph-file-pdf"></i>
+          </div>
+          <div class="file-name">Hồ sơ nhà đầu tư.pdf</div>
+          <div class="file-meta">03/08 &middot; 6,8 MB</div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Upload Status Floating Widget -->
+  <div class="upload-status">
+    <div class="upload-progress-circle">
+      <svg viewBox="0 0 36 36">
+        <circle class="bg" cx="18" cy="18" r="16"></circle>
+        <circle class="progress" cx="18" cy="18" r="16"></circle>
+      </svg>
+      <div class="percent">65%</div>
+    </div>
+    <div class="upload-info">
+      <div class="upload-title">Đang tải 1 tệp</div>
+      <div class="upload-subtitle">0 hoàn thành &middot; Nhấn để xem</div>
+    </div>
+    <div class="upload-action">
+      <i class="ph ph-caret-down"></i>
+    </div>
+  </div>
+
+  <!-- Help Button -->
+  <div class="help-btn">
+    <i class="ph ph-question"></i>
+  </div>
+
+</body>
+</html>
