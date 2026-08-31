@@ -4,12 +4,8 @@ HELP.md
 target/
 build/
 .mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-# Docker & Database volume (Cực kỳ quan trọng!)
+# Docker & Database volume
 mssql_data/
 *.mdf
 *.ldf
@@ -18,46 +14,20 @@ mssql_data/
 .env
 *.env
 
-# STS / Eclipse
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-# IntelliJ IDEA
-.idea/
-*.iws
-*.iml
-*.ipr
-
-# NetBeans
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-# VS Code
-.vscode/
-
 # Node / Frontend
 node_modules/
 dist/
 .vite/
+.eslintcache
 
-# Java / Spring Boot / Backend
-target/
-.gradle/
-*.class
-
-# IDE & OS
+# IDE & Tooling (VS Code, IntelliJ, Eclipse, OS)
 .vscode/
 .idea/
-.DS_Store
-
-# OS rác
+*.iws
+*.iml
+*.ipr
+.classpath
+.project
+.settings
 .DS_Store
 Thumbs.db
