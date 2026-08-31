@@ -1,0 +1,48 @@
+HELP.md
+
+# Build outputs (Maven & Gradle)
+target/
+build/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Docker & Database volume (Cực kỳ quan trọng!)
+mssql_data/
+*.mdf
+*.ldf
+
+# Environment / Secrets
+.env
+*.env
+
+# STS / Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code
+.vscode/
+
+# OS rác
+.DS_Store
+Thumbs.db
