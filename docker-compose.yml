@@ -19,7 +19,7 @@ services:
 
   backend:
     build:
-      context: ./vault-drive
+      context: ./backend
       dockerfile: Dockerfile
     container_name: springboot_app
     ports:
