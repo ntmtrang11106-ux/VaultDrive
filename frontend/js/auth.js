@@ -1,5 +1,5 @@
 // Cấu hình đường dẫn gốc đến Backend API của phần đăng nhập/đăng ký
-const API_BASE_URL = "/api/auth";
+const API_BASE_URL = "http://localhost:8080/api/auth";
 
 // Sự kiện DOMContentLoaded đảm bảo toàn bộ HTML đã được tải xong mới chạy Javascript
 document.addEventListener("DOMContentLoaded", () => {
@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch(`${API_BASE_URL}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }), // Đóng gói dữ liệu dạng JSON
+          body: JSON.stringify({ username: email, password }), // Map email sang username để khớp với backend
         });
 
         // Nếu API trả về mã lỗi (không phải 2xx), ném ra lỗi để catch xử lý
@@ -167,6 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            username: email, // Map email sang username để khớp với backend
             fullname,
             email,
             phone,
