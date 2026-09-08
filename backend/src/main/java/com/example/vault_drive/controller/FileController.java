@@ -15,16 +15,7 @@ public class FileController {
 
     @Autowired
     private FileService fileService;
-
-    // // 1. API Login cơ bản
-    // @PostMapping("/login")
-    // public ResponseEntity<String> login(@RequestParam String username, @RequestParam String password) {
-    //     if ("admin".equals(username) && "123456".equals(password)) {
-    //         return ResponseEntity.ok("Login successful");
-    //     }
-    //     return ResponseEntity.status(401).body("Invalid credentials");
-    // }
-
+    
     // 2. API Upload từng Chunk (POST /api/files/upload-chunk)
     @PostMapping("/upload-chunk")
     public ResponseEntity<String> uploadChunk(@RequestParam("file") MultipartFile chunk,
