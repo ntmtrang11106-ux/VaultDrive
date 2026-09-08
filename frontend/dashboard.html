@@ -55,21 +55,103 @@
       </div>
     </main>
 
-    <!-- Upload Status Floating Widget -->
-    <div class="upload-status">
-      <div class="upload-progress-circle">
-        <svg viewBox="0 0 36 36">
-          <circle class="bg" cx="18" cy="18" r="16"></circle>
-          <circle class="progress" cx="18" cy="18" r="16"></circle>
-        </svg>
-        <div class="percent">65%</div>
+    <!-- Upload Modal -->
+    <div class="upload-modal" id="uploadModal">
+      <div class="upload-modal-header">
+        <div class="header-info">
+          <i class="ph ph-upload-simple"></i>
+          <div>
+            <h3>Tải lên tệp</h3>
+            <p>1 đang tải &middot; 0 hoàn thành</p>
+          </div>
+        </div>
+        <button class="close-btn" id="closeUploadModal"><i class="ph ph-x"></i></button>
       </div>
-      <div class="upload-info">
-        <div class="upload-title">Đang tải 1 tệp</div>
-        <div class="upload-subtitle">0 hoàn thành &middot; Nhấn để xem</div>
+
+      <div class="upload-modal-body">
+        <div class="dropzone">
+          <div class="dropzone-icon">
+            <i class="ph ph-upload-simple"></i>
+          </div>
+          <h4>Kéo & thả tệp vào đây</h4>
+          <p>hoặc <a href="#">duyệt từ máy tính</a></p>
+          <div class="dropzone-tags">
+            <span class="tag">PDF</span>
+            <span class="tag">Ảnh</span>
+            <span class="tag">Word</span>
+            <span class="tag">Excel</span>
+            <span class="tag">Video</span>
+            <span class="tag">ZIP</span>
+          </div>
+        </div>
+
+        <div class="upload-list-section">
+          <h5 class="section-subtitle">DANH SÁCH TẢI LÊN</h5>
+          
+          <div class="upload-item-card">
+            <div class="upload-item-header">
+              <div class="file-icon bg-blue-light"><i class="ph-fill ph-file"></i></div>
+              <div class="upload-item-info">
+                <div class="item-title-row">
+                  <span class="item-name">sao-luu-he-thong-2026-08.tar.gz</span>
+                  <span class="item-percent">64%</span>
+                  <div class="item-actions">
+                    <button><i class="ph-fill ph-pause-circle"></i></button>
+                    <button><i class="ph ph-x"></i></button>
+                  </div>
+                </div>
+                <div class="item-meta">
+                  545.0 / 847 MB &middot; <span class="text-blue">1 luồng</span>
+                </div>
+                <div class="progress-bar-container">
+                  <div class="progress-bar" style="width: 64%"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="upload-threads">
+              <div class="threads-header">
+                <div class="dots"><i class="ph-fill ph-dots-three"></i></div>
+                <span>TẢI SONG SONG (1 LUỒNG ĐANG CHẠY)</span>
+                <i class="ph ph-caret-up"></i>
+              </div>
+              
+              <div class="thread-list">
+                <div class="thread-item">
+                  <div class="thread-name"><span class="dot active"></span> Luồng 1</div>
+                  <div class="thread-status"><i class="ph ph-check"></i> xong <span class="text-green">100%</span></div>
+                </div>
+                <div class="thread-progress"><div class="bar bg-green" style="width: 100%"></div></div>
+
+                <div class="thread-item">
+                  <div class="thread-name"><span class="dot active"></span> Luồng 2</div>
+                  <div class="thread-status"><i class="ph ph-check"></i> xong <span class="text-green">100%</span></div>
+                </div>
+                <div class="thread-progress"><div class="bar bg-green" style="width: 100%"></div></div>
+
+                <div class="thread-item">
+                  <div class="thread-name"><span class="dot active"></span> Luồng 3</div>
+                  <div class="thread-status"><i class="ph ph-check"></i> xong <span class="text-green">100%</span></div>
+                </div>
+                <div class="thread-progress"><div class="bar bg-green" style="width: 100%"></div></div>
+
+                <div class="thread-item">
+                  <div class="thread-name"><span class="dot running"></span> Luồng 4</div>
+                  <div class="thread-status">9.8 MB/s <span class="text-blue">98%</span></div>
+                </div>
+                <div class="thread-progress"><div class="bar bg-blue" style="width: 98%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="upload-action">
-        <i class="ph ph-caret-down"></i>
+
+      <div class="upload-modal-footer">
+        <a href="#" class="add-file-btn"><i class="ph ph-plus"></i> Thêm tệp</a>
+        <div class="footer-actions">
+          <button class="btn-text">Tạm dừng tất cả</button>
+          <button class="btn-primary">Thu nhỏ</button>
+        </div>
       </div>
     </div>
 

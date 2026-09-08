@@ -215,10 +215,52 @@ function setupViewToggle() {
   });
 }
 
+/**
+ * Xử lý giao diện Upload Modal
+ */
+function setupUploadModal() {
+  const uploadModal = document.getElementById('uploadModal');
+  const closeBtn = document.getElementById('closeUploadModal');
+  const uploadBtns = document.querySelectorAll('.btn-upload-main, .btn-upload-outline');
+  
+  if (!uploadModal) return;
+
+  // Đóng modal
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      uploadModal.style.display = 'none';
+    });
+  }
+
+  // Mở modal khi bấm các nút Tải lên
+  uploadBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      uploadModal.style.display = 'flex';
+    });
+  });
+
+  // Thu gọn/mở rộng danh sách luồng tải
+  const threadsHeader = document.querySelector('.threads-header');
+  const threadList = document.querySelector('.thread-list');
+  if (threadsHeader && threadList) {
+    threadsHeader.style.cursor = 'pointer';
+    threadsHeader.addEventListener('click', () => {
+      const isHidden = threadList.style.display === 'none';
+      threadList.style.display = isHidden ? 'flex' : 'none';
+      const icon = threadsHeader.querySelector('i.ph-caret-up, i.ph-caret-down');
+      if (icon) {
+        icon.className = isHidden ? 'ph ph-caret-up' : 'ph ph-caret-down';
+      }
+    });
+  }
+}
+
 // Khởi chạy khi DOM đã sẵn sàng
 document.addEventListener('DOMContentLoaded', () => {
   setupTabNavigation();
   setupViewToggle();
+  setupUploadModal();
   // Tạm thời gọi hàm với dữ liệu mẫu. 
   loadDashboardData('home');
 });

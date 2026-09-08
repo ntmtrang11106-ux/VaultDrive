@@ -47,18 +47,21 @@ document.addEventListener("DOMContentLoaded", () => {
           throw new Error("Email hoặc mật khẩu không đúng. Vui lòng thử lại.");
         }
 
-        const data = await response.json();
+        const dataText = await response.text();
 
-        // Lưu token bảo mật và thông tin người dùng vào Local Storage của trình duyệt
-        localStorage.setItem("jwt_token", data.token);
-        localStorage.setItem("user_role", data.role);
-        localStorage.setItem("email", email);
+        // Tạm thời Backend chỉ trả về chuỗi text, nên ta tạo 1 cái token ảo và role ảo.
+        // Giả lập: nếu email chứa chữ "admin", gán quyền là ROLE_ADMIN
+        const role = email.includes("admin") ? "ROLE_ADMIN" : "ROLE_USER";
+        localStorage.setItem("jwt_token", "dummy-token-1234");
+        localStorage.setItem("user_role", role);
 
-        // Kiểm tra quyền (role) để chuyển hướng đến trang phù hợp
-        if (data.role === "ROLE_ADMIN") {
-          window.location.href = "/dashboard";
+        // Kiểm tra quyền (role) để chuyển hướng
+        if (role === "ROLE_ADMIN") {
+          // Trang dành cho admin sẽ được code sau
+          window.location.href = "admin.html";
         } else {
-          window.location.href = "/my-files";
+          // Trang dành cho user
+          window.location.href = "dashboard.html";
         }
       } catch (err) {
         // Nếu có lỗi xảy ra (do try/catch hoặc mất mạng), hiển thị thông báo lỗi màu đỏ

@@ -102,17 +102,73 @@ const headerHTML = `
       </div>
 
       <div class="view-toggle">
-        <button class="view-btn active"><i class="ph ph-squares-four"></i></button>
-        <button class="view-btn"><i class="ph ph-list"></i></button>
+        <button class="view-btn active"><i class="ph-fill ph-squares-four"></i></button>
+        <button class="view-btn"><i class="ph-bold ph-list"></i></button>
       </div>
 
       <button class="btn-upload-outline">
         <i class="ph ph-upload-simple"></i> Tải lên
       </button>
 
-      <div class="notifications">
+      <div class="notifications" id="notificationBtn">
         <i class="ph ph-bell"></i>
         <div class="indicator">2</div>
+
+        <!-- Notification Dropdown -->
+        <div class="notification-dropdown" id="notificationDropdown">
+          <div class="notif-header">
+            <h3>Thông báo <span class="notif-badge">2</span></h3>
+            <a href="#" class="mark-read">Đánh dấu đã đọc</a>
+          </div>
+          
+          <div class="notif-list">
+            <!-- Item 1 -->
+            <div class="notif-item unread">
+              <div class="notif-icon bg-gray"><i class="ph-fill ph-user"></i></div>
+              <div class="notif-content">
+                <p class="notif-title"><strong>Nguyễn Hải Anh</strong> đã chia sẻ tệp</p>
+                <p class="notif-desc">Báo cáo chiến lược 2026.pdf</p>
+                <span class="notif-time">10 phút trước</span>
+              </div>
+              <div class="unread-dot"></div>
+            </div>
+            
+            <!-- Item 2 -->
+            <div class="notif-item unread">
+              <div class="notif-icon bg-green"><i class="ph-fill ph-check-square"></i></div>
+              <div class="notif-content">
+                <p class="notif-title"><strong>Tải lên hoàn tất</strong></p>
+                <p class="notif-desc">sao-luu-he-thong-2026-08.tar.gz · 847 ...</p>
+                <span class="notif-time">1 giờ trước</span>
+              </div>
+              <div class="unread-dot"></div>
+            </div>
+
+            <!-- Item 3 -->
+            <div class="notif-item">
+              <div class="notif-icon bg-gray"><i class="ph-fill ph-user"></i></div>
+              <div class="notif-content">
+                <p class="notif-title"><strong>Lê Thị Phương</strong> đã chia sẻ tệp</p>
+                <p class="notif-desc">Mockup thiết kế UI.png</p>
+                <span class="notif-time">3 giờ trước</span>
+              </div>
+            </div>
+
+            <!-- Item 4 -->
+            <div class="notif-item">
+              <div class="notif-icon bg-yellow"><i class="ph-fill ph-warning"></i></div>
+              <div class="notif-content">
+                <p class="notif-title"><strong>Bộ nhớ đã dùng 38%</strong></p>
+                <p class="notif-desc">Còn 61,6 GB trống. Nâng cấp để có thêm du...</p>
+                <span class="notif-time">Hôm qua</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="notif-footer">
+            <a href="#">Xem tất cả thông báo</a>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -129,3 +185,46 @@ if (sidebarContainer) {
 if (headerContainer) {
   headerContainer.outerHTML = headerHTML;
 }
+
+// Xử lý sự kiện bật/tắt bảng thông báo
+setTimeout(() => {
+  const notifBtn = document.getElementById('notificationBtn');
+  const notifDropdown = document.getElementById('notificationDropdown');
+  
+  if (notifBtn && notifDropdown) {
+    notifBtn.addEventListener('click', function(e) {
+      notifDropdown.classList.toggle('show');
+      e.stopPropagation();
+    });
+
+    notifDropdown.addEventListener('click', function(e) {
+      e.stopPropagation(); // Click bên trong bảng không làm đóng bảng
+    });
+
+    document.addEventListener('click', function() {
+      notifDropdown.classList.remove('show'); // Click ra ngoài sẽ đóng
+    });
+
+    // Chức năng "Đánh dấu đã đọc" (Frontend logic)
+    const markReadBtn = notifDropdown.querySelector('.mark-read');
+    if (markReadBtn) {
+      markReadBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Xóa class 'unread' khỏi tất cả các thông báo
+        const unreadItems = notifDropdown.querySelectorAll('.notif-item.unread');
+        unreadItems.forEach(item => {
+          item.classList.remove('unread');
+        });
+
+        // Ẩn số đếm trên chuông
+        const indicator = notifBtn.querySelector('.indicator');
+        if (indicator) indicator.style.display = 'none';
+
+        // Ẩn số đếm trong header của bảng thông báo
+        const badge = notifDropdown.querySelector('.notif-badge');
+        if (badge) badge.style.display = 'none';
+      });
+    }
+  }
+}, 50);
