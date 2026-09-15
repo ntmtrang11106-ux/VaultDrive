@@ -3,8 +3,12 @@ package com.example.vault_drive.service;
 import com.example.vault_drive.dto.AuthResponse;
 import com.example.vault_drive.dto.LoginRequest;
 import com.example.vault_drive.dto.RegisterRequest;
+import com.example.vault_drive.entity.StoragePlan;
 import com.example.vault_drive.entity.User;
+import com.example.vault_drive.entity.UserStorage;
+import com.example.vault_drive.repository.StoragePlanRepository;
 import com.example.vault_drive.repository.UserRepository;
+import com.example.vault_drive.repository.UserStorageRepository;
 import com.example.vault_drive.security.JwtTokenProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,11 +19,19 @@ import java.time.LocalDate;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final StoragePlanRepository storagePlanRepository;
+    private final UserStorageRepository userStorageRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
+    public AuthService(UserRepository userRepository,
+                       StoragePlanRepository storagePlanRepository,
+                       UserStorageRepository userStorageRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtTokenProvider tokenProvider) {
         this.userRepository = userRepository;
+        this.storagePlanRepository = storagePlanRepository;
+        this.userStorageRepository = userStorageRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
     }
@@ -38,7 +50,15 @@ public class AuthService {
         user.setDob(request.getDob());
         user.setRole("ROLE_USER");
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Khởi tạo dung lượng lưu trữ mặc định
+        StoragePlan defaultPlan = storagePlanRepository.findByName("Free Plan")
+                .orElseGet(() -> storagePlanRepository.save(
+                        new StoragePlan("Free Plan", 10L * 1024 * 1024 * 1024, 0.0)
+                ));
+        userStorageRepository.save(new UserStorage(savedUser, defaultPlan, 0L));
+
         return "Đăng ký tài khoản thành công!";
     }
 
@@ -55,4 +75,4 @@ public class AuthService {
 
         return new AuthResponse(token, user.getEmail(), user.getRole());
     }
-}
+}
