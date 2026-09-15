@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch(`${API_BASE_URL}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: email, password }), // Map email sang username để khớp với backend
+          body: JSON.stringify({ email: email, password: password }),
         });
 
         // Nếu API trả về mã lỗi (không phải 2xx), ném ra lỗi để catch xử lý
@@ -47,16 +47,17 @@ document.addEventListener("DOMContentLoaded", () => {
           throw new Error("Email hoặc mật khẩu không đúng. Vui lòng thử lại.");
         }
 
-        const dataText = await response.text();
+        const data = await response.json();
 
-        // Tạm thời Backend chỉ trả về chuỗi text, nên ta tạo 1 cái token ảo và role ảo.
-        // Giả lập: nếu email chứa chữ "admin", gán quyền là ROLE_ADMIN
-        const role = email.includes("admin") ? "ROLE_ADMIN" : "ROLE_USER";
-        localStorage.setItem("jwt_token", "dummy-token-1234");
-        localStorage.setItem("user_role", role);
+        // Lưu token và role thực tế từ backend trả về
+        localStorage.setItem("jwt_token", data.accessToken);
+        localStorage.setItem("user_role", data.role);
+        if (data.email) {
+          localStorage.setItem("user_email", data.email);
+        }
 
         // Kiểm tra quyền (role) để chuyển hướng
-        if (role === "ROLE_ADMIN") {
+        if (data.role === "ROLE_ADMIN") {
           // Trang dành cho admin sẽ được code sau
           window.location.href = "admin.html";
         } else {
@@ -170,13 +171,12 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            username: email, // Map email sang username để khớp với backend
-            fullname,
-            email,
-            phone,
-            dob,
-            gender,
-            password,
+            email: email,
+            fullName: fullname,
+            phone: phone,
+            dob: dob,
+            gender: gender,
+            password: password,
           }),
         });
 
@@ -187,14 +187,33 @@ document.addEventListener("DOMContentLoaded", () => {
           );
         }
 
-        // Nếu đăng ký thành công, báo xanh và đếm ngược chuyển sang trang Đăng nhập
-        successEl.textContent =
-          "Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...";
+        // Đăng ký thành công, tự động đăng nhập
+        const loginResponse = await fetch(`${API_BASE_URL}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: password }),
+        });
+
+        if (!loginResponse.ok) {
+          throw new Error("Đăng ký thành công nhưng đăng nhập tự động thất bại. Vui lòng thử đăng nhập thủ công.");
+        }
+
+        const data = await loginResponse.json();
+
+        // Lưu thông tin đăng nhập
+        localStorage.setItem("jwt_token", data.accessToken);
+        localStorage.setItem("user_role", data.role);
+        if (data.email) {
+          localStorage.setItem("user_email", data.email);
+        }
+
+        // Thông báo và chuyển hướng trực tiếp vào trang dashboard
+        successEl.textContent = "Đăng ký thành công! Đang vào hệ thống...";
         successEl.style.display = "block";
 
         setTimeout(() => {
-          window.location.href = "login.html"; // Chuyển trang sau 2 giây
-        }, 2000);
+          window.location.href = "dashboard.html";
+        }, 100);
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.style.display = "block";
