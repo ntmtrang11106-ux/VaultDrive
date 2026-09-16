@@ -1,5 +1,160 @@
 /* frontend/css/file-actions.css */
 
+/* ================= NOTIFICATION DROPDOWN ================= */
+.notification-dropdown {
+  position: absolute;
+  top: 48px;
+  right: -10px;
+  width: 380px;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: default;
+}
+
+.notification-dropdown.show {
+  display: flex;
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notif-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-badge {
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.mark-read {
+  font-size: 13px;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.notif-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notif-item {
+  display: flex;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 16px;
+  align-items: flex-start;
+  position: relative;
+}
+
+.notif-item:hover {
+  background-color: #f9fafb;
+}
+
+.notif-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.bg-gray {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.bg-green {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.bg-yellow {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.notif-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-title {
+  font-size: 14px;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.notif-title strong {
+  font-weight: 600;
+}
+
+.notif-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  position: absolute;
+  right: 20px;
+  top: 24px;
+}
+
+.notif-item:not(.unread) .unread-dot {
+  display: none;
+}
+
+.notif-footer {
+  padding: 12px;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+}
+
+.notif-footer a {
+  font-size: 14px;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 600;
+}
+
 /* --- CONTEXT MENU (Menu thả xuống) --- */
 .custom-context-menu {
   position: fixed;
@@ -11,7 +166,8 @@
   z-index: 9999;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  display: none; /* Bị ẩn mặc định */
+  display: none;
+  /* Bị ẩn mặc định */
 }
 
 /* Các nhóm mục (có đường kẻ phân cách) */
@@ -19,6 +175,7 @@
   border-bottom: 1px solid #e2e8f0;
   padding: 4px 0;
 }
+
 .context-menu-group:last-child {
   border-bottom: none;
 }
@@ -32,11 +189,87 @@
   cursor: pointer;
   color: #334155;
   transition: background-color 0.1s ease;
-  position: relative; /* Để submenu con có thể bám vào */
+  position: relative;
+  /* Để submenu con có thể bám vào */
 }
 
 .context-menu-item:hover {
   background-color: #f1f5f9;
+}
+
+/* ================= UPLOAD DROPDOWN MENU ================= */
+.upload-dropdown-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.upload-dropdown-container.inline-dropdown {
+  width: auto;
+  margin-bottom: 0;
+  display: inline-block;
+}
+
+.upload-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  min-width: 200px;
+  background: white;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  padding: 6px;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+.upload-dropdown-menu.show {
+  display: flex;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.upload-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.upload-dropdown-item i {
+  font-size: 18px;
+  color: var(--primary-color, #1a73e8);
+}
+
+.upload-dropdown-item:hover {
+  background-color: #f1f5f9;
+  color: var(--primary-color, #1a73e8);
 }
 
 .context-menu-item .menu-left {
@@ -65,14 +298,16 @@
 /* --- SUBMENU (Menu con) --- */
 .context-submenu {
   position: absolute;
-  top: -8px; 
-  left: 100%; /* Đẩy ra bên phải */
+  top: -8px;
+  left: 100%;
+  /* Đẩy ra bên phải */
   background-color: white;
   min-width: 240px;
   border-radius: 8px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.2);
   padding: 8px 0;
-  display: none; /* Bị ẩn mặc định */
+  display: none;
+  /* Bị ẩn mặc định */
   z-index: 10000;
 }
 
@@ -95,7 +330,8 @@
   cursor: pointer;
   color: #94a3b8;
   transition: all 0.2s ease;
-  z-index: 2; /* Để click được */
+  z-index: 2;
+  /* Để click được */
 }
 
 .more-options:hover,
@@ -113,7 +349,8 @@
   width: 100vw;
   height: 100vh;
   background-color: rgba(0, 0, 0, 0.4);
-  display: none; /* Mặc định ẩn */
+  display: none;
+  /* Mặc định ẩn */
   align-items: center;
   justify-content: center;
   z-index: 99999;
@@ -155,6 +392,7 @@
   font-size: 20px;
   transition: color 0.2s;
 }
+
 .action-modal-close:hover {
   color: #1e293b;
 }
@@ -183,6 +421,7 @@
   transition: border-color 0.2s;
   box-sizing: border-box;
 }
+
 .action-input:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -198,6 +437,7 @@
   font-weight: 500;
   cursor: pointer;
 }
+
 .btn-secondary:hover {
   background-color: #f1f5f9;
 }
@@ -208,12 +448,34 @@
   gap: 8px;
   margin-bottom: 16px;
 }
+
 .share-role-select {
-  padding: 10px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 6px 38px 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
+  border-radius: 20px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23f1f5f9'/%3E%3Cpolyline points='8 10 12 14 16 10' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  cursor: pointer;
   outline: none;
-  background: white;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.share-role-select:hover,
+.share-role-select:focus {
+  color: #0f172a;
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23e2e8f0'/%3E%3Cpolyline points='8 10 12 14 16 10' fill='none' stroke='%230f172a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 /* Danh sách người đã chia sẻ */
@@ -222,16 +484,19 @@
   flex-direction: column;
   gap: 12px;
 }
+
 .shared-user-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+
 .shared-user-info {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
 .shared-user-avatar {
   width: 32px;
   height: 32px;
@@ -244,12 +509,14 @@
   font-size: 12px;
   font-weight: 600;
 }
+
 .shared-user-details .su-name {
   font-size: 14px;
   font-weight: 500;
   color: #1e293b;
   display: block;
 }
+
 .shared-user-details .su-email {
   font-size: 12px;
   color: #64748b;
@@ -711,6 +978,7 @@
 .bg-warning {
   background-color: #f59e0b !important;
 }
+
 /* Moved from dashboard.css */
 .section-title {
   font-size: 13px;
@@ -1058,9 +1326,90 @@
 }
 
 /* Hide extra columns in Grid View */
-.grid-files:not(.list-view) .file-meta-col,
-.grid-folders .folder-meta-col {
+.content-scroll:not(.list-view) .file-meta-col,
+.content-scroll:not(.list-view) .folder-meta-col {
   display: none;
+}
+
+/* --- XỬ LÝ BADGE & MÚT 3 CHẤM CHO THƯ MỤC (FOLDER CARD) TRÊN CẢ 2 CHẾ ĐỘ --- */
+.folder-card {
+  position: relative;
+}
+
+.folder-card .grid-shared-badge {
+  display: block !important;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin-top: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+  opacity: 1;
+}
+
+.folder-card .more-options {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 3;
+}
+
+/* Khi hover vào thư mục: Ẩn chữ Riêng tư/Đã chia sẻ, Hiện nút 3 chấm */
+.folder-card:hover .grid-shared-badge {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.folder-card:hover .more-options {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.folder-shared {
+  display: none !important;
+}
+
+/* --- XỬ LÝ BADGE & NÚT 3 CHẤM CHO TỆP TIN (FILE CARD) --- */
+.grid-shared-badge {
+  display: none;
+}
+
+/* Ở dạng Ô vuông (Grid View) của Tệp tin */
+.content-scroll:not(.list-view) .file-card .grid-shared-badge {
+  display: block;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin-top: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+  opacity: 1;
+}
+
+.content-scroll:not(.list-view) .file-card .more-options {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 3;
+}
+
+.content-scroll:not(.list-view) .file-card:hover .more-options {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.content-scroll:not(.list-view) .file-card:hover .grid-shared-badge {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Ở dạng Bảng (List View) của Tệp tin: Ẩn badge góc của file-card */
+.content-scroll.list-view .file-card .grid-shared-badge {
+  display: none !important;
 }
 
 .grid-files:not(.list-view) .file-info-main {
@@ -1103,12 +1452,15 @@
 }
 
 /* --- Utilities Extracted from HTML --- */
-.ctx-delete, .ctx-delete .ph-trash {
+.ctx-delete,
+.ctx-delete .ph-trash {
   color: #ef4444;
 }
+
 .preview-modal-overlay {
   z-index: 10000;
 }
+
 .preview-modal {
   width: 80%;
   max-width: 800px;
@@ -1116,6 +1468,7 @@
   display: flex;
   flex-direction: column;
 }
+
 .preview-modal-body {
   flex: 1;
   display: flex;
@@ -1124,42 +1477,486 @@
   background: #f8fafc;
   border-radius: 8px;
 }
+
 .preview-modal-content {
   text-align: center;
   color: #64748b;
 }
+
 #previewModalIcon {
   font-size: 64px;
   margin-bottom: 16px;
 }
+
 .flex-1 {
   flex: 1;
 }
+
 .share-list-title {
   font-size: 14px;
   color: #475569;
   margin-bottom: 12px;
   margin-top: 24px;
 }
+
 .avatar-purple {
   background-color: #8b5cf6;
 }
+
 .su-role-text {
   font-size: 13px;
   color: #64748b;
 }
+
 .share-role-select-inline {
-  padding: 6px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 6px 36px 6px 14px;
   font-size: 13px;
-  color: #475569;
-  border-color: transparent;
-  background-color: transparent;
+  font-weight: 500;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23f1f5f9'/%3E%3Cpolyline points='8 10 12 14 16 10' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
+
+.share-role-select-inline:hover,
+.share-role-select-inline:focus {
+  color: #0f172a;
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23e2e8f0'/%3E%3Cpolyline points='8 10 12 14 16 10' fill='none' stroke='%230f172a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
 .text-danger {
   color: red;
 }
+
+.shared-badge.shared-received {
+  background-color: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
 .copy-link-btn {
   margin-right: auto;
   color: var(--primary-color);
   border-color: var(--primary-color);
+}
+
+/* ================= SHARED ITEMS LIST TABLE ================= */
+.shared-list-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.shared-table-header {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.8fr) minmax(130px, 1.2fr) minmax(110px, 1fr) minmax(130px, auto);
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px 10px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.shared-table-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.8fr) minmax(130px, 1.2fr) minmax(110px, 1fr) minmax(130px, auto);
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: white;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.shared-table-row:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-3px);
+}
+
+/* Tệp tin cell */
+.shared-file-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.shared-file-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.shared-file-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shared-file-size {
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Người chia sẻ cell */
+.shared-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.shared-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shared-user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Thời gian cell */
+.shared-time-cell {
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+/* Quyền badge pill (Strictly Xem / Chỉnh sửa) */
+.perm-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.perm-badge.view {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.perm-badge.edit {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+/* ================= SHARED GRID CARD (4 ô vuông mỗi hàng) ================= */
+.shared-grid-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+@media (max-width: 1280px) {
+  .shared-grid-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .shared-grid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .shared-grid-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shared-grid-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.shared-grid-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+  transform: translateY(-3px);
+}
+
+/* Badge Quyền hiện mặc định ở góc trên bên phải của Grid Card (4 ô) */
+.shared-grid-card .perm-badge,
+.shared-folder-card .perm-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+  z-index: 4;
+}
+
+/* Nút 3 chấm ẩn mặc định, xuất hiện ở góc trên bên phải khi Hover */
+.shared-grid-card .more-options,
+.shared-folder-card .more-options {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.2s ease;
+  z-index: 5;
+}
+
+/* Khi Hover vào Grid Card (4 ô): Ẩn nhãn Xem/Chỉnh sửa, Hiện nút 3 chấm đứng */
+.shared-grid-card:hover .perm-badge,
+.shared-folder-card:hover .perm-badge {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shared-grid-card:hover .more-options,
+.shared-folder-card:hover .more-options {
+  opacity: 1;
+}
+
+.shared-grid-card .more-options:hover,
+.shared-folder-card .more-options:hover {
+  background-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.shared-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.shared-card-top .file-icon-box {
+  margin-bottom: 0;
+}
+
+.shared-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.shared-file-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shared-file-size {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.shared-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+}
+
+.shared-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.shared-user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.shared-user-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shared-time-text {
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.shared-table-header .col-perm {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 36px;
+}
+
+.shared-perm-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  position: relative;
+  height: 100%;
+}
+
+.shared-perm-cell .perm-badge {
+  position: relative;
+  opacity: 1 !important;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.shared-perm-cell .more-options {
+  position: relative;
+  top: auto;
+  right: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  opacity: 1 !important;
+  flex-shrink: 0;
+  margin: 0;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.shared-perm-cell .more-options:hover,
+.shared-table-row .more-options:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+/* ================= SHARE MODAL BUTTON EFFECTS & ERROR STYLING ================= */
+.share-modal .btn-primary,
+.share-modal .btn-secondary,
+#addShareUserBtn,
+#copyLinkBtnModal,
+#doneShareBtn {
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.share-modal .btn-primary:hover,
+#addShareUserBtn:hover,
+#doneShareBtn:hover {
+  transform: none !important;
+  background-color: var(--primary-hover);
+  box-shadow: var(--shadow-md) !important;
+}
+
+.share-modal .btn-secondary:hover,
+#copyLinkBtnModal:hover {
+  transform: none !important;
+  background-color: rgba(14, 165, 233, 0.08) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06) !important;
+}
+
+.share-modal .btn-primary:active,
+.share-modal .btn-secondary:active,
+#addShareUserBtn:active,
+#copyLinkBtnModal:active,
+#doneShareBtn:active {
+  transform: translateY(2px) scale(0.98) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Red error text label below share email input */
+.share-error-label {
+  display: none;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 8px;
+  padding-left: 2px;
+  animation: shareErrorFade 0.2s ease-in-out;
+}
+
+.action-input.input-error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+}
+
+@keyframes shareErrorFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

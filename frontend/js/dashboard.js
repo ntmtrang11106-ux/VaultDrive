@@ -86,13 +86,20 @@ function setupTabNavigation() {
         icon.classList.add('ph-fill');
       }
 
-      const viewType = item.dataset.view; // 'home' hoặc 'my-files'
+      const viewType = item.dataset.view; // 'home' hoặc 'my-files' hoặc 'shared'
+
+      // Reset folder navigation state back to root
+      window.currentFolderId = null;
+      const rootTitle = viewType === 'shared' ? 'Được chia sẻ' :
+        viewType === 'trash' ? 'Thùng rác' :
+          viewType === 'recent' ? 'Gần đây' : 'Tệp của tôi';
+      window.folderPathTrail = [{ id: null, name: rootTitle }];
 
       // Cập nhật Breadcrumb
-      if (viewType === 'home') {
-        breadcrumbContainer.innerHTML = '<span class="current">Trang chủ</span>';
-      } else if (viewType === 'my-files') {
-        breadcrumbContainer.innerHTML = '<span class="current">Tệp của tôi</span>';
+      if (typeof updateBreadcrumbUI === 'function') {
+        updateBreadcrumbUI();
+      } else if (breadcrumbContainer) {
+        breadcrumbContainer.innerHTML = `<span class="current">${rootTitle}</span>`;
       }
 
       // Load lại dữ liệu cho tab tương ứng
@@ -105,21 +112,35 @@ function setupTabNavigation() {
  * Xử lý sự kiện đổi chế độ hiển thị (Grid / List)
  */
 function setupViewToggle() {
-  const gridBtn = document.querySelector('.view-btn i.ph-squares-four').parentElement;
-  const listBtn = document.querySelector('.view-btn i.ph-list').parentElement;
+  const gridBtn = document.querySelector('.view-btn i.ph-squares-four')?.parentElement;
+  const listBtn = document.querySelector('.view-btn i.ph-list')?.parentElement;
   const contentScroll = document.querySelector('.content-scroll');
 
-  gridBtn.addEventListener('click', () => {
-    gridBtn.classList.add('active');
-    listBtn.classList.remove('active');
-    contentScroll.classList.remove('list-view');
-  });
+  if (gridBtn) {
+    gridBtn.addEventListener('click', () => {
+      gridBtn.classList.add('active');
+      if (listBtn) listBtn.classList.remove('active');
+      if (contentScroll) contentScroll.classList.remove('list-view');
+      const gridFiles = document.querySelector('.grid-files');
+      if (gridFiles) gridFiles.classList.remove('list-view');
+      if (window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
+        renderSharedView();
+      }
+    });
+  }
 
-  listBtn.addEventListener('click', () => {
-    listBtn.classList.add('active');
-    gridBtn.classList.remove('active');
-    contentScroll.classList.add('list-view');
-  });
+  if (listBtn) {
+    listBtn.addEventListener('click', () => {
+      listBtn.classList.add('active');
+      if (gridBtn) gridBtn.classList.remove('active');
+      if (contentScroll) contentScroll.classList.add('list-view');
+      const gridFiles = document.querySelector('.grid-files');
+      if (gridFiles) gridFiles.classList.add('list-view');
+      if (window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
+        renderSharedView();
+      }
+    });
+  }
 }
 
 
@@ -127,9 +148,64 @@ function setupViewToggle() {
 document.addEventListener('DOMContentLoaded', () => {
   setupTabNavigation();
   setupViewToggle();
-  setupUploadModal();
-  setupDragAndDrop();
-  // Tạm thời gọi hàm với dữ liệu mẫu. 
-  loadDashboardData('home');
+  if (typeof setupUploadModal === "function") setupUploadModal();
+  if (typeof setupDragAndDrop === "function") setupDragAndDrop();
+
+  // Tạm thời gọi hàm với dữ liệu mẫu (sẽ sửa sau khi backend xong)
+  if (typeof loadDashboardData === "function") loadDashboardData('home');
+
+  // Fetch Storage Info
+  fetchStorageInfo();
+
+  // Fetch Notifications
+  if (typeof fetchNotifications === "function") fetchNotifications();
 });
+
+/**
+ * Hàm hỗ trợ format kích thước file
+ */
+function formatSizeGlobal(bytes) {
+  if (!bytes) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+/**
+ * Gọi API lấy thông tin dung lượng lưu trữ
+ */
+async function fetchStorageInfo() {
+  try {
+    const response = await fetchWithAuth("/dashboard/storage");
+    if (response && response.ok) {
+      const data = await response.json();
+      // Giả sử data: { usedBytes: 1024, maxBytes: 10485760 }
+      const usedBytes = data.usedBytes || 0;
+      const maxBytes = data.maxBytes || (15 * 1024 * 1024 * 1024); // Mặc định 15GB nếu không có
+
+      const usedStr = formatSizeGlobal(usedBytes);
+      const maxStr = formatSizeGlobal(maxBytes);
+      const remainingBytes = Math.max(0, maxBytes - usedBytes);
+      const remainingStr = formatSizeGlobal(remainingBytes);
+
+      let percent = 0;
+      if (maxBytes > 0) {
+        percent = Math.round((usedBytes / maxBytes) * 100);
+      }
+
+      // Update UI
+      const storageValue = document.querySelector('.storage-value');
+      const progressFill = document.querySelector('.progress-fill');
+      const storageRemaining = document.querySelector('.storage-remaining');
+
+      if (storageValue) storageValue.textContent = `${usedStr} / ${maxStr}`;
+      if (progressFill) progressFill.style.width = `${percent}%`;
+      if (storageRemaining) storageRemaining.textContent = `${remainingStr} còn lại`;
+    }
+  } catch (error) {
+    console.error("Lỗi lấy thông tin bộ nhớ:", error);
+  }
+}
+
 
