@@ -72,8 +72,9 @@ public class ShareService {
                 throw new RuntimeException("Không thể chia sẻ file đang nằm trong thùng rác!");
             }
 
-            if (!accessControlService.hasFileAccess(currentUser, fileItem, "EDIT")) {
-                throw new RuntimeException("Bạn không có quyền chia sẻ file này!");
+            // Requirement 4: ONLY owner can manage sharing
+            if (!accessControlService.canManageSharing(currentUser, fileItem)) {
+                throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền chia sẻ file này!");
             }
             itemName = fileItem.getFileName();
         } else {
@@ -84,8 +85,9 @@ public class ShareService {
                 throw new RuntimeException("Không thể chia sẻ folder đang nằm trong thùng rác!");
             }
 
-            if (!accessControlService.hasFolderAccess(currentUser, folderItem, "EDIT")) {
-                throw new RuntimeException("Bạn không có quyền chia sẻ folder này!");
+            // Requirement 4: ONLY owner can manage sharing
+            if (!accessControlService.canManageSharing(currentUser, folderItem)) {
+                throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền chia sẻ folder này!");
             }
             itemName = folderItem.getName();
         }
@@ -112,9 +114,10 @@ public class ShareService {
 
         FileShare savedShare = fileShareRepository.save(share);
 
-        // Send notification to recipient
-        String title = "Bạn nhận được dữ liệu được chia sẻ";
-        String content = currentUser.getEmail() + " đã chia sẻ " + (hasFolder ? "thư mục '" : "file '") + itemName + "' cho bạn với quyền " + targetPermission.name() + ".";
+        // Requirement 6: Create notification for recipient
+        String senderDisplayName = currentUser.getFullName() != null && !currentUser.getFullName().isBlank() ? currentUser.getFullName() : currentUser.getEmail();
+        String title = hasFolder ? "New shared folder" : "New shared file";
+        String content = senderDisplayName + " shared " + itemName + " with you";
         Notification notification = new Notification(
                 recipient,
                 currentUser,
@@ -137,15 +140,15 @@ public class ShareService {
         if (fileId != null) {
             FileItem fileItem = fileItemRepository.findByIdAndIsDeletedFalse(fileId)
                     .orElseThrow(() -> new RuntimeException("File không tồn tại!"));
-            if (!accessControlService.hasFileAccess(currentUser, fileItem, "VIEW")) {
-                throw new RuntimeException("Bạn không có quyền truy cập danh sách chia sẻ của file này!");
+            if (!accessControlService.canManageSharing(currentUser, fileItem)) {
+                throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền xem danh sách chia sẻ!");
             }
             shares = fileShareRepository.findByFileAndIsDeletedFalse(fileItem);
         } else {
             Folder folderItem = folderRepository.findByIdAndIsDeletedFalse(folderId)
                     .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
-            if (!accessControlService.hasFolderAccess(currentUser, folderItem, "VIEW")) {
-                throw new RuntimeException("Bạn không có quyền truy cập danh sách chia sẻ của folder này!");
+            if (!accessControlService.canManageSharing(currentUser, folderItem)) {
+                throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền xem danh sách chia sẻ!");
             }
             shares = fileShareRepository.findByFolderAndIsDeletedFalse(folderItem);
         }
@@ -158,12 +161,10 @@ public class ShareService {
         FileShare share = fileShareRepository.findByIdAndIsDeletedFalse(shareId)
                 .orElseThrow(() -> new RuntimeException("Bản ghi chia sẻ không tồn tại!"));
 
-        // Check if current user is owner or sharedBy
-        boolean isOwner = share.getFile() != null ? accessControlService.isOwner(currentUser, share.getFile()) : accessControlService.isOwner(currentUser, share.getFolder());
-        boolean isSharer = share.getSharedBy().getId().equals(currentUser.getId());
+        boolean isOwner = share.getFile() != null ? accessControlService.canManageSharing(currentUser, share.getFile()) : accessControlService.canManageSharing(currentUser, share.getFolder());
 
-        if (!isOwner && !isSharer) {
-            throw new RuntimeException("Bạn không có quyền thay đổi quyền truy cập này!");
+        if (!isOwner) {
+            throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chia sẻ!");
         }
 
         try {
@@ -182,11 +183,10 @@ public class ShareService {
         FileShare share = fileShareRepository.findByIdAndIsDeletedFalse(shareId)
                 .orElseThrow(() -> new RuntimeException("Bản ghi chia sẻ không tồn tại!"));
 
-        boolean isOwner = share.getFile() != null ? accessControlService.isOwner(currentUser, share.getFile()) : accessControlService.isOwner(currentUser, share.getFolder());
-        boolean isSharer = share.getSharedBy().getId().equals(currentUser.getId());
+        boolean isOwner = share.getFile() != null ? accessControlService.canManageSharing(currentUser, share.getFile()) : accessControlService.canManageSharing(currentUser, share.getFolder());
 
-        if (!isOwner && !isSharer) {
-            throw new RuntimeException("Bạn không có quyền thu hồi chia sẻ này!");
+        if (!isOwner) {
+            throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền thu hồi chia sẻ này!");
         }
 
         share.setIsDeleted(true);
@@ -200,10 +200,10 @@ public class ShareService {
         return shares.stream()
                 .filter(s -> {
                     if (s.getFile() != null) {
-                        return !s.getFile().getIsTrashed() && !s.getFile().getIsDeleted();
+                        return !Boolean.TRUE.equals(s.getFile().getIsTrashed()) && !Boolean.TRUE.equals(s.getFile().getIsDeleted());
                     }
                     if (s.getFolder() != null) {
-                        return !s.getFolder().getIsTrashed() && !s.getFolder().getIsDeleted();
+                        return !Boolean.TRUE.equals(s.getFolder().getIsTrashed()) && !Boolean.TRUE.equals(s.getFolder().getIsDeleted());
                     }
                     return false;
                 })

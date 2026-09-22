@@ -1,6 +1,7 @@
 package com.example.vault_drive.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Nationalized;
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,10 +12,12 @@ public class FileItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "file_name", nullable = false)
+    @Nationalized
+    @Column(name = "file_name", nullable = false, columnDefinition = "NVARCHAR(255)")
     private String fileName;
 
-    @Column(name = "original_name")
+    @Nationalized
+    @Column(name = "original_name", columnDefinition = "NVARCHAR(255)")
     private String originalName;
 
     @Column(name = "file_type")
@@ -57,7 +60,8 @@ public class FileItem {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public FileItem(String fileName, String originalName, String fileType, Long sizeBytes, String filePath, Folder folder, User user) {
+    public FileItem(String fileName, String originalName, String fileType, Long sizeBytes, String filePath,
+            Folder folder, User user) {
         this.fileName = fileName;
         this.originalName = originalName;
         this.fileType = fileType;
@@ -76,45 +80,115 @@ public class FileItem {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getOriginalName() { return originalName; }
-    public void setOriginalName(String originalName) { this.originalName = originalName; }
+    public String getFileName() {
+        return fileName;
+    }
 
-    public String getFileType() { return fileType; }
-    public void setFileType(String fileType) { this.fileType = fileType; }
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 
-    public Long getSizeBytes() { return sizeBytes; }
-    public void setSizeBytes(Long sizeBytes) { this.sizeBytes = sizeBytes; }
+    public String getOriginalName() {
+        return originalName;
+    }
 
-    public String getFilePath() { return filePath; }
-    public void setFilePath(String filePath) { this.filePath = filePath; }
+    public void setOriginalName(String originalName) {
+        this.originalName = originalName;
+    }
 
-    public Folder getFolder() { return folder; }
-    public void setFolder(Folder folder) { this.folder = folder; }
+    public String getFileType() {
+        return fileType;
+    }
 
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public void setFileType(String fileType) {
+        this.fileType = fileType;
+    }
 
-    public Boolean getIsTrashed() { return isTrashed; }
-    public void setIsTrashed(Boolean isTrashed) { this.isTrashed = isTrashed; }
+    public Long getSizeBytes() {
+        return sizeBytes;
+    }
 
-    public LocalDateTime getTrashedAt() { return trashedAt; }
-    public void setTrashedAt(LocalDateTime trashedAt) { this.trashedAt = trashedAt; }
+    public void setSizeBytes(Long sizeBytes) {
+        this.sizeBytes = sizeBytes;
+    }
 
-    public Boolean getIsDeleted() { return isDeleted; }
-    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
+    public String getFilePath() {
+        return filePath;
+    }
 
-    public LocalDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Folder getFolder() {
+        return folder;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setFolder(Folder folder) {
+        this.folder = folder;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Boolean getIsTrashed() {
+        return isTrashed;
+    }
+
+    public void setIsTrashed(Boolean isTrashed) {
+        this.isTrashed = isTrashed;
+    }
+
+    public LocalDateTime getTrashedAt() {
+        return trashedAt;
+    }
+
+    public void setTrashedAt(LocalDateTime trashedAt) {
+        this.trashedAt = trashedAt;
+    }
+
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

@@ -1,7 +1,18 @@
 package com.example.vault_drive.service;
 
+import com.example.vault_drive.dto.FileItemResponse;
+import com.example.vault_drive.dto.MoveRequest;
+import com.example.vault_drive.dto.RenameRequest;
+import com.example.vault_drive.entity.FileItem;
+import com.example.vault_drive.entity.Folder;
+import com.example.vault_drive.entity.User;
+import com.example.vault_drive.repository.FileItemRepository;
+import com.example.vault_drive.repository.FolderRepository;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -13,6 +24,17 @@ import java.util.concurrent.CompletableFuture;
 public class FileService {
 
     private final Path uploadDir = Paths.get("uploads");
+    private final FileItemRepository fileItemRepository;
+    private final FolderRepository folderRepository;
+    private final AccessControlService accessControlService;
+
+    public FileService(FileItemRepository fileItemRepository,
+                       FolderRepository folderRepository,
+                       AccessControlService accessControlService) {
+        this.fileItemRepository = fileItemRepository;
+        this.folderRepository = folderRepository;
+        this.accessControlService = accessControlService;
+    }
 
     @Async("fileExecutor")
     public CompletableFuture<Boolean> mergeChunksAsync(String fileName, int totalChunks) {
@@ -43,5 +65,98 @@ public class FileService {
             e.printStackTrace();
             return CompletableFuture.completedFuture(false);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public FileItem getFileForPreview(User user, Long fileId) {
+        FileItem fileItem = fileItemRepository.findByIdAndIsDeletedFalse(fileId)
+                .orElseThrow(() -> new RuntimeException("File không tồn tại!"));
+
+        if (Boolean.TRUE.equals(fileItem.getIsTrashed())) {
+            throw new RuntimeException("File đang ở trong thùng rác, không thể xem trước!");
+        }
+
+        if (!accessControlService.hasFileAccess(user, fileItem, "VIEW")) {
+            throw new RuntimeException("Bạn không có quyền xem trước file này!");
+        }
+
+        return fileItem;
+    }
+
+    @Transactional(readOnly = true)
+    public FileItem getFileForDownload(User user, Long fileId) {
+        FileItem fileItem = fileItemRepository.findByIdAndIsDeletedFalse(fileId)
+                .orElseThrow(() -> new RuntimeException("File không tồn tại!"));
+
+        if (Boolean.TRUE.equals(fileItem.getIsTrashed())) {
+            throw new RuntimeException("File đang ở trong thùng rác, không thể tải về!");
+        }
+
+        if (!accessControlService.hasFileAccess(user, fileItem, "VIEW")) {
+            throw new RuntimeException("Bạn không có quyền tải file này!");
+        }
+
+        return fileItem;
+    }
+
+    @Transactional
+    public FileItemResponse renameFile(User user, Long fileId, RenameRequest request) {
+        if (request.getNewName() == null || request.getNewName().isBlank()) {
+            throw new RuntimeException("Tên file mới không được để trống!");
+        }
+
+        FileItem fileItem = fileItemRepository.findByIdAndIsDeletedFalse(fileId)
+                .orElseThrow(() -> new RuntimeException("File không tồn tại!"));
+
+        if (Boolean.TRUE.equals(fileItem.getIsTrashed())) {
+            throw new RuntimeException("Không thể đổi tên file đang nằm trong thùng rác!");
+        }
+
+        if (!accessControlService.hasFileAccess(user, fileItem, "EDIT")) {
+            throw new RuntimeException("Bạn không có quyền đổi tên file này!");
+        }
+
+        fileItem.setFileName(request.getNewName());
+        fileItem.setOriginalName(request.getNewName());
+        FileItem saved = fileItemRepository.save(fileItem);
+
+        String perm = accessControlService.getEffectiveFilePermission(user, saved);
+        boolean isShared = !accessControlService.isOwner(user, saved);
+        return new FileItemResponse(saved, isShared, perm);
+    }
+
+    @Transactional
+    public FileItemResponse moveFile(User user, Long fileId, MoveRequest request) {
+        FileItem fileItem = fileItemRepository.findByIdAndIsDeletedFalse(fileId)
+                .orElseThrow(() -> new RuntimeException("File không tồn tại!"));
+
+        if (Boolean.TRUE.equals(fileItem.getIsTrashed())) {
+            throw new RuntimeException("Không thể di chuyển file đang nằm trong thùng rác!");
+        }
+
+        if (!accessControlService.hasFileAccess(user, fileItem, "EDIT")) {
+            throw new RuntimeException("Bạn không có quyền di chuyển file này!");
+        }
+
+        Folder targetFolder = null;
+        if (request.getTargetFolderId() != null) {
+            targetFolder = folderRepository.findByIdAndIsDeletedFalse(request.getTargetFolderId())
+                    .orElseThrow(() -> new RuntimeException("Thư mục đích không tồn tại!"));
+
+            if (Boolean.TRUE.equals(targetFolder.getIsTrashed())) {
+                throw new RuntimeException("Không thể di chuyển file vào thư mục rác!");
+            }
+
+            if (!accessControlService.hasFolderAccess(user, targetFolder, "EDIT")) {
+                throw new RuntimeException("Bạn không có quyền di chuyển file vào thư mục đích này!");
+            }
+        }
+
+        fileItem.setFolder(targetFolder);
+        FileItem saved = fileItemRepository.save(fileItem);
+
+        String perm = accessControlService.getEffectiveFilePermission(user, saved);
+        boolean isShared = !accessControlService.isOwner(user, saved);
+        return new FileItemResponse(saved, isShared, perm);
     }
 }

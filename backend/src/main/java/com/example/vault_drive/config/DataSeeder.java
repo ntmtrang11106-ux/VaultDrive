@@ -18,17 +18,17 @@ public class DataSeeder {
 
     @Bean
     CommandLineRunner initDatabase(UserRepository userRepository,
-                                  StoragePlanRepository storagePlanRepository,
-                                  UserStorageRepository userStorageRepository,
-                                  PasswordEncoder passwordEncoder) {
+            StoragePlanRepository storagePlanRepository,
+            UserStorageRepository userStorageRepository,
+            PasswordEncoder passwordEncoder) {
         return args -> {
             StoragePlan defaultPlan = storagePlanRepository.findByName("Free Plan")
                     .orElseGet(() -> storagePlanRepository.save(
                             new StoragePlan("Free Plan", 10L * 1024 * 1024 * 1024, 0.0) // 10GB default
-                    ));
+            ));
 
             if (userRepository.count() == 0) {
-                
+
                 // 1. Tạo tài khoản Admin
                 User admin = new User();
                 admin.setEmail("admin@vaultdrive.com");
@@ -65,8 +65,9 @@ public class DataSeeder {
                 user2 = userRepository.save(user2);
                 userStorageRepository.save(new UserStorage(user2, defaultPlan, 0L));
 
-                System.out.println("====== [SEED DATA] Đã mã hóa mật khẩu, chèn 3 user mẫu và khởi tạo dung lượng DB thành công ======");
+                System.out.println(
+                        "====== [SEED DATA] Đã mã hóa mật khẩu, chèn 3 user mẫu và khởi tạo dung lượng DB thành công ======");
             }
         };
     }
-}
+}

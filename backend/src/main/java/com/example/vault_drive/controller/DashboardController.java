@@ -52,4 +52,20 @@ public class DashboardController {
         User user = accessControlService.getCurrentUser();
         return ResponseEntity.ok(dashboardService.createFolder(user, request));
     }
+
+    @PatchMapping("/folders/{id}/rename")
+    public ResponseEntity<FolderResponse> renameFolder(
+            @PathVariable("id") Long folderId,
+            @Valid @RequestBody RenameRequest request) {
+        User user = accessControlService.getCurrentUser();
+        return ResponseEntity.ok(dashboardService.renameFolder(user, folderId, request));
+    }
+
+    @PatchMapping("/folders/{id}/move")
+    public ResponseEntity<FolderResponse> moveFolder(
+            @PathVariable("id") Long folderId,
+            @Valid @RequestBody MoveRequest request) {
+        User user = accessControlService.getCurrentUser();
+        return ResponseEntity.ok(dashboardService.moveFolder(user, folderId, request));
+    }
 }
