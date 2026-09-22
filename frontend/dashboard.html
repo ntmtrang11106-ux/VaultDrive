@@ -16,6 +16,8 @@
 
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/file-actions.css" />
+  <link rel="stylesheet" href="css/trash.css" />
+  <link rel="stylesheet" href="css/settings.css" />
 </head>
 
 <body>
@@ -373,6 +375,28 @@
           </div>
         </div>
       </div>
+      
+      <!-- Trash View Container (Hidden by default) -->
+      <div id="trash-view-container" style="display: none;">
+        <div class="trash-header-info" id="trash-header-info">
+          <!-- Dynamically populated e.g. 6 tệp · Tự động xóa sau 30 ngày -->
+        </div>
+
+        <div class="trash-list" id="trash-list">
+          <!-- Trashed items go here -->
+        </div>
+
+        <div class="trash-empty-state" id="trash-empty-state" style="display: none;">
+          <i class="ph ph-trash"></i>
+          <h3>Thùng rác trống</h3>
+          <p>Các mục trong thùng rác sẽ bị xóa vĩnh viễn sau 30 ngày.</p>
+        </div>
+      </div>
+      
+      <!-- Settings View Container (Hidden by default) -->
+      <div id="settings-view-container" style="display: none;">
+        <!-- Nội dung sẽ được render thông qua JS -->
+      </div>
     </div>
   </main>
 
@@ -595,6 +619,7 @@
   <script src="js/layout.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/file-actions.js"></script>
+  <script src="js/settings.js"></script>
 </body>
 
 </html>

@@ -92,7 +92,8 @@ function setupTabNavigation() {
       window.currentFolderId = null;
       const rootTitle = viewType === 'shared' ? 'Được chia sẻ' :
         viewType === 'trash' ? 'Thùng rác' :
-          viewType === 'recent' ? 'Gần đây' : 'Tệp của tôi';
+          viewType === 'settings' ? 'Cài đặt' :
+            viewType === 'recent' ? 'Gần đây' : 'Tệp của tôi';
       window.folderPathTrail = [{ id: null, name: rootTitle }];
 
       // Cập nhật Breadcrumb
@@ -208,4 +209,38 @@ async function fetchStorageInfo() {
   }
 }
 
+/**
+ * Hiển thị thông tin User ở Sidebar
+ */
+function fetchUserInfo() {
+  const userNameEl = document.getElementById("userName");
+  const userEmailEl = document.getElementById("userEmail");
+  const userAvatarEl = document.getElementById("userAvatar");
 
+  if (!userNameEl || !userEmailEl || !userAvatarEl) return;
+
+  // Cố gắng đọc từ mock_user_profile (nếu người dùng đã lưu ở Settings)
+  const savedProfileStr = localStorage.getItem("mock_user_profile");
+  const fallbackEmail = localStorage.getItem("user_email") || "nguoidung@congty.vn";
+
+  let fullName = "Người dùng";
+  let email = fallbackEmail;
+
+  if (savedProfileStr) {
+    try {
+      const profile = JSON.parse(savedProfileStr);
+      fullName = profile.fullName || fullName;
+      email = profile.email || email;
+    } catch (e) { }
+  } else {
+    // Tự sinh tên từ email nếu chưa có
+    fullName = email.split('@')[0];
+  }
+
+  userNameEl.textContent = fullName;
+  userEmailEl.textContent = email;
+  userAvatarEl.textContent = fullName.substring(0, 2).toUpperCase();
+}
+
+// Gọi ngay khi load
+fetchUserInfo();

@@ -1960,3 +1960,12 @@
     transform: translateY(0);
   }
 }
+
+/* ================= SHARED CARDS ACTIVE EFFECT ================= */
+.shared-grid-card {
+  transition: transform 0.1s ease;
+}
+
+.shared-grid-card:active {
+  transform: scale(0.98);
+}

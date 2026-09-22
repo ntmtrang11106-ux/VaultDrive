@@ -2364,23 +2364,29 @@ async function loadDashboardData(viewType = "home") {
 
   // Reset UI elements when switching away from shared view
   const contentScroll = document.querySelector(".content-scroll");
-  if (contentScroll && viewType !== "shared") {
+  if (contentScroll) {
     const heroBanner = contentScroll.querySelector(".shared-hero-banner");
-    if (heroBanner) heroBanner.style.display = "none";
+    if (heroBanner) heroBanner.style.display = viewType === "shared" ? "flex" : "none";
+
+    const trashContainer = document.getElementById("trash-view-container");
+    if (trashContainer) trashContainer.style.display = viewType === "trash" ? "block" : "none";
+
+    const settingsContainer = document.getElementById("settings-view-container");
+    if (settingsContainer) settingsContainer.style.display = viewType === "settings" ? "block" : "none";
 
     // Xóa tiêu đề chia sẻ động để không bị lặp 2 chữ THƯ MỤC / TỆP TIN
     const sharedTitles = contentScroll.querySelectorAll(".shared-folder-title, .shared-file-title");
     sharedTitles.forEach(t => t.remove());
 
     const sectionTitles = contentScroll.querySelectorAll(".section-title");
-    sectionTitles.forEach(t => t.style.display = "block");
+    sectionTitles.forEach(t => t.style.display = (viewType === "trash" || viewType === "shared" || viewType === "settings") ? "none" : "block");
 
     const gridFolders = contentScroll.querySelector(".grid-folders");
-    if (gridFolders) gridFolders.style.display = "grid";
+    if (gridFolders) gridFolders.style.display = (viewType === "trash" || viewType === "settings") ? "none" : "grid";
 
     const gridFiles = contentScroll.querySelector(".grid-files");
     if (gridFiles) {
-      gridFiles.style.display = "";
+      gridFiles.style.display = (viewType === "trash" || viewType === "settings") ? "none" : "";
       gridFiles.className = "grid-files";
     }
   }
@@ -2400,6 +2406,13 @@ async function loadDashboardData(viewType = "home") {
     return;
   }
 
+  if (viewType === "settings") {
+    if (typeof renderSettingsView === "function") {
+      renderSettingsView();
+    }
+    return;
+  }
+
   try {
     let endpoint = "/folders/root";
     if (window.currentFolderId) {
@@ -2415,8 +2428,7 @@ async function loadDashboardData(viewType = "home") {
       const data = await response.json();
       window.currentLoadedData = data;
       if (viewType === "trash") {
-        renderFolders(data.trashedFolders || []);
-        renderFiles(data.trashedFiles || []);
+        renderTrashItems(data.folders || [], data.files || []);
       } else {
         renderFolders(data.subfolders || data.folders || []);
         renderFiles(data.files || []);
@@ -2428,6 +2440,186 @@ async function loadDashboardData(viewType = "home") {
   }
 
   // Nếu gặp lỗi API hoặc dữ liệu trống, render danh sách rỗng từ CSDDL (không nảy dữ liệu giả mockData)
-  renderFolders([]);
-  renderFiles([]);
+  // Nếu gặp lỗi API hoặc dữ liệu trống, render danh sách rỗng từ CSDDL (không nảy dữ liệu giả mockData)
+  if (viewType === "trash") {
+    renderTrashItems([], []);
+  } else {
+    renderFolders([]);
+    renderFiles([]);
+  }
 }
+
+// -------------------------------------------------------------
+// TRASH UI & ACTIONS
+// -------------------------------------------------------------
+function getFileIconForTrash(fileName) {
+  if (!fileName) return '<i class="ph ph-file file-doc"></i>';
+  const ext = fileName.split('.').pop().toLowerCase();
+  switch (ext) {
+    case 'pdf': return '<i class="ph ph-file-pdf file-pdf"></i>';
+    case 'png': case 'jpg': case 'jpeg': case 'gif': return '<i class="ph ph-image file-img"></i>';
+    case 'doc': case 'docx': return '<i class="ph ph-file-text file-doc"></i>';
+    case 'xls': case 'xlsx': return '<i class="ph ph-file-xls file-xls"></i>';
+    case 'mp4': case 'mov': case 'avi': return '<i class="ph ph-file-video file-mp4"></i>';
+    case 'zip': case 'rar': case '7z': return '<i class="ph ph-file-zip file-zip"></i>';
+    default: return '<i class="ph ph-file file-doc"></i>';
+  }
+}
+
+function renderTrashItems(folders, files) {
+  const container = document.getElementById("trash-view-container");
+  const trashHeader = document.getElementById("trash-header-info");
+  const trashList = document.getElementById("trash-list");
+  const emptyState = document.getElementById("trash-empty-state");
+
+  if (!container || !trashHeader || !trashList || !emptyState) return;
+
+  const totalItems = folders.length + files.length;
+
+  if (totalItems === 0) {
+    trashHeader.style.display = "none";
+    trashList.style.display = "none";
+    emptyState.style.display = "flex";
+    return;
+  }
+
+  trashHeader.style.display = "block";
+  trashList.style.display = "block";
+  emptyState.style.display = "none";
+
+  trashHeader.innerHTML = `${totalItems} mục &middot; Tự động xóa sau 30 ngày`;
+
+  let html = '';
+
+  const calculateDaysLeft = (dateString) => {
+    if (!dateString) return 30;
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, 30 - diffDays);
+  };
+
+  const formatTrashDate = (dateString) => {
+    if (!dateString) return "Không rõ";
+    const date = new Date(dateString);
+    const now = new Date();
+    
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const timeString = `${hours}:${minutes}`;
+
+    // Kiểm tra xem có phải hôm nay không
+    if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
+      return `Hôm nay, ${timeString}`;
+    }
+    
+    // Kiểm tra xem có phải hôm qua không
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (yesterday.getDate() === date.getDate() && yesterday.getMonth() === date.getMonth() && yesterday.getFullYear() === date.getFullYear()) {
+      return `Hôm qua, ${timeString}`;
+    }
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    return `${day}/${month}`;
+  };
+
+  // Render Folders
+  folders.forEach(folder => {
+    const daysLeft = calculateDaysLeft(folder.updatedAt); 
+    const isUrgent = daysLeft <= 15 ? 'urgent' : '';
+    const formattedDate = formatTrashDate(folder.updatedAt);
+    const user = folder.userEmail ? folder.userEmail.split('@')[0] : 'Tôi';
+
+    html += `
+      <div class="trash-item">
+        <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+        <div class="trash-icon-box">
+          <i class="ph ph-folder" style="color: #64748b;"></i>
+        </div>
+        <div class="trash-item-info">
+          <div class="trash-item-name">${folder.name}</div>
+          <div class="trash-item-meta">
+            Xóa lúc ${formattedDate} &middot; bởi ${user}
+          </div>
+        </div>
+        <div class="trash-actions">
+          <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
+          <button class="btn-restore" onclick="restoreTrashItem(${folder.id}, 'folder')">Khôi phục</button>
+          <button class="btn-delete" onclick="permanentDeleteTrashItem(${folder.id}, 'folder')">Xóa</button>
+        </div>
+      </div>
+    `;
+  });
+
+  // Render Files
+  files.forEach(file => {
+    const daysLeft = calculateDaysLeft(file.updatedAt); 
+    const isUrgent = daysLeft <= 15 ? 'urgent' : '';
+    const size = typeof formatSizeGlobal === "function" ? formatSizeGlobal(file.sizeBytes) : file.sizeBytes;
+    const fileName = file.fileName || file.originalName || "Tệp không tên";
+    const formattedDate = formatTrashDate(file.updatedAt);
+    const user = file.userEmail ? file.userEmail.split('@')[0] : 'Tôi';
+
+    html += `
+      <div class="trash-item">
+        <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+        <div class="trash-icon-box">
+          ${getFileIconForTrash(fileName)}
+        </div>
+        <div class="trash-item-info">
+          <div class="trash-item-name">${fileName}</div>
+          <div class="trash-item-meta">
+            Xóa lúc ${formattedDate} &middot; bởi ${user} &middot; ${size}
+          </div>
+        </div>
+        <div class="trash-actions">
+          <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
+          <button class="btn-restore" onclick="restoreTrashItem(${file.id}, 'file')">Khôi phục</button>
+          <button class="btn-delete" onclick="permanentDeleteTrashItem(${file.id}, 'file')">Xóa</button>
+        </div>
+      </div>
+    `;
+  });
+
+  trashList.innerHTML = html;
+}
+
+window.toggleTrashSelection = function(el) {
+  el.classList.toggle('selected');
+};
+
+window.restoreTrashItem = async function(id, type) {
+  try {
+    const endpoint = type === 'folder' ? `/folders/${id}/restore` : `/files/${id}/restore`;
+    const response = await fetchWithAuth(endpoint, { method: "PATCH" });
+    if (response && response.ok) {
+      // Reload trash data
+      loadDashboardData("trash");
+    } else {
+      alert("Lỗi khôi phục mục!");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+window.permanentDeleteTrashItem = async function(id, type) {
+  if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Thao tác không thể hoàn tác!")) return;
+  try {
+    const endpoint = type === 'folder' ? `/folders/${id}/permanent` : `/files/${id}/permanent`;
+    const response = await fetchWithAuth(endpoint, { method: "DELETE" });
+    if (response && response.ok) {
+      // Reload trash data
+      loadDashboardData("trash");
+      // Update storage info if available
+      if (typeof fetchStorageInfo === "function") fetchStorageInfo();
+    } else {
+      alert("Lỗi xóa vĩnh viễn!");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
