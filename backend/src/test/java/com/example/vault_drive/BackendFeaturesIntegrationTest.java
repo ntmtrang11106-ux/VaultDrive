@@ -305,4 +305,70 @@ public class BackendFeaturesIntegrationTest {
         trashService.permanentDeleteFile(user1, file.getId());
         assertEquals(0L, dashboardService.getStorageInfo(user1).getUsedBytes());
     }
+
+    @Autowired
+    private UserService userService;
+
+    @Test
+    void test6_ReshareRevokedItemUpdatesOldRowAndReturnsSizeBytes() {
+        authenticateAs(user1);
+
+        // Upload file with size 120 bytes
+        UploadInitRequest initReq = new UploadInitRequest("shared_test.txt", 120L, 1, null);
+        UploadSessionResponse session = uploadService.initUploadSession(user1, initReq);
+        MockMultipartFile chunk = new MockMultipartFile("file", "chunk.part", "text/plain", "content_120_bytes".getBytes());
+        uploadService.uploadChunk(user1, session.getSessionId(), 0, chunk);
+        FileItemResponse file = uploadService.completeUploadSession(user1, session.getSessionId());
+
+        // Share with user2
+        ShareRequest shareReq = new ShareRequest(file.getId(), null, user2.getEmail(), "VIEW");
+        ShareResponse shareResp = shareService.shareItem(user1, shareReq);
+
+        assertNotNull(shareResp);
+        assertEquals(120L, shareResp.getSizeBytes());
+        Long shareId = shareResp.getId();
+
+        // Revoke share
+        shareService.revokeShare(user1, shareId);
+
+        // Reshare with user2 -> Should UPDATE the existing row instead of INSERTing a new row
+        ShareResponse reshareResp = shareService.shareItem(user1, shareReq);
+        assertEquals(shareId, reshareResp.getId());
+        assertEquals(120L, reshareResp.getSizeBytes());
+
+        assertEquals(1, fileShareRepository.findAll().size());
+        assertFalse(fileShareRepository.findById(shareId).orElseThrow().getIsDeleted());
+    }
+
+    @Test
+    void test7_UserProfileAndChangePassword() {
+        authenticateAs(user1);
+
+        UserProfileResponse profile = userService.getUserProfile(user1);
+        assertNotNull(profile);
+        assertEquals("user1@vaultdrive.com", profile.getEmail());
+
+        UpdateProfileRequest updateReq = new UpdateProfileRequest();
+        updateReq.setFullName("User One Updated");
+        updateReq.setPhone("0987654321");
+        updateReq.setGender("FEMALE");
+        UserProfileResponse updatedProfile = userService.updateUserProfile(user1, updateReq);
+
+        assertEquals("User One Updated", updatedProfile.getFullName());
+        assertEquals("0987654321", updatedProfile.getPhone());
+        assertEquals("FEMALE", updatedProfile.getGender());
+
+        ChangePasswordRequest changePassReq = new ChangePasswordRequest();
+        changePassReq.setCurrentPassword("pass123");
+        changePassReq.setNewPassword("newpass123");
+        changePassReq.setConfirmPassword("newpass123");
+        userService.changePassword(user1, changePassReq);
+
+        // Login with new password should succeed
+        LoginRequest loginReq = new LoginRequest();
+        loginReq.setEmail("user1@vaultdrive.com");
+        loginReq.setPassword("newpass123");
+        AuthResponse authResp = authService.login(loginReq);
+        assertNotNull(authResp.getAccessToken());
+    }
 }

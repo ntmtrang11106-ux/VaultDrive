@@ -160,16 +160,20 @@ function toggleEditProfile() {
 
 async function loadUserProfile() {
   try {
-    // Đọc từ localStorage hoặc dùng dữ liệu ảo
-    const savedProfile = JSON.parse(localStorage.getItem("mock_user_profile") || "null");
-    
-    const data = savedProfile || {
-      fullName: "Trần Minh",
-      email: "t.minh@congty.vn",
-      phone: "0912 345 678",
-      dob: "1990-01-01",
-      gender: "MALE"
-    };
+    const response = await fetchWithAuth("/users/me");
+    let data = null;
+    if (response && response.ok) {
+      data = await response.json();
+    } else {
+      const savedProfile = JSON.parse(localStorage.getItem("mock_user_profile") || "null");
+      data = savedProfile || {
+        fullName: "Người dùng",
+        email: "user@example.com",
+        phone: "",
+        dob: "",
+        gender: ""
+      };
+    }
     
     document.getElementById("settingsFullName").textContent = data.fullName || "Người dùng";
     document.getElementById("settingsEmail").textContent = data.email || "";
@@ -188,27 +192,31 @@ async function loadUserProfile() {
 }
 
 async function saveProfile() {
-  const fullName = document.getElementById("inputFullName").value;
-  const phone = document.getElementById("inputPhone").value;
+  const fullName = document.getElementById("inputFullName").value.trim();
+  const phone = document.getElementById("inputPhone").value.trim();
   const dob = document.getElementById("inputDob").value;
   const gender = document.getElementById("inputGender").value;
-  const email = document.getElementById("inputEmail").value; // keep email for mock
 
   try {
-    // Lưu vào localStorage
-    localStorage.setItem("mock_user_profile", JSON.stringify({
-      fullName, phone, dob, gender, email
-    }));
-    
-    alert("Cập nhật thông tin thành công!");
-    toggleEditProfile();
-    
-    // Update global user details if available
-    if (typeof fetchUserInfo === "function") {
-      fetchUserInfo();
+    const response = await fetchWithAuth("/users/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fullName, phone, dob: dob || null, gender })
+    });
+
+    if (response && response.ok) {
+      alert("Cập nhật thông tin cá nhân thành công!");
+      toggleEditProfile();
+      if (typeof fetchUserInfo === "function") {
+        fetchUserInfo();
+      }
+    } else {
+      const errData = await response.json().catch(() => ({}));
+      alert(errData.message || "Cập nhật thông tin thất bại!");
     }
   } catch (error) {
     console.error("Lỗi khi cập nhật profile:", error);
+    alert("Có lỗi xảy ra khi cập nhật thông tin!");
   }
 }
 
@@ -226,13 +234,28 @@ async function savePassword() {
     return;
   }
   if (newPassword !== confirmPassword) {
-    alert("Xác nhận mật khẩu không khớp!");
+    alert("Xác nhận mật khẩu mới không khớp!");
     return;
   }
 
-  // Giả lập thành công
-  alert("Cập nhật mật khẩu thành công!");
-  document.getElementById("inputCurrentPassword").value = "";
-  document.getElementById("inputNewPassword").value = "";
-  document.getElementById("inputConfirmPassword").value = "";
+  try {
+    const response = await fetchWithAuth("/users/change-password", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+    });
+
+    if (response && response.ok) {
+      alert("Cập nhật mật khẩu thành công!");
+      document.getElementById("inputCurrentPassword").value = "";
+      document.getElementById("inputNewPassword").value = "";
+      document.getElementById("inputConfirmPassword").value = "";
+    } else {
+      const errData = await response.json().catch(() => ({}));
+      alert(errData.message || "Cập nhật mật khẩu thất bại!");
+    }
+  } catch (error) {
+    console.error("Lỗi khi cập nhật mật khẩu:", error);
+    alert("Có lỗi xảy ra khi cập nhật mật khẩu!");
+  }
 }

@@ -14,6 +14,8 @@ import java.util.Optional;
 public interface FileShareRepository extends JpaRepository<FileShare, Long> {
     Optional<FileShare> findByFileAndSharedToAndIsDeletedFalse(FileItem file, User sharedTo);
     Optional<FileShare> findByFolderAndSharedToAndIsDeletedFalse(Folder folder, User sharedTo);
+    Optional<FileShare> findByFileAndSharedTo(FileItem file, User sharedTo);
+    Optional<FileShare> findByFolderAndSharedTo(Folder folder, User sharedTo);
     List<FileShare> findByFileAndIsDeletedFalse(FileItem file);
     List<FileShare> findByFolderAndIsDeletedFalse(Folder folder);
     List<FileShare> findBySharedToAndIsDeletedFalse(User sharedTo);

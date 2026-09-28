@@ -255,4 +255,47 @@ public class DashboardService {
         if (potentialChild.getParent() == null) return false;
         return isSubfolderOf(potentialChild.getParent(), parent);
     }
+
+    @Transactional(readOnly = true)
+    public byte[] downloadFolderZip(User user, Long folderId, StringBuilder outZipName) throws java.io.IOException {
+        Folder folder = folderRepository.findByIdAndIsDeletedFalse(folderId)
+                .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
+
+        if (Boolean.TRUE.equals(folder.getIsTrashed())) {
+            throw new RuntimeException("Folder đang ở trong thùng rác, không thể tải về!");
+        }
+
+        if (!accessControlService.hasFolderAccess(user, folder, "VIEW")) {
+            throw new RuntimeException("Bạn không có quyền tải thư mục này!");
+        }
+
+        if (outZipName != null) {
+            outZipName.append(folder.getName()).append(".zip");
+        }
+
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(baos)) {
+            zipFolderRecursive(folder, folder.getName() + "/", zos);
+            zos.finish();
+        }
+        return baos.toByteArray();
+    }
+
+    private void zipFolderRecursive(Folder currentFolder, String currentPath, java.util.zip.ZipOutputStream zos) throws java.io.IOException {
+        List<FileItem> files = fileItemRepository.findByFolderIdAndIsTrashedFalseAndIsDeletedFalse(currentFolder.getId());
+        for (FileItem file : files) {
+            java.nio.file.Path filePath = java.nio.file.Paths.get(file.getFilePath()).toAbsolutePath();
+            if (java.nio.file.Files.exists(filePath)) {
+                java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(currentPath + file.getOriginalName());
+                zos.putNextEntry(entry);
+                java.nio.file.Files.copy(filePath, zos);
+                zos.closeEntry();
+            }
+        }
+
+        List<Folder> subfolders = folderRepository.findByParentIdAndIsTrashedFalseAndIsDeletedFalse(currentFolder.getId());
+        for (Folder subfolder : subfolders) {
+            zipFolderRecursive(subfolder, currentPath + subfolder.getName() + "/", zos);
+        }
+    }
 }

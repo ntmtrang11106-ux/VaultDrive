@@ -13,11 +13,33 @@ function formatSize(bytes) {
 }
 window.formatSize = formatSize;
 
+function parseLocalDate(isoString) {
+  if (!isoString) return null;
+  if (isoString instanceof Date) return isoString;
+  if (Array.isArray(isoString)) {
+    return new Date(isoString[0], isoString[1] - 1, isoString[2], isoString[3] || 0, isoString[4] || 0, isoString[5] || 0);
+  }
+  const s = String(isoString).trim();
+  const match = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const yyyy = parseInt(match[1]);
+    const mm = parseInt(match[2]) - 1;
+    const dd = parseInt(match[3]);
+    const hh = match[4] !== undefined ? parseInt(match[4]) : 0;
+    const min = match[5] !== undefined ? parseInt(match[5]) : 0;
+    const ss = match[6] !== undefined ? parseInt(match[6]) : 0;
+    return new Date(yyyy, mm, dd, hh, min, ss);
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+window.parseLocalDate = parseLocalDate;
+
 function formatSmartDate(isoString) {
   if (!isoString) return "Gần đây";
   try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return String(isoString);
+    const d = parseLocalDate(isoString);
+    if (!d) return String(isoString);
 
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -42,6 +64,31 @@ function formatSmartDate(isoString) {
   }
 }
 window.formatSmartDate = formatSmartDate;
+
+async function downloadItem(id, type, name) {
+  if (!id) return;
+  const endpoint = type === 'folder' ? `/folders/${id}/download` : `/files/${id}/download`;
+  try {
+    const response = await fetchWithAuth(endpoint);
+    if (!response || !response.ok) {
+      alert("Không thể tải xuống mục này!");
+      return;
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name || (type === 'folder' ? `folder_${id}.zip` : `file_${id}`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  } catch (err) {
+    console.error("Lỗi khi tải xuống:", err);
+    alert("Có lỗi xảy ra khi tải xuống!");
+  }
+}
+window.downloadItem = downloadItem;
 
 document.addEventListener("DOMContentLoaded", () => {
   const contextMenu = document.getElementById("globalContextMenu");
@@ -281,10 +328,12 @@ document.addEventListener("DOMContentLoaded", () => {
     await fetchSharedUsers(currentTargetId, currentTargetType);
   });
 
-  document.getElementById("ctxDownload").addEventListener("click", () => {
+  document.getElementById("ctxDownload").addEventListener("click", (e) => {
+    e.preventDefault();
     contextMenu.style.display = "none";
-    const fileInput = document.getElementById("fileInput");
-    if (fileInput) fileInput.click();
+    if (currentTargetId && currentTargetType) {
+      downloadItem(currentTargetId, currentTargetType);
+    }
   });
 
   document.getElementById("ctxCopyLink").addEventListener("click", () => {
@@ -381,25 +430,33 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("cancelRenameBtn")
     .addEventListener("click", () => (renameOverlay.style.display = "none"));
-  document.getElementById("confirmRenameBtn").addEventListener("click", () => {
+  document.getElementById("confirmRenameBtn").addEventListener("click", async () => {
     const newName = document.getElementById("renameInput").value.trim();
-    if (!newName) return; // Không làm gì nếu để trống
+    if (!newName || !currentTargetId) return;
 
-    if (window.mockData) {
-      if (currentTargetType === 'file') {
-        const file = window.mockData.files.find(f => f.id === currentTargetId);
-        if (file) file.name = newName;
-      } else if (currentTargetType === 'folder') {
-        const folder = window.mockData.folders.find(f => f.id === currentTargetId);
-        if (folder) folder.name = newName;
+    try {
+      const endpoint = currentTargetType === 'folder'
+        ? `/folders/${currentTargetId}/rename`
+        : `/files/${currentTargetId}/rename`;
+
+      const response = await fetchWithAuth(endpoint, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName })
+      });
+
+      if (response && response.ok) {
+        loadDashboardData(window.currentViewType || "home");
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        alert(errData.message || "Không thể đổi tên!");
       }
-
-      // Render lại giao diện
-      if (typeof renderFolders === "function") renderFolders(window.mockData.folders);
-      if (typeof renderFiles === "function") renderFiles(window.mockData.files);
+    } catch (err) {
+      console.error("Lỗi khi đổi tên:", err);
+      alert("Lỗi kết nối khi đổi tên!");
+    } finally {
+      renameOverlay.style.display = "none";
     }
-
-    renameOverlay.style.display = "none";
   });
 
   // 4. Logic đóng mở Share Modal
@@ -750,7 +807,7 @@ function renderFiles(files) {
       try {
         const token = localStorage.getItem("token");
         const baseUrl = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : "http://localhost:8080/api";
-        const response = await fetch(`${baseUrl}/files/${file.id}/content`, {
+        const response = await fetch(`${baseUrl}/files/${file.id}/preview`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -1857,17 +1914,7 @@ function setupUploadModal() {
   const folderInput = document.getElementById("folderInput");
   const uploadMinimized = document.getElementById("uploadMinimized");
 
-  // Context Menu Actions
-  if (ctxDownload) {
-    ctxDownload.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (currentUploadMode === "folder" && folderInput) {
-        folderInput.click();
-      } else if (fileInput) {
-        fileInput.click();
-      }
-    });
-  }
+
 
   if (addFileBtn) {
     addFileBtn.addEventListener("click", (e) => {
@@ -2502,7 +2549,8 @@ function renderTrashItems(folders, files) {
 
   const formatTrashDate = (dateString) => {
     if (!dateString) return "Không rõ";
-    const date = new Date(dateString);
+    const date = parseLocalDate(dateString);
+    if (!date) return String(dateString);
     const now = new Date();
     
     const hours = date.getHours().toString().padStart(2, '0');

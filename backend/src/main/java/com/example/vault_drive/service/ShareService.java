@@ -92,21 +92,29 @@ public class ShareService {
             itemName = folderItem.getName();
         }
 
-        // Check if existing share record exists
+        // Check if existing share record exists (including previously revoked ones to UPDATE instead of INSERT)
         FileShare share;
         if (hasFile) {
-            Optional<FileShare> existing = fileShareRepository.findByFileAndSharedToAndIsDeletedFalse(fileItem, recipient);
+            Optional<FileShare> existing = fileShareRepository.findByFileAndSharedTo(fileItem, recipient);
             if (existing.isPresent()) {
                 share = existing.get();
+                share.setIsDeleted(false);
+                share.setDeletedAt(null);
                 share.setPermission(targetPermission);
+                share.setSharedBy(currentUser);
+                share.setUpdatedAt(LocalDateTime.now());
             } else {
                 share = new FileShare(fileItem, null, currentUser, recipient, targetPermission);
             }
         } else {
-            Optional<FileShare> existing = fileShareRepository.findByFolderAndSharedToAndIsDeletedFalse(folderItem, recipient);
+            Optional<FileShare> existing = fileShareRepository.findByFolderAndSharedTo(folderItem, recipient);
             if (existing.isPresent()) {
                 share = existing.get();
+                share.setIsDeleted(false);
+                share.setDeletedAt(null);
                 share.setPermission(targetPermission);
+                share.setSharedBy(currentUser);
+                share.setUpdatedAt(LocalDateTime.now());
             } else {
                 share = new FileShare(null, folderItem, currentUser, recipient, targetPermission);
             }

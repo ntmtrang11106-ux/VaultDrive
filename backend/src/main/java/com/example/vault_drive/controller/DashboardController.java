@@ -5,9 +5,12 @@ import com.example.vault_drive.entity.User;
 import com.example.vault_drive.service.AccessControlService;
 import com.example.vault_drive.service.DashboardService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -39,6 +42,19 @@ public class DashboardController {
     public ResponseEntity<DashboardResponse> getFolderDashboard(@PathVariable("id") Long folderId) {
         User user = accessControlService.getCurrentUser();
         return ResponseEntity.ok(dashboardService.getFolderDashboard(user, folderId));
+    }
+
+    @GetMapping("/folders/{id}/download")
+    public ResponseEntity<byte[]> downloadFolder(@PathVariable("id") Long folderId) throws IOException {
+        User user = accessControlService.getCurrentUser();
+        StringBuilder zipName = new StringBuilder();
+        byte[] zipBytes = dashboardService.downloadFolderZip(user, folderId, zipName);
+        String filename = zipName.length() > 0 ? zipName.toString() : "folder.zip";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(zipBytes);
     }
 
     @GetMapping("/folders/tree")
