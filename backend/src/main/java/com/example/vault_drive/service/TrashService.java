@@ -60,8 +60,8 @@ public class TrashService {
         Folder folder = folderRepository.findByIdAndIsDeletedFalse(folderId)
                 .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
 
-        if (!accessControlService.isOwner(user, folder)) {
-            throw new RuntimeException("Chỉ chủ sở hữu mới có quyền chuyển folder vào thùng rác!");
+        if (!accessControlService.hasFolderAccess(user, folder, "EDIT")) {
+            throw new RuntimeException("Bạn không có quyền chuyển folder này vào thùng rác!");
         }
 
         folder.setIsTrashed(true);
@@ -74,8 +74,8 @@ public class TrashService {
         Folder folder = folderRepository.findByIdAndIsDeletedFalse(folderId)
                 .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
 
-        if (!accessControlService.isOwner(user, folder)) {
-            throw new RuntimeException("Chỉ chủ sở hữu mới có quyền khôi phục folder!");
+        if (!accessControlService.hasFolderAccess(user, folder, "EDIT")) {
+            throw new RuntimeException("Bạn không có quyền khôi phục folder này!");
         }
 
         folder.setIsTrashed(false);
@@ -89,7 +89,7 @@ public class TrashService {
                 .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
 
         if (!accessControlService.isOwner(user, folder)) {
-            throw new RuntimeException("Chỉ chủ sở hữu mới có quyền xóa vĩnh viễn folder!");
+            throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền xóa vĩnh viễn folder!");
         }
 
         deleteFolderRecursive(folder, user);
@@ -104,7 +104,7 @@ public class TrashService {
 
         // Delete files in folder & update storage
         List<FileItem> files = fileItemRepository.findByFolderIdAndIsDeletedFalse(folder.getId());
-        UserStorage userStorage = userStorageRepository.findByUser(user).orElse(null);
+        UserStorage userStorage = userStorageRepository.findByUser(folder.getUser()).orElse(null);
 
         for (FileItem file : files) {
             file.setIsDeleted(true);
@@ -130,8 +130,8 @@ public class TrashService {
         FileItem file = fileItemRepository.findByIdAndIsDeletedFalse(fileId)
                 .orElseThrow(() -> new RuntimeException("File không tồn tại!"));
 
-        if (!accessControlService.isOwner(user, file)) {
-            throw new RuntimeException("Chỉ chủ sở hữu mới có quyền chuyển file vào thùng rác!");
+        if (!accessControlService.hasFileAccess(user, file, "EDIT")) {
+            throw new RuntimeException("Bạn không có quyền chuyển file này vào thùng rác!");
         }
 
         file.setIsTrashed(true);
@@ -144,8 +144,8 @@ public class TrashService {
         FileItem file = fileItemRepository.findByIdAndIsDeletedFalse(fileId)
                 .orElseThrow(() -> new RuntimeException("File không tồn tại!"));
 
-        if (!accessControlService.isOwner(user, file)) {
-            throw new RuntimeException("Chỉ chủ sở hữu mới có quyền khôi phục file!");
+        if (!accessControlService.hasFileAccess(user, file, "EDIT")) {
+            throw new RuntimeException("Bạn không có quyền khôi phục file này!");
         }
 
         file.setIsTrashed(false);
@@ -159,7 +159,7 @@ public class TrashService {
                 .orElseThrow(() -> new RuntimeException("File không tồn tại!"));
 
         if (!accessControlService.isOwner(user, file)) {
-            throw new RuntimeException("Chỉ chủ sở hữu mới có quyền xóa vĩnh viễn file!");
+            throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền xóa vĩnh viễn file!");
         }
 
         file.setIsDeleted(true);
@@ -167,7 +167,7 @@ public class TrashService {
         fileItemRepository.save(file);
 
         // Adjust user storage accounting
-        UserStorage userStorage = userStorageRepository.findByUser(user).orElse(null);
+        UserStorage userStorage = userStorageRepository.findByUser(file.getUser()).orElse(null);
         if (userStorage != null && file.getSizeBytes() != null) {
             long currentUsed = userStorage.getUsedBytes();
             userStorage.setUsedBytes(Math.max(0L, currentUsed - file.getSizeBytes()));

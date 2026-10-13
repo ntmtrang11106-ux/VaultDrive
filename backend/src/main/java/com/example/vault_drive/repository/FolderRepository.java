@@ -15,5 +15,6 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
     List<Folder> findByUserAndIsTrashedFalseAndIsDeletedFalse(User user);
     List<Folder> findByUserAndIsTrashedTrueAndIsDeletedFalse(User user);
     Optional<Folder> findByIdAndIsDeletedFalse(Long id);
+    List<Folder> findByParentIdAndIsTrashedFalseAndIsDeletedFalse(Long parentId);
     List<Folder> findByParentIdAndIsDeletedFalse(Long parentId);
 }

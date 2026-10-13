@@ -1,6 +1,7 @@
 package com.example.vault_drive.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Nationalized;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,7 +26,8 @@ public class UploadSession {
     @JoinColumn(name = "target_folder_id", nullable = true)
     private Folder targetFolder;
 
-    @Column(name = "file_name", nullable = false)
+    @Nationalized
+    @Column(name = "file_name", nullable = false, columnDefinition = "NVARCHAR(255)")
     private String fileName;
 
     @Column(name = "total_size_bytes", nullable = false)
@@ -61,7 +63,8 @@ public class UploadSession {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public UploadSession(String id, User user, Folder targetFolder, String fileName, Long totalSizeBytes, Integer totalChunks) {
+    public UploadSession(String id, User user, Folder targetFolder, String fileName, Long totalSizeBytes,
+            Integer totalChunks) {
         this.id = id;
         this.user = user;
         this.targetFolder = targetFolder;
@@ -81,42 +84,107 @@ public class UploadSession {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public Folder getTargetFolder() { return targetFolder; }
-    public void setTargetFolder(Folder targetFolder) { this.targetFolder = targetFolder; }
+    public User getUser() {
+        return user;
+    }
 
-    public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setUser(User user) {
+        this.user = user;
+    }
 
-    public Long getTotalSizeBytes() { return totalSizeBytes; }
-    public void setTotalSizeBytes(Long totalSizeBytes) { this.totalSizeBytes = totalSizeBytes; }
+    public Folder getTargetFolder() {
+        return targetFolder;
+    }
 
-    public Integer getTotalChunks() { return totalChunks; }
-    public void setTotalChunks(Integer totalChunks) { this.totalChunks = totalChunks; }
+    public void setTargetFolder(Folder targetFolder) {
+        this.targetFolder = targetFolder;
+    }
 
-    public Integer getUploadedChunksCount() { return uploadedChunksCount; }
-    public void setUploadedChunksCount(Integer uploadedChunksCount) { this.uploadedChunksCount = uploadedChunksCount; }
+    public String getFileName() {
+        return fileName;
+    }
 
-    public String getUploadedChunkIndices() { return uploadedChunkIndices; }
-    public void setUploadedChunkIndices(String uploadedChunkIndices) { this.uploadedChunkIndices = uploadedChunkIndices; }
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public Long getTotalSizeBytes() {
+        return totalSizeBytes;
+    }
 
-    public Boolean getIsDeleted() { return isDeleted; }
-    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
+    public void setTotalSizeBytes(Long totalSizeBytes) {
+        this.totalSizeBytes = totalSizeBytes;
+    }
 
-    public LocalDateTime getDeletedAt() { return deletedAt; }
-    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    public Integer getTotalChunks() {
+        return totalChunks;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setTotalChunks(Integer totalChunks) {
+        this.totalChunks = totalChunks;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Integer getUploadedChunksCount() {
+        return uploadedChunksCount;
+    }
+
+    public void setUploadedChunksCount(Integer uploadedChunksCount) {
+        this.uploadedChunksCount = uploadedChunksCount;
+    }
+
+    public String getUploadedChunkIndices() {
+        return uploadedChunkIndices;
+    }
+
+    public void setUploadedChunkIndices(String uploadedChunkIndices) {
+        this.uploadedChunkIndices = uploadedChunkIndices;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

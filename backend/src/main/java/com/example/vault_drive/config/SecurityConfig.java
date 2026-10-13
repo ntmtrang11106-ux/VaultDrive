@@ -36,7 +36,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() // Cho phép truy cập tự do vào các API Auth
+                .requestMatchers("/api/auth/**", "/api/public/**").permitAll() // Cho phép truy cập tự do Auth và Public share links
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

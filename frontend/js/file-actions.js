@@ -37,18 +37,33 @@ function formatSize(bytes) {
 // Gán lên window để các file khác (dashboard.js, trash.js...) có thể gọi
 window.formatSize = formatSize;
 
-/**
- * formatSmartDate(isoString) - Chuyển chuỗi ISO date thành ngày thông minh
- * Nếu hôm nay → "Hôm nay, HH:MM"
- * Nếu hôm qua → "Hôm qua, HH:MM"
- * Trước đó     → "YYYY-MM-DD"
- * @param {string} isoString - Chuỗi ISO 8601 (VD: "2026-09-23T10:30:00")
- */
+function parseLocalDate(isoString) {
+  if (!isoString) return null;
+  if (isoString instanceof Date) return isoString;
+  if (Array.isArray(isoString)) {
+    return new Date(isoString[0], isoString[1] - 1, isoString[2], isoString[3] || 0, isoString[4] || 0, isoString[5] || 0);
+  }
+  const s = String(isoString).trim();
+  const match = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  if (match) {
+    const yyyy = parseInt(match[1]);
+    const mm = parseInt(match[2]) - 1;
+    const dd = parseInt(match[3]);
+    const hh = match[4] !== undefined ? parseInt(match[4]) : 0;
+    const min = match[5] !== undefined ? parseInt(match[5]) : 0;
+    const ss = match[6] !== undefined ? parseInt(match[6]) : 0;
+    return new Date(yyyy, mm, dd, hh, min, ss);
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+window.parseLocalDate = parseLocalDate;
+
 function formatSmartDate(isoString) {
   if (!isoString) return "Gần đây";
   try {
-    const d = new Date(isoString); // Parse chuỗi ISO thành Date object
-    if (isNaN(d.getTime())) return String(isoString); // Nếu parse thất bại, trả nguyên chuỗi
+    const d = parseLocalDate(isoString);
+    if (!d) return String(isoString);
 
     const now = new Date();
     // Tạo Date chỉ có ngày (bỏ giờ/phút/giây) để so sánh ngày
@@ -78,9 +93,31 @@ function formatSmartDate(isoString) {
 // Gán lên window để dùng được ở mọi file
 window.formatSmartDate = formatSmartDate;
 
-// ================================================================
-// KHỐI LOGIC CHÍNH: Chạy sau khi DOM đã sẵn sàng
-// ================================================================
+async function downloadItem(id, type, name) {
+  if (!id) return;
+  const endpoint = type === 'folder' ? `/folders/${id}/download` : `/files/${id}/download`;
+  try {
+    const response = await fetchWithAuth(endpoint);
+    if (!response || !response.ok) {
+      alert("Không thể tải xuống mục này!");
+      return;
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name || (type === 'folder' ? `folder_${id}.zip` : `file_${id}`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  } catch (err) {
+    console.error("Lỗi khi tải xuống:", err);
+    alert("Có lỗi xảy ra khi tải xuống!");
+  }
+}
+window.downloadItem = downloadItem;
+
 document.addEventListener("DOMContentLoaded", () => {
   // Lấy tham chiếu đến Context Menu và các Modal overlay
   const contextMenu = document.getElementById("globalContextMenu");  // Menu chuột phải
@@ -367,10 +404,12 @@ document.addEventListener("DOMContentLoaded", () => {
     await fetchSharedUsers(currentTargetId, currentTargetType);
   });
 
-  document.getElementById("ctxDownload").addEventListener("click", () => {
+  document.getElementById("ctxDownload").addEventListener("click", (e) => {
+    e.preventDefault();
     contextMenu.style.display = "none";
-    const fileInput = document.getElementById("fileInput");
-    if (fileInput) fileInput.click();
+    if (currentTargetId && currentTargetType) {
+      downloadItem(currentTargetId, currentTargetType);
+    }
   });
 
   document.getElementById("ctxCopyLink").addEventListener("click", () => {
@@ -469,31 +508,31 @@ document.addEventListener("DOMContentLoaded", () => {
     .addEventListener("click", () => (renameOverlay.style.display = "none"));
   document.getElementById("confirmRenameBtn").addEventListener("click", async () => {
     const newName = document.getElementById("renameInput").value.trim();
-    if (!newName || !currentTargetId) return; // Không làm gì nếu để trống
+    if (!newName || !currentTargetId) return;
 
     try {
-      let endpoint = currentTargetType === 'folder'
+      const endpoint = currentTargetType === 'folder'
         ? `/folders/${currentTargetId}/rename`
         : `/files/${currentTargetId}/rename`;
 
       const response = await fetchWithAuth(endpoint, {
         method: "PATCH",
-        body: JSON.stringify({ name: newName, fileName: newName, folderName: newName }) // Gửi cả 3 trường cho an toàn
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName })
       });
 
       if (response && response.ok) {
-        // Render lại giao diện
-        if (typeof loadDashboardData === "function") {
-          loadDashboardData(window.currentViewType || "home");
-        }
+        loadDashboardData(window.currentViewType || "home");
       } else {
-        alert("Có lỗi xảy ra khi đổi tên!");
+        const errData = await response.json().catch(() => ({}));
+        alert(errData.message || "Không thể đổi tên!");
       }
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi khi đổi tên:", err);
+      alert("Lỗi kết nối khi đổi tên!");
+    } finally {
+      renameOverlay.style.display = "none";
     }
-
-    renameOverlay.style.display = "none";
   });
 
   // 4. Logic đóng mở Share Modal
@@ -904,7 +943,7 @@ function renderFiles(files, viewType = "home") {
       try {
         const token = localStorage.getItem("token");
         const baseUrl = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : "http://localhost:8080/api";
-        const response = await fetch(`${baseUrl}/files/${file.id}/content`, {
+        const response = await fetch(`${baseUrl}/files/${file.id}/preview`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -2056,17 +2095,7 @@ function setupUploadModal() {
   const folderInput = document.getElementById("folderInput");
   const uploadMinimized = document.getElementById("uploadMinimized");
 
-  // Context Menu Actions
-  if (ctxDownload) {
-    ctxDownload.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (currentUploadMode === "folder" && folderInput) {
-        folderInput.click();
-      } else if (fileInput) {
-        fileInput.click();
-      }
-    });
-  }
+
 
   if (addFileBtn) {
     addFileBtn.addEventListener("click", (e) => {
@@ -2472,4 +2501,178 @@ async function loadDashboardData(viewType = "home") {
   }
 }
 
-// Các hàm xử lý Thùng rác đã được tách ra file js/trash.js để giảm tải cho file-actions.js
+// -------------------------------------------------------------
+// TRASH UI & ACTIONS
+// -------------------------------------------------------------
+function getFileIconForTrash(fileName) {
+  if (!fileName) return '<i class="ph ph-file file-doc"></i>';
+  const ext = fileName.split('.').pop().toLowerCase();
+  switch (ext) {
+    case 'pdf': return '<i class="ph ph-file-pdf file-pdf"></i>';
+    case 'png': case 'jpg': case 'jpeg': case 'gif': return '<i class="ph ph-image file-img"></i>';
+    case 'doc': case 'docx': return '<i class="ph ph-file-text file-doc"></i>';
+    case 'xls': case 'xlsx': return '<i class="ph ph-file-xls file-xls"></i>';
+    case 'mp4': case 'mov': case 'avi': return '<i class="ph ph-file-video file-mp4"></i>';
+    case 'zip': case 'rar': case '7z': return '<i class="ph ph-file-zip file-zip"></i>';
+    default: return '<i class="ph ph-file file-doc"></i>';
+  }
+}
+
+function renderTrashItems(folders, files) {
+  const container = document.getElementById("trash-view-container");
+  const trashHeader = document.getElementById("trash-header-info");
+  const trashList = document.getElementById("trash-list");
+  const emptyState = document.getElementById("trash-empty-state");
+
+  if (!container || !trashHeader || !trashList || !emptyState) return;
+
+  const totalItems = folders.length + files.length;
+
+  if (totalItems === 0) {
+    trashHeader.style.display = "none";
+    trashList.style.display = "none";
+    emptyState.style.display = "flex";
+    return;
+  }
+
+  trashHeader.style.display = "block";
+  trashList.style.display = "block";
+  emptyState.style.display = "none";
+
+  trashHeader.innerHTML = `${totalItems} mục &middot; Tự động xóa sau 30 ngày`;
+
+  let html = '';
+
+  const calculateDaysLeft = (dateString) => {
+    if (!dateString) return 30;
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, 30 - diffDays);
+  };
+
+  const formatTrashDate = (dateString) => {
+    if (!dateString) return "Không rõ";
+    const date = parseLocalDate(dateString);
+    if (!date) return String(dateString);
+    const now = new Date();
+    
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const timeString = `${hours}:${minutes}`;
+
+    // Kiểm tra xem có phải hôm nay không
+    if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
+      return `Hôm nay, ${timeString}`;
+    }
+    
+    // Kiểm tra xem có phải hôm qua không
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (yesterday.getDate() === date.getDate() && yesterday.getMonth() === date.getMonth() && yesterday.getFullYear() === date.getFullYear()) {
+      return `Hôm qua, ${timeString}`;
+    }
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    return `${day}/${month}`;
+  };
+
+  // Render Folders
+  folders.forEach(folder => {
+    const daysLeft = calculateDaysLeft(folder.updatedAt); 
+    const isUrgent = daysLeft <= 15 ? 'urgent' : '';
+    const formattedDate = formatTrashDate(folder.updatedAt);
+    const user = folder.userEmail ? folder.userEmail.split('@')[0] : 'Tôi';
+
+    html += `
+      <div class="trash-item">
+        <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+        <div class="trash-icon-box">
+          <i class="ph ph-folder" style="color: #64748b;"></i>
+        </div>
+        <div class="trash-item-info">
+          <div class="trash-item-name">${folder.name}</div>
+          <div class="trash-item-meta">
+            Xóa lúc ${formattedDate} &middot; bởi ${user}
+          </div>
+        </div>
+        <div class="trash-actions">
+          <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
+          <button class="btn-restore" onclick="restoreTrashItem(${folder.id}, 'folder')">Khôi phục</button>
+          <button class="btn-delete" onclick="permanentDeleteTrashItem(${folder.id}, 'folder')">Xóa</button>
+        </div>
+      </div>
+    `;
+  });
+
+  // Render Files
+  files.forEach(file => {
+    const daysLeft = calculateDaysLeft(file.updatedAt); 
+    const isUrgent = daysLeft <= 15 ? 'urgent' : '';
+    const size = typeof formatSizeGlobal === "function" ? formatSizeGlobal(file.sizeBytes) : file.sizeBytes;
+    const fileName = file.fileName || file.originalName || "Tệp không tên";
+    const formattedDate = formatTrashDate(file.updatedAt);
+    const user = file.userEmail ? file.userEmail.split('@')[0] : 'Tôi';
+
+    html += `
+      <div class="trash-item">
+        <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+        <div class="trash-icon-box">
+          ${getFileIconForTrash(fileName)}
+        </div>
+        <div class="trash-item-info">
+          <div class="trash-item-name">${fileName}</div>
+          <div class="trash-item-meta">
+            Xóa lúc ${formattedDate} &middot; bởi ${user} &middot; ${size}
+          </div>
+        </div>
+        <div class="trash-actions">
+          <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
+          <button class="btn-restore" onclick="restoreTrashItem(${file.id}, 'file')">Khôi phục</button>
+          <button class="btn-delete" onclick="permanentDeleteTrashItem(${file.id}, 'file')">Xóa</button>
+        </div>
+      </div>
+    `;
+  });
+
+  trashList.innerHTML = html;
+}
+
+window.toggleTrashSelection = function(el) {
+  el.classList.toggle('selected');
+};
+
+window.restoreTrashItem = async function(id, type) {
+  try {
+    const endpoint = type === 'folder' ? `/folders/${id}/restore` : `/files/${id}/restore`;
+    const response = await fetchWithAuth(endpoint, { method: "PATCH" });
+    if (response && response.ok) {
+      // Reload trash data
+      loadDashboardData("trash");
+    } else {
+      alert("Lỗi khôi phục mục!");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+window.permanentDeleteTrashItem = async function(id, type) {
+  if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Thao tác không thể hoàn tác!")) return;
+  try {
+    const endpoint = type === 'folder' ? `/folders/${id}/permanent` : `/files/${id}/permanent`;
+    const response = await fetchWithAuth(endpoint, { method: "DELETE" });
+    if (response && response.ok) {
+      // Reload trash data
+      loadDashboardData("trash");
+      // Update storage info if available
+      if (typeof fetchStorageInfo === "function") fetchStorageInfo();
+    } else {
+      alert("Lỗi xóa vĩnh viễn!");
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};

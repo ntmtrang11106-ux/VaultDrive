@@ -15,6 +15,7 @@ public class ShareResponse {
     private Long sharedToUserId;
     private String sharedToEmail;
     private String permission;
+    private Long sizeBytes;
     private LocalDateTime createdAt;
 
     public ShareResponse() {}
@@ -24,6 +25,7 @@ public class ShareResponse {
         if (share.getFile() != null) {
             this.fileId = share.getFile().getId();
             this.fileName = share.getFile().getFileName();
+            this.sizeBytes = share.getFile().getSizeBytes();
         }
         if (share.getFolder() != null) {
             this.folderId = share.getFolder().getId();
@@ -70,6 +72,9 @@ public class ShareResponse {
 
     public String getPermission() { return permission; }
     public void setPermission(String permission) { this.permission = permission; }
+
+    public Long getSizeBytes() { return sizeBytes; }
+    public void setSizeBytes(Long sizeBytes) { this.sizeBytes = sizeBytes; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

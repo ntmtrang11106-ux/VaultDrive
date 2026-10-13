@@ -38,10 +38,11 @@ public class DashboardService {
     public StorageInfoResponse getStorageInfo(User user) {
         UserStorage userStorage = userStorageRepository.findByUser(user)
                 .orElseGet(() -> {
-                    StoragePlan defaultPlan = storagePlanRepository.findByName("Free Plan")
-                            .orElseGet(() -> storagePlanRepository.save(
-                                    new StoragePlan("Free Plan", 10L * 1024 * 1024 * 1024, 0.0)
-                            ));
+                    StoragePlan defaultPlan = storagePlanRepository.findByName("Gói Miễn Phí")
+                            .orElseGet(() -> storagePlanRepository.findByName("Free Plan")
+                                    .orElseGet(() -> storagePlanRepository.save(
+                                            new StoragePlan("Gói Miễn Phí", 10L * 1024 * 1024 * 1024, 0.0)
+                                    )));
                     return userStorageRepository.save(new UserStorage(user, defaultPlan, 0L));
                 });
 
@@ -67,12 +68,12 @@ public class DashboardService {
         for (FileShare share : shares) {
             if (share.getFolder() != null) {
                 Folder f = share.getFolder();
-                if (!f.getIsTrashed() && !f.getIsDeleted() && f.getParent() == null && !accessControlService.isOwner(user, f)) {
+                if (!Boolean.TRUE.equals(f.getIsTrashed()) && !Boolean.TRUE.equals(f.getIsDeleted()) && f.getParent() == null && !accessControlService.isOwner(user, f)) {
                     folderResponses.add(new FolderResponse(f, true, share.getPermission().name()));
                 }
             } else if (share.getFile() != null) {
                 FileItem fi = share.getFile();
-                if (!fi.getIsTrashed() && !fi.getIsDeleted() && fi.getFolder() == null && !accessControlService.isOwner(user, fi)) {
+                if (!Boolean.TRUE.equals(fi.getIsTrashed()) && !Boolean.TRUE.equals(fi.getIsDeleted()) && fi.getFolder() == null && !accessControlService.isOwner(user, fi)) {
                     fileResponses.add(new FileItemResponse(fi, true, share.getPermission().name()));
                 }
             }
@@ -87,7 +88,7 @@ public class DashboardService {
         Folder currentFolder = folderRepository.findByIdAndIsDeletedFalse(folderId)
                 .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
 
-        if (currentFolder.getIsTrashed()) {
+        if (Boolean.TRUE.equals(currentFolder.getIsTrashed())) {
             throw new RuntimeException("Folder đã bị chuyển vào thùng rác!");
         }
 
@@ -100,7 +101,7 @@ public class DashboardService {
         // Subfolders
         List<Folder> subfolders = folderRepository.findByParentIdAndIsDeletedFalse(folderId);
         List<FolderResponse> folderResponses = subfolders.stream()
-                .filter(f -> !f.getIsTrashed())
+                .filter(f -> !Boolean.TRUE.equals(f.getIsTrashed()))
                 .map(f -> {
                     boolean isShared = !accessControlService.isOwner(user, f);
                     String perm = accessControlService.getEffectiveFolderPermission(user, f);
@@ -111,7 +112,7 @@ public class DashboardService {
         // Files in folder
         List<FileItem> files = fileItemRepository.findByFolderIdAndIsDeletedFalse(folderId);
         List<FileItemResponse> fileResponses = files.stream()
-                .filter(f -> !f.getIsTrashed())
+                .filter(f -> !Boolean.TRUE.equals(f.getIsTrashed()))
                 .map(f -> {
                     boolean isShared = !accessControlService.isOwner(user, f);
                     String perm = accessControlService.getEffectiveFilePermission(user, f);
@@ -161,7 +162,7 @@ public class DashboardService {
             parentFolder = folderRepository.findByIdAndIsDeletedFalse(request.getParentId())
                     .orElseThrow(() -> new RuntimeException("Folder cha không tồn tại!"));
 
-            if (parentFolder.getIsTrashed()) {
+            if (Boolean.TRUE.equals(parentFolder.getIsTrashed())) {
                 throw new RuntimeException("Không thể tạo folder trong thư mục rác!");
             }
 
@@ -177,5 +178,124 @@ public class DashboardService {
         boolean isShared = !accessControlService.isOwner(user, savedFolder);
 
         return new FolderResponse(savedFolder, isShared, perm);
+    }
+
+    @Transactional
+    public FolderResponse renameFolder(User user, Long folderId, RenameRequest request) {
+        if (request.getNewName() == null || request.getNewName().isBlank()) {
+            throw new RuntimeException("Tên thư mục mới không được để trống!");
+        }
+
+        Folder folder = folderRepository.findByIdAndIsDeletedFalse(folderId)
+                .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
+
+        if (Boolean.TRUE.equals(folder.getIsTrashed())) {
+            throw new RuntimeException("Không thể đổi tên thư mục đang ở trong thùng rác!");
+        }
+
+        if (!accessControlService.hasFolderAccess(user, folder, "EDIT")) {
+            throw new RuntimeException("Bạn không có quyền đổi tên thư mục này!");
+        }
+
+        folder.setName(request.getNewName());
+        Folder saved = folderRepository.save(folder);
+
+        String perm = accessControlService.getEffectiveFolderPermission(user, saved);
+        boolean isShared = !accessControlService.isOwner(user, saved);
+        return new FolderResponse(saved, isShared, perm);
+    }
+
+    @Transactional
+    public FolderResponse moveFolder(User user, Long folderId, MoveRequest request) {
+        Folder folder = folderRepository.findByIdAndIsDeletedFalse(folderId)
+                .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
+
+        if (Boolean.TRUE.equals(folder.getIsTrashed())) {
+            throw new RuntimeException("Không thể di chuyển thư mục đang ở trong thùng rác!");
+        }
+
+        if (!accessControlService.hasFolderAccess(user, folder, "EDIT")) {
+            throw new RuntimeException("Bạn không có quyền di chuyển thư mục này!");
+        }
+
+        Folder targetFolder = null;
+        if (request.getTargetFolderId() != null) {
+            if (request.getTargetFolderId().equals(folderId)) {
+                throw new RuntimeException("Không thể di chuyển thư mục vào chính nó!");
+            }
+
+            targetFolder = folderRepository.findByIdAndIsDeletedFalse(request.getTargetFolderId())
+                    .orElseThrow(() -> new RuntimeException("Thư mục đích không tồn tại!"));
+
+            if (Boolean.TRUE.equals(targetFolder.getIsTrashed())) {
+                throw new RuntimeException("Không thể di chuyển thư mục vào thư mục rác!");
+            }
+
+            if (!accessControlService.hasFolderAccess(user, targetFolder, "EDIT")) {
+                throw new RuntimeException("Bạn không có quyền di chuyển vào thư mục đích này!");
+            }
+
+            // Prevent moving folder into any of its own subfolders
+            if (isSubfolderOf(targetFolder, folder)) {
+                throw new RuntimeException("Không thể di chuyển thư mục vào thư mục con của chính nó!");
+            }
+        }
+
+        folder.setParent(targetFolder);
+        Folder saved = folderRepository.save(folder);
+
+        String perm = accessControlService.getEffectiveFolderPermission(user, saved);
+        boolean isShared = !accessControlService.isOwner(user, saved);
+        return new FolderResponse(saved, isShared, perm);
+    }
+
+    private boolean isSubfolderOf(Folder potentialChild, Folder parent) {
+        if (potentialChild == null || parent == null) return false;
+        if (potentialChild.getId().equals(parent.getId())) return true;
+        if (potentialChild.getParent() == null) return false;
+        return isSubfolderOf(potentialChild.getParent(), parent);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] downloadFolderZip(User user, Long folderId, StringBuilder outZipName) throws java.io.IOException {
+        Folder folder = folderRepository.findByIdAndIsDeletedFalse(folderId)
+                .orElseThrow(() -> new RuntimeException("Folder không tồn tại!"));
+
+        if (Boolean.TRUE.equals(folder.getIsTrashed())) {
+            throw new RuntimeException("Folder đang ở trong thùng rác, không thể tải về!");
+        }
+
+        if (!accessControlService.hasFolderAccess(user, folder, "VIEW")) {
+            throw new RuntimeException("Bạn không có quyền tải thư mục này!");
+        }
+
+        if (outZipName != null) {
+            outZipName.append(folder.getName()).append(".zip");
+        }
+
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(baos)) {
+            zipFolderRecursive(folder, folder.getName() + "/", zos);
+            zos.finish();
+        }
+        return baos.toByteArray();
+    }
+
+    private void zipFolderRecursive(Folder currentFolder, String currentPath, java.util.zip.ZipOutputStream zos) throws java.io.IOException {
+        List<FileItem> files = fileItemRepository.findByFolderIdAndIsTrashedFalseAndIsDeletedFalse(currentFolder.getId());
+        for (FileItem file : files) {
+            java.nio.file.Path filePath = java.nio.file.Paths.get(file.getFilePath()).toAbsolutePath();
+            if (java.nio.file.Files.exists(filePath)) {
+                java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(currentPath + file.getOriginalName());
+                zos.putNextEntry(entry);
+                java.nio.file.Files.copy(filePath, zos);
+                zos.closeEntry();
+            }
+        }
+
+        List<Folder> subfolders = folderRepository.findByParentIdAndIsTrashedFalseAndIsDeletedFalse(currentFolder.getId());
+        for (Folder subfolder : subfolders) {
+            zipFolderRecursive(subfolder, currentPath + subfolder.getName() + "/", zos);
+        }
     }
 }

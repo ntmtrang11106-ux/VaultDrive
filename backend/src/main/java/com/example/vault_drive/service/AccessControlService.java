@@ -47,6 +47,11 @@ public class AccessControlService {
         if (folder == null || user == null) return null;
         if (isOwner(user, folder)) return "OWNER";
 
+        // If folder is trashed or deleted, shared users cannot access
+        if (Boolean.TRUE.equals(folder.getIsTrashed()) || Boolean.TRUE.equals(folder.getIsDeleted())) {
+            return null;
+        }
+
         Optional<FileShare> directShare = fileShareRepository.findByFolderAndSharedToAndIsDeletedFalse(folder, user);
         if (directShare.isPresent()) {
             return directShare.get().getPermission().name();
@@ -63,6 +68,11 @@ public class AccessControlService {
     public String getEffectiveFilePermission(User user, FileItem file) {
         if (file == null || user == null) return null;
         if (isOwner(user, file)) return "OWNER";
+
+        // If file is trashed or deleted, shared users cannot access
+        if (Boolean.TRUE.equals(file.getIsTrashed()) || Boolean.TRUE.equals(file.getIsDeleted())) {
+            return null;
+        }
 
         Optional<FileShare> directShare = fileShareRepository.findByFileAndSharedToAndIsDeletedFalse(file, user);
         if (directShare.isPresent()) {
@@ -95,5 +105,17 @@ public class AccessControlService {
             return "EDIT".equalsIgnoreCase(perm);
         }
         return "VIEW".equalsIgnoreCase(perm) || "EDIT".equalsIgnoreCase(perm);
+    }
+
+    /**
+     * Requirement 4: ONLY the owner can manage sharing (share, change permission, revoke share).
+     * Non-owners with EDIT permission CANNOT manage sharing.
+     */
+    public boolean canManageSharing(User user, Folder folder) {
+        return isOwner(user, folder);
+    }
+
+    public boolean canManageSharing(User user, FileItem file) {
+        return isOwner(user, file);
     }
 }
