@@ -5,7 +5,6 @@
   padding: 20px;
 }
 
-/* Header / Profile Summary Card */
 .settings-header-card {
   background: white;
   border-radius: var(--radius-lg, 12px);
@@ -13,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   margin-bottom: 24px;
   border: 1px solid var(--border-color, #e2e8f0);
 }
@@ -97,7 +96,7 @@
   border-radius: 24px;
   padding: 4px;
   margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--border-color, #e2e8f0);
 }
 
@@ -128,7 +127,7 @@
   background: white;
   border-radius: var(--radius-lg, 12px);
   padding: 24px 32px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--border-color, #e2e8f0);
 }
 

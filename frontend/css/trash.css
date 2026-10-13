@@ -143,7 +143,6 @@
   background: #fef2f2;
 }
 
-/* Icon Colors based on dashboard.html */
 .file-pdf {
   color: #ef4444;
 }
@@ -168,7 +167,6 @@
   color: #f59e0b;
 }
 
-/* Empty State */
 .trash-empty-state {
   display: flex;
   flex-direction: column;
@@ -217,9 +215,7 @@
   padding: 16px;
   gap: 12px;
   border-bottom: 1px solid var(--border-color);
-  /* override list style */
   width: 300px;
-  /* fixed width to prevent stretching */
   flex-shrink: 0;
 }
 

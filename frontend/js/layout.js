@@ -1,321 +1,503 @@
-const sidebarHTML = `
-  <aside class="sidebar">
-    <div class="logo-area">
-      <div class="logo-icon">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.1325 20.176 10.2077 17.8596 10.0116C17.4326 6.64368 14.5683 4 11 4C7.13401 4 4 7.13401 4 11C4 11.2372 4.01174 11.4716 4.03454 11.7027C2.29063 12.1818 1 13.784 1 15.6667C1 17.8758 2.79086 19.6667 5 19.6667H17.5Z"
-            stroke="white"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </div>
-      <div class="logo-text">
-        <span class="brand">VaultDrive</span>
-        <span class="sub">LƯU TRỮ BẢO MẬT</span>
-      </div>
-    </div>
+// frontend/js/layout.js
+// Mục đích: Tải file layout.html (chứa HTML của Sidebar & Header) và chèn vào trang hiện tại.
+//           Sau khi chèn xong, khởi tạo các sự kiện tương tác cho Sidebar & Header.
+//
+// Cách hoạt động:
+//   1. Dùng fetch() để GET layout.html (file HTML thuần, không có <html>/<body>)
+//   2. Parse HTML → tìm phần tử <aside> (Sidebar) và <header> (Header)
+//   3. Thay thế các placeholder <div id="sidebar-container"> và <div id="header-container">
+//   4. Gắn event listeners cho thông báo, dropdown upload, profile...
+//   5. Gọi window.initDashboardUI() (được định nghĩa trong dashboard.js) để load dữ liệu
 
-    <div class="upload-dropdown-container">
-      <button class="btn-upload-main" id="sidebarUploadDropdownTrigger">
-        <i class="ph ph-upload-simple"></i>
-        <span>Tải lên</span>
-        <i class="ph ph-caret-down" style="margin-left: auto;"></i>
-      </button>
-      <div class="upload-dropdown-menu" id="sidebarUploadDropdownMenu">
-        <button class="upload-dropdown-item" data-action="upload-file">
-          <i class="ph ph-file-arrow-up"></i>
-          <span>Tải lên tệp</span>
-        </button>
-        <button class="upload-dropdown-item" data-action="upload-folder">
-          <i class="ph ph-folder-plus"></i>
-          <span>Tải lên thư mục</span>
-        </button>
-      </div>
-    </div>
 
-    <ul class="nav-menu" id="main-nav-menu">
-      <li class="nav-item active" data-view="home">
-        <i class="ph-fill ph-folder-open"></i>
-        <span>Tệp của tôi</span>
-      </li>
-      <li class="nav-item" data-view="shared">
-        <i class="ph ph-users"></i>
-        <span>Được chia sẻ</span>
-        <span class="badge">6</span>
-      </li>
-      <li class="nav-item" data-view="recent">
-        <i class="ph ph-clock"></i>
-        <span>Gần đây</span>
-      </li>
-      <li class="nav-item" data-view="trash">
-        <i class="ph ph-trash"></i>
-        <span>Thùng rác</span>
-      </li>
-    </ul>
+// ================================================================
+// HÀM KHỞI TẠO SỰ KIỆN (chạy sau khi HTML layout đã được chèn vào trang)
+// ================================================================
+function initLayoutEvents() {
 
-    <div class="nav-section-title">HỆ THỐNG</div>
-    <ul class="nav-menu">
-      <li class="nav-item">
-        <i class="ph ph-gear"></i>
-        <span>Cài đặt</span>
-      </li>
-    </ul>
+  // --- LẤY THAM CHIẾU ĐẾN CÁC PHẦN TỬ THÔNG BÁO ---
+  const notifBtn = document.getElementById('notificationBtn');          // Nút chuông
+  const notifDropdown = document.getElementById('notificationDropdown'); // Dropdown thông báo
 
-    <div class="sidebar-bottom">
-      <div class="storage-info">
-        <div class="storage-header">
-          <span class="storage-label">Bộ nhớ</span>
-          <span class="storage-value">38,4 / 100 GB</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill"></div>
-        </div>
-        <div class="storage-remaining">61,6 GB còn lại</div>
-      </div>
-
-      <div class="user-profile">
-        <div class="avatar">TM</div>
-        <div class="user-details">
-          <span class="user-name">Trần Minh</span>
-          <span class="user-email">t.minh@congty.vn</span>
-        </div>
-        <i class="ph ph-caret-up" style="margin-left: auto; color: var(--text-muted);"></i>
-      </div>
-    </div>
-  </aside>
-`;
-
-const headerHTML = `
-  <header class="top-header">
-    <div class="breadcrumbs" id="breadcrumb-container">
-      <span class="current">Tệp của tôi</span>
-    </div>
-
-    <div class="header-actions">
-      <div class="search-bar">
-        <i class="ph ph-magnifying-glass"></i>
-        <input type="text" placeholder="Tìm kiếm tệp...">
-      </div>
-
-      <div class="sort-dropdown">
-        Ngày sửa <i class="ph ph-caret-down"></i>
-      </div>
-
-      <div class="view-toggle">
-        <button class="view-btn active"><i class="ph-fill ph-squares-four"></i></button>
-        <button class="view-btn"><i class="ph-bold ph-list"></i></button>
-      </div>
-
-      <div class="upload-dropdown-container inline-dropdown">
-        <button class="btn-upload-outline" id="headerUploadDropdownTrigger">
-          <i class="ph ph-upload-simple"></i> Tải lên <i class="ph ph-caret-down"></i>
-        </button>
-        <div class="upload-dropdown-menu" id="headerUploadDropdownMenu">
-          <button class="upload-dropdown-item" data-action="upload-file">
-            <i class="ph ph-file-arrow-up"></i>
-            <span>Tải lên tệp</span>
-          </button>
-          <button class="upload-dropdown-item" data-action="upload-folder">
-            <i class="ph ph-folder-plus"></i>
-            <span>Tải lên thư mục</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="notifications" id="notificationBtn">
-        <i class="ph ph-bell"></i>
-        <div class="indicator">2</div>
-
-        <!-- Notification Dropdown -->
-        <div class="notification-dropdown" id="notificationDropdown">
-          <div class="notif-header">
-            <h3>Thông báo <span class="notif-badge">2</span></h3>
-            <a href="#" class="mark-read">Đánh dấu đã đọc</a>
-          </div>
-          
-          <div class="notif-list">
-            <!-- Item 1 -->
-            <div class="notif-item unread">
-              <div class="notif-icon bg-gray"><i class="ph-fill ph-user"></i></div>
-              <div class="notif-content">
-                <p class="notif-title"><strong>Nguyễn Hải Anh</strong> đã chia sẻ tệp</p>
-                <p class="notif-desc">Báo cáo chiến lược 2026.pdf</p>
-                <span class="notif-time">10 phút trước</span>
-              </div>
-              <div class="unread-dot"></div>
-            </div>
-            
-            <!-- Item 2 -->
-            <div class="notif-item unread">
-              <div class="notif-icon bg-green"><i class="ph-fill ph-check-square"></i></div>
-              <div class="notif-content">
-                <p class="notif-title"><strong>Tải lên hoàn tất</strong></p>
-                <p class="notif-desc">sao-luu-he-thong-2026-08.tar.gz · 847 ...</p>
-                <span class="notif-time">1 giờ trước</span>
-              </div>
-              <div class="unread-dot"></div>
-            </div>
-
-            <!-- Item 3 -->
-            <div class="notif-item">
-              <div class="notif-icon bg-gray"><i class="ph-fill ph-user"></i></div>
-              <div class="notif-content">
-                <p class="notif-title"><strong>Lê Thị Phương</strong> đã chia sẻ tệp</p>
-                <p class="notif-desc">Mockup thiết kế UI.png</p>
-                <span class="notif-time">3 giờ trước</span>
-              </div>
-            </div>
-
-            <!-- Item 4 -->
-            <div class="notif-item">
-              <div class="notif-icon bg-yellow"><i class="ph-fill ph-warning"></i></div>
-              <div class="notif-content">
-                <p class="notif-title"><strong>Bộ nhớ đã dùng 38%</strong></p>
-                <p class="notif-desc">Còn 61,6 GB trống. Nâng cấp để có thêm du...</p>
-                <span class="notif-time">Hôm qua</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="notif-footer">
-            <a href="#">Xem tất cả thông báo</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-`;
-
-// Inject components into the DOM when this script loads
-const sidebarContainer = document.getElementById('sidebar-container');
-const headerContainer = document.getElementById('header-container');
-
-if (sidebarContainer) {
-  sidebarContainer.outerHTML = sidebarHTML;
-}
-
-if (headerContainer) {
-  headerContainer.outerHTML = headerHTML;
-}
-
-// Xử lý sự kiện bật/tắt bảng thông báo
-setTimeout(() => {
-  const notifBtn = document.getElementById('notificationBtn');
-  const notifDropdown = document.getElementById('notificationDropdown');
-  
   if (notifBtn && notifDropdown) {
-    notifBtn.addEventListener('click', function(e) {
-      notifDropdown.classList.toggle('show');
-      e.stopPropagation();
+
+    // Khi click vào chuông → toggle (hiện/ẩn) dropdown thông báo
+    notifBtn.addEventListener('click', function (e) {
+      notifDropdown.classList.toggle('show'); // CSS: .show { display: flex }
+      e.stopPropagation(); // Ngăn event lan ra document (tránh đóng ngay lập tức)
     });
 
-    notifDropdown.addEventListener('click', function(e) {
+    // Click BÊN TRONG dropdown → KHÔNG đóng dropdown
+    notifDropdown.addEventListener('click', function (e) {
       e.stopPropagation(); // Click bên trong bảng không làm đóng bảng
     });
 
-    document.addEventListener('click', function() {
+    // Click BÊN NGOÀI dropdown → đóng dropdown
+    document.addEventListener('click', function () {
       notifDropdown.classList.remove('show'); // Click ra ngoài sẽ đóng
     });
 
-    // Chức năng "Đánh dấu đã đọc" (Frontend logic + API)
+    // --- CHỨC NĂNG "ĐÁNH DẤU ĐÃ ĐỌC" ---
     const markReadBtn = notifDropdown.querySelector('.mark-read');
     if (markReadBtn) {
-      markReadBtn.addEventListener('click', async function(e) {
-        e.preventDefault();
-        
+      // async: Hàm bất đồng bộ vì cần gọi API
+      markReadBtn.addEventListener('click', async function (e) {
+        e.preventDefault(); // Ngăn thẻ <a> nhảy lên đầu trang (#)
+
         try {
-          // Lấy tất cả ID của thông báo chưa đọc
+          // Lấy tất cả phần tử thông báo chưa đọc (class .unread)
           const unreadItems = notifDropdown.querySelectorAll('.notif-item.unread');
+
+          // Tạo mảng các Promise API PATCH cho từng thông báo chưa đọc
           const promises = Array.from(unreadItems).map(item => {
-            const id = item.dataset.id;
+            const id = item.dataset.id; // Lấy ID từ attribute data-id
             if (id) {
+              // Gọi API PATCH /notifications/{id}/read để đánh dấu đã đọc
               return fetchWithAuth(`/notifications/${id}/read`, { method: "PATCH" });
             }
           });
+
+          // Chờ TẤT CẢ API calls hoàn thành cùng lúc (song song)
           await Promise.all(promises);
 
-          // Cập nhật UI
-          unreadItems.forEach(item => item.classList.remove('unread'));
+          // Cập nhật UI sau khi API thành công:
+          unreadItems.forEach(item => {
+            item.classList.remove('unread'); // Xóa style "chưa đọc"
+            const dot = item.querySelector('.unread-dot');
+            if (dot) dot.remove();
+          });
           const indicator = notifBtn.querySelector('.indicator');
-          if (indicator) indicator.style.display = 'none';
+          if (indicator) indicator.style.display = 'none'; // Ẩn badge số ở chuông
           const badge = notifDropdown.querySelector('.notif-badge');
-          if (badge) badge.style.display = 'none';
+          if (badge) badge.style.display = 'none';         // Ẩn badge số trong dropdown
         } catch (error) {
           console.error("Lỗi đánh dấu đã đọc", error);
         }
       });
     }
   }
-}, 50);
 
-// Fetch Notifications từ Backend
-window.fetchNotifications = async function() {
+  // --- CHỨC NĂNG ĐĂNG XUẤT ---
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      // Xóa token và chuyển hướng về trang đăng nhập
+      localStorage.removeItem("jwt_token");
+      localStorage.removeItem("mock_user_profile");
+      window.location.href = "login.html";
+    });
+  }
+
+  // --- CHỨC NĂNG RESIZE SIDEBAR & CON TRỎ CHUỘT MÀU ĐEN ---
+  const sidebar = document.querySelector('.sidebar');
+  const resizer = document.getElementById('sidebarResizer');
+
+  if (sidebar && resizer) {
+    let isResizing = false;
+    const minWidth = 290;
+
+    // SVG icon con trỏ chuột màu đen (mũi tên 2 chiều ngang)
+    const blackCursor = `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 256 256'><path fill='black' d='M205.66,122.34l-32-32a8,8,0,0,0-11.32,11.32L184.69,124H71.31l22.35-22.34a8,8,0,0,0-11.32-11.32l-32,32a8,8,0,0,0,0,11.32l32,32a8,8,0,0,0,11.32-11.32L71.31,132H184.69l-22.35,22.34a8,8,0,0,0,11.32,11.32l32-32A8,8,0,0,0,205.66,122.34Z'></path></svg>") 12 12, col-resize`;
+
+    // Đặt con trỏ chuột màu đen khi hover vào thanh kéo
+    resizer.style.cursor = blackCursor;
+
+    resizer.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      isResizing = true;
+      resizer.classList.add('active');
+      document.body.style.cursor = blackCursor; // Giữ con trỏ đen khi kéo ra ngoài
+    });
+
+    document.addEventListener('mousemove', function (e) {
+      if (!isResizing) return;
+      let newWidth = e.clientX;
+      if (newWidth < minWidth) newWidth = minWidth;
+      sidebar.style.width = newWidth + 'px';
+    });
+
+    document.addEventListener('mouseup', function () {
+      if (isResizing) {
+        isResizing = false;
+        resizer.classList.remove('active');
+        document.body.style.cursor = ''; // Trả lại con trỏ bình thường
+      }
+    });
+  }
+
+  // --- VẼ THANH TIẾN TRÌNH BỘ NHỚ TRONG LAYOUT.JS ---
+  window.renderStorageInfo = async function() {
+    const storageValue = document.querySelector('.storage-value');
+    const progressFill = document.querySelector('.progress-fill');
+    const storageRemaining = document.querySelector('.storage-remaining');
+
+    if (!storageValue || !progressFill || !storageRemaining) return;
+
+    let data = null;
+    try {
+      // Gọi API thực tế (nếu hàm fetchWithAuth có sẵn từ dashboard.js)
+      if (typeof window.fetchWithAuth === "function") {
+        const response = await window.fetchWithAuth("/dashboard/storage");
+        if (response && response.ok) {
+          data = await response.json();
+        }
+      }
+    } catch (error) {
+      console.warn("API lỗi, dùng dữ liệu ảo cho Storage.");
+    }
+
+    // Nếu không có data, dùng dữ liệu ảo (Mock Data)
+    const usedBytes = data ? data.usedBytes : (38.4 * 1024 * 1024 * 1024);
+    const maxBytes = data ? data.maxBytes : (100 * 1024 * 1024 * 1024);
+
+    // Dùng hàm formatSizeGlobal nếu có, không thì tự format đơn giản
+    let usedStr, maxStr, remainingStr;
+    const format = (bytes) => {
+      if (typeof window.formatSizeGlobal === "function") return window.formatSizeGlobal(bytes);
+      return (bytes / (1024 * 1024 * 1024)).toFixed(1).replace('.', ',') + " GB";
+    };
+
+    usedStr = format(usedBytes);
+    maxStr = format(maxBytes);
+    const remainingBytes = Math.max(0, maxBytes - usedBytes);
+    remainingStr = format(remainingBytes);
+
+    let percent = 0;
+    if (maxBytes > 0) {
+      percent = (usedBytes / maxBytes) * 100;
+      // Đảm bảo không vượt quá 100%
+      percent = Math.min(100, percent);
+      // Nếu có dùng dung lượng mà tỷ lệ quá bé (< 1%), ép lên 1% để thấy tia hy vọng màu xanh
+      if (percent < 1 && usedBytes > 0) percent = 1;
+    }
+
+    storageValue.textContent = `${usedStr} / ${maxStr}`;
+    progressFill.style.width = `${percent}%`;
+    storageRemaining.textContent = `${remainingStr} còn lại`;
+  }
+
+  // Thực thi hàm vẽ storage ngay khi layout load xong
+  if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
+
+  // Đọc thông tin user từ localStorage và cập nhật lên Sidebar
+  function renderUserInfo() {
+    const userNameEl = document.getElementById("userName");
+    const userEmailEl = document.getElementById("userEmail");
+    const userAvatarEl = document.getElementById("userAvatar");
+
+    if (!userNameEl || !userEmailEl || !userAvatarEl) return;
+
+    const savedProfileStr = localStorage.getItem("mock_user_profile");
+    const fallbackEmail = localStorage.getItem("user_email") || "nguoidung@congty.vn";
+    let fullName = "Người dùng";
+    let email = fallbackEmail;
+
+    if (savedProfileStr) {
+      try {
+        const profile = JSON.parse(savedProfileStr);
+        fullName = profile.fullName || fullName;
+        email = profile.email || email;
+      } catch (e) { }
+    } else {
+      fullName = email.split('@')[0];
+    }
+
+    userNameEl.textContent = fullName;
+    userEmailEl.textContent = email;
+    userAvatarEl.textContent = fullName.substring(0, 2).toUpperCase();
+  }
+  
+  renderUserInfo();
+
+  // Nếu dashboard.js đã load xong và có hàm initDashboardUI, gọi luôn
+  // (Trường hợp layout.js chạy xong TRƯỚC khi dashboard.js xong thì không cần)
+  if (typeof window.initDashboardUI === 'function') {
+    window.initDashboardUI();
+  }
+}
+
+
+// ================================================================
+// TẢI VÀ CHÈN LAYOUT HTML VÀO TRANG
+// ================================================================
+fetch('layout.html') // GET file layout.html từ cùng thư mục
+  .then(response => {
+    // Kiểm tra HTTP status (200 OK, 404 Not Found, ...)
+    if (!response.ok) throw new Error('Không thể tải file layout.html');
+    return response.text(); // Chuyển response body thành chuỗi HTML
+  })
+  .then(html => {
+    // 1. Tạo một container ảo (không hiển thị) để parse HTML tải về
+    //    Dùng div ảo thay vì DOMParser để dễ dàng querySelector
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html; // Trình duyệt parse HTML string → DOM nodes
+
+    // 2. Tìm các phần tử cần thiết bên trong file layout.html đã parse
+    const sidebarElement = tempDiv.querySelector('.sidebar');     // <aside class="sidebar">
+    const headerElement = tempDiv.querySelector('.top-header');  // <header class="top-header">
+
+    // 3. Tìm các placeholder đang chờ trên trang (dashboard.html)
+    const sidebarContainer = document.getElementById('sidebar-container'); // <div id="sidebar-container">
+    const headerContainer = document.getElementById('header-container');   // <div id="header-container">
+
+    // 4. Lắp ráp: Thay thế placeholder bằng phần tử thật từ layout.html
+    //    replaceWith() → thay toàn bộ node placeholder bằng sidebar/header thật
+    if (sidebarContainer && sidebarElement) {
+      sidebarContainer.replaceWith(sidebarElement);
+    }
+
+    if (headerContainer && headerElement) {
+      headerContainer.replaceWith(headerElement);
+    }
+
+    // 5. Sau khi DOM đã có Sidebar & Header thật, khởi tạo các sự kiện tương tác
+    initLayoutEvents();
+  })
+  .catch(err => {
+    console.error("Lỗi tải layout:", err);
+  });
+
+
+// ================================================================
+// HÀM LẤY THÔNG BÁO TỪ BACKEND VÀ RENDER VÀO DROPDOWN
+// Được gọi từ initDashboardUI() trong dashboard.js
+// Gán lên window để các file khác có thể gọi: window.fetchNotifications()
+// ================================================================
+window.fetchNotifications = async function () {
+  // Lấy tham chiếu đến các phần tử UI cần cập nhật
+  const notifList = document.querySelector('.notif-list');         // Container danh sách
+  const indicator = document.querySelector('#notificationBtn .indicator'); // Badge số ở chuông
+  const badge = document.querySelector('.notif-badge');            // Badge số trong header dropdown
+
+  if (!notifList) return; // Sidebar chưa được chèn vào → bỏ qua
+
+  // Cố gắng gọi API
+  let notifications = [];
   try {
     const res = await fetchWithAuth("/notifications");
-    if (!res || !res.ok) return;
-    const notifications = await res.json();
-    
-    const notifList = document.querySelector('.notif-list');
-    const indicator = document.querySelector('#notificationBtn .indicator');
-    const badge = document.querySelector('.notif-badge');
-    
-    if (!notifList) return;
-    
-    let unreadCount = 0;
-    let html = '';
-    
-    if (!notifications || notifications.length === 0) {
-      notifList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">Không có thông báo nào</div>';
-      if (indicator) indicator.style.display = 'none';
-      if (badge) badge.style.display = 'none';
-      return;
+    if (res && res.ok) {
+      notifications = await res.json();
+    } else {
+      throw new Error("API lỗi");
+    }
+  } catch (error) {
+    console.error("Lỗi lấy thông báo từ Backend:", error);
+    notifications = []; // Xóa dữ liệu mẫu, chỉ sử dụng dữ liệu thật
+  }
+
+  let unreadCount = 0; // Đếm số thông báo chưa đọc
+
+  // Xóa nội dung cũ trong danh sách (chỉ xóa các item cũ, giữ nguyên template và footer)
+  const oldItems = notifList.querySelectorAll('.notif-item:not(template .notif-item)');
+  oldItems.forEach(item => item.remove());
+
+  // Xóa thông báo trống nếu có
+  const emptyMsg = notifList.querySelector('.empty-notif');
+  if (emptyMsg) emptyMsg.remove();
+
+  if (!notifications || notifications.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty-notif';
+    emptyDiv.textContent = 'Không có thông báo nào';
+    // Chèn sau template
+    const templateNode = document.getElementById('notif-item-template');
+    if (templateNode) {
+      templateNode.insertAdjacentElement('afterend', emptyDiv);
+    } else {
+      notifList.prepend(emptyDiv);
     }
 
-    notifications.forEach(notif => {
-      if (!notif.read) unreadCount++;
-      const isUnread = notif.read ? '' : 'unread';
-      const iconClass = notif.type === 'SHARED' ? 'ph-user' : (notif.type === 'SYSTEM' ? 'ph-warning' : 'ph-check-square');
-      const bgClass = notif.type === 'SHARED' ? 'bg-gray' : (notif.type === 'SYSTEM' ? 'bg-yellow' : 'bg-green');
-      
-      html += `
-        <div class="notif-item ${isUnread}" data-id="${notif.id}">
-          <div class="notif-icon ${bgClass}"><i class="ph-fill ${iconClass}"></i></div>
-          <div class="notif-content">
-            <p class="notif-title">${notif.title || 'Thông báo'}</p>
-            <p class="notif-desc">${notif.message || ''}</p>
-            <span class="notif-time">${notif.createdAt || 'Vừa xong'}</span>
-          </div>
-          ${!notif.read ? '<div class="unread-dot"></div>' : ''}
-        </div>
-      `;
-    });
-    
-    notifList.innerHTML = html;
-    
-    if (unreadCount > 0) {
-      if (indicator) {
-        indicator.textContent = unreadCount;
-        indicator.style.display = 'flex';
-      }
-      if (badge) {
-        badge.textContent = unreadCount;
-        badge.style.display = 'inline-block';
-      }
-    } else {
-      if (indicator) indicator.style.display = 'none';
-      if (badge) badge.style.display = 'none';
+    if (indicator) indicator.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+    return;
+  }
+
+  const template = document.getElementById('notif-item-template');
+  if (!template) {
+    console.error("Không tìm thấy template thông báo!");
+    return;
+  }
+
+  // Duyệt qua từng thông báo để tạo DOM từ template
+  notifications.forEach((notif, index) => {
+    // Backend Spring Boot thường trả về isRead, mock cũ trả về read
+    const isUnread = !(notif.isRead === true || notif.read === true);
+
+    if (isUnread) unreadCount++; // Đếm thông báo chưa đọc
+
+    // Clone template ra thành 1 phần tử DOM thật
+    const clone = template.content.cloneNode(true);
+    const itemNode = clone.querySelector('.notif-item');
+
+    itemNode.dataset.id = notif.id;
+
+    // Class CSS cho item: thêm 'unread' nếu chưa đọc
+    if (isUnread) {
+      itemNode.classList.add('unread');
+      // Thêm chấm xanh báo chưa đọc
+      const dot = document.createElement('div');
+      dot.className = 'unread-dot';
+      itemNode.appendChild(dot);
     }
-    
-  } catch (err) {
-    console.error("Lỗi lấy thông báo:", err);
+
+    // Chọn icon phù hợp theo loại thông báo
+    const iconClass = notif.type === 'USER' ? 'ph-user' : (notif.type === 'SUCCESS' || notif.type === 'UPLOAD_COMPLETE' ? 'ph-check-square' : 'ph-warning');
+    // Chọn màu nền icon theo loại thông báo
+    const bgClass = notif.type === 'USER' ? 'bg-purple' : (notif.type === 'SUCCESS' || notif.type === 'UPLOAD_COMPLETE' ? 'bg-green' : 'bg-yellow');
+
+    const iconContainer = itemNode.querySelector('.notif-icon');
+    if (iconContainer) {
+      iconContainer.classList.add(bgClass);
+      const iTag = iconContainer.querySelector('i');
+      if (iTag) iTag.className = `ph-fill ${iconClass}`;
+    }
+
+    // Điền text
+    itemNode.querySelector('.notif-title').innerHTML = notif.title || 'Thông báo';
+    itemNode.querySelector('.notif-desc').textContent = notif.message || '';
+    itemNode.querySelector('.notif-time').textContent = notif.createdAt || 'Vừa xong';
+
+    // Xử lý sự kiện click từng thông báo để đánh dấu đã đọc
+    itemNode.addEventListener('click', async (e) => {
+      // Nếu là thông báo chưa đọc
+      if (itemNode.classList.contains('unread')) {
+        try {
+          const res = await fetchWithAuth(`/notifications/${notif.id}/read`, { method: "PATCH" });
+          if (res && res.ok) {
+            // Cập nhật UI cho thông báo này
+            itemNode.classList.remove('unread');
+            const dot = itemNode.querySelector('.unread-dot');
+            if (dot) dot.remove();
+
+            // Cập nhật số lượng trên chuông
+            const indicatorEl = document.querySelector('#notificationBtn .indicator');
+            const badgeEl = document.querySelector('.notif-badge');
+
+            let currentCount = parseInt(indicatorEl?.textContent || '0', 10);
+            if (currentCount > 0) {
+              currentCount--;
+              if (currentCount === 0) {
+                if (indicatorEl) indicatorEl.style.display = 'none';
+                if (badgeEl) badgeEl.style.display = 'none';
+              } else {
+                if (indicatorEl) indicatorEl.textContent = currentCount;
+                if (badgeEl) badgeEl.textContent = currentCount;
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Lỗi khi đánh dấu đã đọc 1 thông báo:", err);
+        }
+      }
+    });
+
+    // Ẩn các thông báo từ vị trí thứ 6 trở đi
+    if (index >= 5) {
+      itemNode.style.display = 'none';
+      itemNode.classList.add('extra-notif');
+    }
+
+    // Nhét phần tử vừa tạo vào danh sách (phải chèn TRƯỚC footer)
+    const footer = notifList.querySelector('.notif-footer');
+    if (footer) {
+      notifList.insertBefore(clone, footer);
+    } else {
+      notifList.appendChild(clone);
+    }
+  });
+
+  // Xử lý nút Xem tất cả
+  const viewAllBtn = document.getElementById('viewAllNotifBtn');
+  if (viewAllBtn) {
+    if (notifications.length > 5) {
+      viewAllBtn.parentElement.style.display = 'block';
+      viewAllBtn.onclick = async (e) => {
+        e.preventDefault();
+        // Hiện tất cả các thông báo bị ẩn
+        notifList.querySelectorAll('.extra-notif').forEach(el => el.style.display = 'flex');
+        // Ẩn nút xem tất cả sau khi đã mở rộng
+        viewAllBtn.parentElement.style.display = 'none';
+
+        // Tự động đánh dấu đã đọc và gọi API cho các mục chưa đọc
+        const unreadItems = notifList.querySelectorAll('.notif-item.unread');
+        if (unreadItems.length > 0) {
+          try {
+            const promises = Array.from(unreadItems).map(item => {
+              const id = item.dataset.id;
+              if (id) return fetchWithAuth(`/notifications/${id}/read`, { method: "PATCH" });
+            });
+            await Promise.all(promises);
+
+            unreadItems.forEach(item => {
+              item.classList.remove('unread');
+              const dot = item.querySelector('.unread-dot');
+              if (dot) dot.remove();
+            });
+
+            if (indicator) indicator.style.display = 'none';
+            if (badge) badge.style.display = 'none';
+          } catch (err) {
+            console.error("Lỗi khi đánh dấu đã đọc:", err);
+          }
+        }
+      };
+    } else {
+      // Nếu ít hơn hoặc bằng 5 thông báo thì ẩn luôn nút Xem tất cả
+      viewAllBtn.parentElement.style.display = 'none';
+    }
+  }
+
+  // Cập nhật badge số lượng chưa đọc
+  if (unreadCount > 0) {
+    if (indicator) {
+      indicator.textContent = unreadCount; // Gán số vào badge chuông
+      indicator.style.display = 'flex';
+    }
+    if (badge) {
+      badge.textContent = unreadCount; // Gán số vào badge header
+      badge.style.display = 'inline-block';
+    }
+  } else {
+    // Không có thông báo chưa đọc → ẩn cả 2 badge
+    if (indicator) indicator.style.display = 'none';
+    if (badge) badge.style.display = 'none';
+  }
+};
+
+
+// ================================================================
+// BADGE SỐ LƯỢNG FILE ĐƯỢC CHIA SẺ
+// ================================================================
+
+/**
+ * Lấy số lượng file/folder người khác chia sẻ cho mình
+ * và hiển thị lên badge của tab "Được chia sẻ" trong Sidebar
+ */
+window.fetchSharedCountBadge = async function() {
+  try {
+    const response = await fetchWithAuth("/shares/shared-with-me");
+    if (response && response.ok) {
+      const sharedList = await response.json();
+
+      let items = [];
+      if (Array.isArray(sharedList)) {
+        items = sharedList; 
+      } else if (sharedList && typeof sharedList === "object") {
+        const f1 = sharedList.folders || sharedList.subfolders || [];
+        const f2 = sharedList.files || [];
+        items = [...f1, ...f2]; 
+      }
+
+      const totalItems = items.length; 
+
+      // Tìm badge trong Sidebar
+      const sidebarBadge = document.querySelector('.nav-item[data-view="shared"] .badge');
+      if (sidebarBadge) {
+        // Luôn hiển thị số
+        sidebarBadge.textContent = totalItems;
+      }
+    }
+  } catch (error) {
+    console.warn("Không thể lấy số lượng tệp chia sẻ", error);
   }
 };

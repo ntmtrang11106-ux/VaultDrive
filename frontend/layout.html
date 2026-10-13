@@ -1,0 +1,190 @@
+<!-- layout.html -->
+<!-- File này CHỈ chứa HTML của Sidebar và Header dùng chung cho nhiều trang.
+     Được tải động bằng fetch() trong layout.js, sau đó chèn vào dashboard.html. -->
+
+<!-- ================================================================
+     SIDEBAR - Thanh điều hướng bên trái
+================================================================ -->
+<aside class="sidebar" id="sidebar">
+  <!-- === KHU VỰC LOGO & TÊN THƯƠNG HIỆU === -->
+  <header class="logo-area">
+    <div class="logo-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.1325 20.176 10.2077 17.8596 10.0116C17.4326 6.64368 14.5683 4 11 4C7.13401 4 4 7.13401 4 11C4 11.2372 4.01174 11.4716 4.03454 11.7027C2.29063 12.1818 1 13.784 1 15.6667C1 17.8758 2.79086 19.6667 5 19.6667H17.5Z"
+          stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </div>
+
+    <!-- Tên thương hiệu và slogan -->
+    <h1 class="logo-text">
+      <span class="brand">VaultDrive</span>
+      <span class="sub">LƯU TRỮ BẢO MẬT</span>
+    </h1>
+  </header>
+
+  <!-- === NÚT TẢI LÊN (có dropdown chọn file hoặc thư mục) === -->
+  <div class="upload-dropdown-container">
+    <!-- Nút chính "Tải lên" - click sẽ bật/tắt dropdown bên dưới -->
+    <button class="btn-upload-main" id="btnUploadDropdownTrigger">
+      <i class="ph ph-upload-simple"></i>
+      <span>Tải lên</span>
+      <!-- Mũi tên chỉ xuống, margin-left:auto đẩy sang lề phải -->
+      <i class="ph ph-caret-down" style="margin-left: auto"></i>
+    </button>
+
+    <!-- Dropdown menu: hiện khi click vào nút Tải lên (CSS class .show) -->
+    <div class="upload-dropdown-menu" id="uploadDropdownMenu">
+      <!-- Tùy chọn 1: Tải lên file (mở hộp thoại chọn file) -->
+      <button class="upload-dropdown-item" data-action="upload-file">
+        <i class="ph ph-file-arrow-up"></i>
+        <span>Tải lên tệp</span>
+      </button>
+
+      <!-- Tùy chọn 2: Tải lên thư mục (mở hộp thoại chọn folder) -->
+      <button class="upload-dropdown-item" data-action="upload-folder">
+        <i class="ph ph-folder-plus"></i>
+        <span>Tải lên thư mục</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- === MENU ĐIỀU HƯỚNG CHÍNH (NAV) === -->
+  <nav aria-label="Main Navigation">
+    <ul class="nav-menu" id="main-nav-menu">
+      <!-- Tab "Tệp của tôi" -->
+      <li class="nav-item active" data-view="home">
+        <i class="ph-fill ph-folder-open"></i>
+        <span>Tệp của tôi</span>
+      </li>
+
+      <!-- Tab "Được chia sẻ"-->
+      <li class="nav-item" data-view="shared">
+        <i class="ph ph-users"></i>
+        <span>Được chia sẻ</span>
+        <!-- Badge số lượng file được chia sẻ-->
+        <span class="badge"></span>
+      </li>
+
+      <!-- Tab "Thùng rác" -->
+      <li class="nav-item" data-view="trash">
+        <i class="ph ph-trash"></i>
+        <span>Thùng rác</span>
+      </li>
+
+      <!-- Tab "Cài đặt" -->
+      <li class="nav-item" data-view="settings">
+        <i class="ph ph-gear"></i>
+        <span>Cài đặt</span>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- === KHU VỰC CUỐI SIDEBAR-->
+  <footer class="sidebar-bottom">
+    <!-- Thông tin dung lượng lưu trữ -->
+    <div class="storage-info">
+      <div class="storage-header">
+        <span class="storage-label">Bộ nhớ</span>
+        <span class="storage-value"></span>
+      </div>
+
+      <!-- Thanh tiến trình bộ nhớ -->
+      <div class="storage-progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+
+      <!-- Dung lượng còn trống -->
+      <div class="storage-remaining"></div>
+    </div>
+
+    <!-- Hồ sơ người dùng: Avatar + Tên + Email + Dropdown đăng xuất -->
+    <div class="user-profile" id="userProfileBtn">
+      <!-- Avatar -->
+      <div class="avatar" id="userAvatar">U</div>
+
+      <!-- Tên và email người dùng  -->
+      <div class="user-details">
+        <span class="user-name" id="userName"></span>
+        <span class="user-email" id="userEmail"></span>
+      </div>
+
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <div class="logout-btn-direct" id="logoutBtn">
+      <i class="ph-bold ph-sign-out"></i> Đăng xuất
+    </div>
+  </footer>
+
+  <!-- Thanh kéo (Resizer) để thay đổi kích thước Sidebar -->
+  <div class="sidebar-resizer" id="sidebarResizer"></div>
+</aside>
+
+<!-- ================================================================
+     HEADER - Thanh tiêu đề trên cùng (top bar)
+================================================================ -->
+<header class="top-header" id="top-header">
+  <!-- Breadcrumb: Đường dẫn thư mục hiện tại (VD: Tệp của tôi > Dự án > 2024)-->
+  <div class="breadcrumbs" id="breadcrumb-container">
+    <!-- .current: Style đậm cho tên mục hiện tại -->
+    <span class="current">Tệp của tôi</span>
+  </div>
+
+  <!-- Nhóm các hành động bên phải Header -->
+  <div class="header-actions">
+    <!-- Thanh tìm kiếm file -->
+    <div class="search-bar">
+      <i class="ph ph-magnifying-glass"></i><!-- Icon kính lúp -->
+      <input type="text" name="search" autocomplete="off" placeholder="Tìm kiếm tệp..." />
+    </div>
+
+    <!-- Dropdown sắp xếp-->
+    <div class="sort-dropdown">Ngày sửa <i class="ph ph-caret-down"></i></div>
+
+    <!-- Nút chuyển đổi chế độ hiển thị: Grid View ⟷ List View -->
+    <div class="view-toggle">
+      <!-- Nút Grid View (dạng lưới) - active mặc định -->
+      <button class="view-btn active">
+        <i class="ph-fill ph-squares-four"></i>
+      </button>
+      <!-- Nút List View (dạng bảng) -->
+      <button class="view-btn"><i class="ph-bold ph-list"></i></button>
+    </div>
+
+    <!-- Chuông thông báo: -->
+    <div class="notifications" id="notificationBtn">
+      <i class="ph ph-bell"></i>
+      <!-- Badge số lượng thông báo chưa đọc -->
+      <div class="indicator"></div>
+
+      <!-- Dropdown danh sách thông báo-->
+      <div class="notification-dropdown" id="notificationDropdown">
+        <!-- Header dropdown: Tiêu đề + badge số + nút đánh dấu đã đọc -->
+        <div class="notif-header">
+          <h3>Thông báo <span class="notif-badge"></span></h3>
+          <a href="#" class="mark-read">Đánh dấu đã đọc</a>
+        </div>
+
+        <!-- Danh sách thông báo (cuộn được nếu nhiều) -->
+        <div class="notif-list" id="notifListContainer">
+
+          <template id="notif-item-template">
+            <div class="notif-item">
+              <div class="notif-icon"><i class="ph-fill"></i></div>
+              <div class="notif-content">
+                <p class="notif-title"></p>
+                <p class="notif-desc"></p>
+                <span class="notif-time"></span>
+              </div>
+            </div>
+          </template>
+
+          <!-- Footer dropdown: Link xem tất cả thông báo -->
+          <div class="notif-footer" id="notifFooter">
+            <a href="#" id="viewAllNotifBtn">Xem tất cả thông báo</a>
+          </div>
+        </div>
+      </div>
+    </div>
+</header>

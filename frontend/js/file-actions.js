@@ -1,97 +1,157 @@
 // frontend/js/file-actions.js
+// Mục đích: File JS lớn nhất, xử lý TẤT CẢ tương tác với file/folder:
+//   - Context Menu (chuột phải / nút 3 chấm)
+//   - Modals: Đổi tên, Chia sẻ
+//   - Render card file/folder lên giao diện
+//   - Upload file/folder với tiến trình (Chunked Upload)
+//   - Drag & Drop
+//   - Trash (Thùng rác): xóa, khôi phục, xóa vĩnh viễn
+//   - loadDashboardData: hàm tổng dispatch load dữ liệu theo tab
 
-// Biến lưu trữ ID của file/folder đang được click chuột phải / 3 chấm
+
+// ================================================================
+// BIẾN TOÀN CỤC (State)
+// ================================================================
+
+// ID của file/folder đang được người dùng chọn (click chuột phải hoặc click nút ⋮)
+// Dùng để các handler trong Context Menu biết cần thao tác trên item nào
 let currentTargetId = null;
-let currentTargetType = null; // 'file' or 'folder'
+let currentTargetType = null; // 'file' hoặc 'folder'
 
+
+// ================================================================
+// TIỆN ÍCH FORMAT DỮ LIỆU
+// ================================================================
+
+/**
+ * formatSize(bytes) - Chuyển bytes thành chuỗi đọc được (B, KB, MB, GB, TB)
+ * VD: 1536 → "1.5 KB" | 5242880 → "5.0 MB"
+ */
 function formatSize(bytes) {
   if (!bytes || isNaN(bytes) || bytes <= 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.floor(Math.log(bytes) / Math.log(k)); // Tìm bậc đơn vị phù hợp
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
+// Gán lên window để các file khác (dashboard.js, trash.js...) có thể gọi
 window.formatSize = formatSize;
 
+/**
+ * formatSmartDate(isoString) - Chuyển chuỗi ISO date thành ngày thông minh
+ * Nếu hôm nay → "Hôm nay, HH:MM"
+ * Nếu hôm qua → "Hôm qua, HH:MM"
+ * Trước đó     → "YYYY-MM-DD"
+ * @param {string} isoString - Chuỗi ISO 8601 (VD: "2026-09-23T10:30:00")
+ */
 function formatSmartDate(isoString) {
   if (!isoString) return "Gần đây";
   try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return String(isoString);
+    const d = new Date(isoString); // Parse chuỗi ISO thành Date object
+    if (isNaN(d.getTime())) return String(isoString); // Nếu parse thất bại, trả nguyên chuỗi
 
     const now = new Date();
+    // Tạo Date chỉ có ngày (bỏ giờ/phút/giây) để so sánh ngày
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const targetDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    // diffDays: số ngày chênh lệch (0 = hôm nay, 1 = hôm qua, ...)
     const diffDays = Math.round((today - targetDate) / (1000 * 60 * 60 * 24));
 
+    // Format giờ:phút với leading zero (VD: 9 → "09")
     const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
     const yyyy = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0'); // getMonth() bắt đầu từ 0
     const dd = String(d.getDate()).padStart(2, '0');
 
     if (diffDays === 0) {
-      return `Hôm nay, ${hh}:${mm}`;
+      return `Hôm nay, ${hh}:${mm}`; // Cùng ngày → hiện giờ
     } else if (diffDays === 1) {
-      return `Hôm qua, ${hh}:${mm}`;
+      return `Hôm qua, ${hh}:${mm}`; // Hôm qua → hiện giờ
     } else {
-      return `${yyyy}-${month}-${dd}`;
+      return `${yyyy}-${month}-${dd}`; // Ngày cũ hơn → hiện ngày đầy đủ
     }
   } catch (e) {
-    return String(isoString);
+    return String(isoString); // Fallback: trả nguyên chuỗi nếu có lỗi
   }
 }
+// Gán lên window để dùng được ở mọi file
 window.formatSmartDate = formatSmartDate;
 
+// ================================================================
+// KHỐI LOGIC CHÍNH: Chạy sau khi DOM đã sẵn sàng
+// ================================================================
 document.addEventListener("DOMContentLoaded", () => {
-  const contextMenu = document.getElementById("globalContextMenu");
+  // Lấy tham chiếu đến Context Menu và các Modal overlay
+  const contextMenu = document.getElementById("globalContextMenu");  // Menu chuột phải
 
-  // DOM elements của Modals
-  const renameOverlay = document.getElementById("renameModalOverlay");
-  const shareOverlay = document.getElementById("shareModalOverlay");
+  // DOM elements của Modals (lớp phủ tối toàn màn hình)
+  const renameOverlay = document.getElementById("renameModalOverlay"); // Modal đổi tên
+  const shareOverlay = document.getElementById("shareModalOverlay");   // Modal chia sẻ
 
-  // 1. Logic ẩn Menu
+  // ─── 1. LOGIC ẨN CONTEXT MENU KHI CLICK RA NGOÀI ───
   document.addEventListener("click", (e) => {
-    // Nếu click ra ngoài menu thì ẩn
+    // Nếu click KHÔNG vào menu và KHÔNG vào nút 3 chấm → ẩn menu
     if (
       !e.target.closest(".custom-context-menu") &&
       !e.target.closest(".more-options")
     ) {
       contextMenu.style.display = "none";
+      // Xóa class .active của tất cả nút 3 chấm đang nổi bật
       document
         .querySelectorAll(".more-options.active")
         .forEach((el) => el.classList.remove("active"));
     }
   });
 
-  // Export hàm để dashboard.js có thể gọi khi click nút 3 chấm
+  // ─── 2. HÀM MỞ CONTEXT MENU ───
+  // Gán lên window để renderFolders/renderFiles có thể gọi từ onclick inline HTML
+  // VD: onclick="window.openContextMenu(event, 123, 'file')"
   window.openContextMenu = function (e, id, type) {
-    e.stopPropagation(); // Ngăn sự kiện nổi bọt
-    currentTargetId = id;
-    currentTargetType = type;
+    e.stopPropagation(); // Ngăn sự kiện lan ra document (tránh menu bị đóng ngay)
 
-    // Reset các nút 3 chấm khác
+    // Lưu item đang được chọn vào biến state toàn cục
+    currentTargetId = id;   // ID của file/folder
+    currentTargetType = type; // 'file' hoặc 'folder'
+
+    // Lấy quyền của file/folder từ window.currentLoadedData
+    let itemPerm = "OWNER";
+    if (window.currentLoadedData) {
+      if (type === 'folder') {
+        let list = window.currentLoadedData.folders || [];
+        if (window.currentLoadedData.subfolders) list = list.concat(window.currentLoadedData.subfolders);
+        const item = list.find(f => (f.folderId || f.id) == id);
+        if (item && item.permission) itemPerm = item.permission;
+      } else {
+        let list = window.currentLoadedData.files || [];
+        const item = list.find(f => (f.fileId || f.id) == id);
+        if (item && item.permission) itemPerm = item.permission;
+      }
+    }
+    window.currentTargetPermission = itemPerm.toUpperCase();
+
+    // Bỏ nổi bật tất cả nút 3 chấm đang active trước đó
     document
       .querySelectorAll(".more-options.active")
       .forEach((el) => el.classList.remove("active"));
 
-    // Nổi bật nút hiện tại
+    // Nổi bật nút 3 chấm vừa được click (e.currentTarget = nút ⋮)
     const btn = e.currentTarget;
     btn.classList.add("active");
 
-    // Mở menu
+    // Hiện context menu
     contextMenu.style.display = "block";
 
-    // Tính toán tọa độ hiển thị (tránh bị tràn màn hình)
-    const btnRect = btn.getBoundingClientRect();
-    let left = btnRect.right + 10;
-    let top = btnRect.top;
+    // --- Tính toán vị trí hiển thị menu (tránh bị tràn ra ngoài màn hình) ---
+    const btnRect = btn.getBoundingClientRect(); // Vị trí của nút ⋮ trên màn hình
+    let left = btnRect.right + 10;  // Mặc định: hiện bên PHẢI nút ⋮, cách 10px
+    let top = btnRect.top;          // Cùng chiều cao với nút ⋮
 
-    // Nếu tràn lề phải, đẩy sang trái
+    // Nếu menu bị tràn ra lề PHẢI màn hình → lật sang hiện ở bên TRÁI nút ⋮
     if (left + contextMenu.offsetWidth > window.innerWidth) {
       left = btnRect.left - contextMenu.offsetWidth - 10;
     }
-    // Nếu tràn lề dưới, đẩy lên trên
+    // Nếu menu bị tràn xuống lề DƯỚI màn hình → dịch lên trên cho vừa
     if (top + contextMenu.offsetHeight > window.innerHeight) {
       top = window.innerHeight - contextMenu.offsetHeight - 10;
     }
@@ -99,16 +159,18 @@ document.addEventListener("DOMContentLoaded", () => {
     contextMenu.style.left = left + "px";
     contextMenu.style.top = top + "px";
 
-    // Hiện/Ẩn các nút dựa trên view hiện tại
-    const ctxDelete = document.getElementById("ctxDelete");
-    const ctxRestore = document.getElementById("ctxRestore");
-    const ctxDeletePerm = document.getElementById("ctxDeletePermanent");
+    // --- Ẩn/Hiện nút theo VIEW hiện tại ---
+    const ctxDelete = document.getElementById("ctxDelete");       // "Chuyển vào thùng rác"
+    const ctxRestore = document.getElementById("ctxRestore");     // "Khôi phục"
+    const ctxDeletePerm = document.getElementById("ctxDeletePermanent"); // "Xóa vĩnh viễn"
 
     if (window.currentViewType === "trash") {
+      // Đang ở Thùng rác → Ẩn "Xóa", Hiện "Khôi phục" và "Xóa vĩnh viễn"
       if (ctxDelete) ctxDelete.style.display = "none";
       if (ctxRestore) ctxRestore.style.display = "flex";
       if (ctxDeletePerm) ctxDeletePerm.style.display = "flex";
     } else {
+      // View bình thường → Hiện "Xóa", Ẩn "Khôi phục" và "Xóa vĩnh viễn"
       if (ctxDelete) ctxDelete.style.display = "flex";
       if (ctxRestore) ctxRestore.style.display = "none";
       if (ctxDeletePerm) ctxDeletePerm.style.display = "none";
@@ -143,13 +205,15 @@ document.addEventListener("DOMContentLoaded", () => {
     contextMenu.style.display = "none";
 
     let currentName = "";
-    if (window.mockData) {
+    const data = window.currentLoadedData || window.mockData;
+    if (data) {
       if (currentTargetType === 'file') {
-        const file = window.mockData.files.find(f => f.id === currentTargetId);
-        if (file) currentName = file.name;
+        const file = (data.files || []).find(f => (f.fileId || f.id) == currentTargetId);
+        if (file) currentName = file.fileName || file.name;
       } else if (currentTargetType === 'folder') {
-        const folder = window.mockData.folders.find(f => f.id === currentTargetId);
-        if (folder) currentName = folder.name;
+        const folders = data.folders || data.subfolders || [];
+        const folder = folders.find(f => (f.folderId || f.id) == currentTargetId);
+        if (folder) currentName = folder.folderName || folder.name;
       }
     }
 
@@ -276,6 +340,28 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof clearShareError === "function") clearShareError();
     const emailInput = document.getElementById("shareEmailInput");
     if (emailInput) emailInput.value = "";
+    
+    // Khóa vùng nhập nếu người dùng chỉ có quyền VIEWER
+    const shareRoleSelect = document.getElementById("shareRoleSelect");
+    const addShareUserBtn = document.getElementById("addShareUserBtn");
+    const isViewer = window.currentTargetPermission === "VIEWER" || window.currentTargetPermission === "VIEW";
+    
+    if (emailInput) {
+      emailInput.disabled = isViewer;
+      emailInput.placeholder = isViewer ? "Bạn không có quyền chia sẻ" : "Thêm người bằng email...";
+      // Tùy chỉnh màu nền cho ô input khi bị disable để dễ nhận biết
+      emailInput.style.backgroundColor = isViewer ? "#f1f5f9" : "white";
+    }
+    if (shareRoleSelect) {
+      shareRoleSelect.disabled = isViewer;
+      shareRoleSelect.style.backgroundColor = isViewer ? "#f1f5f9" : "white";
+    }
+    if (addShareUserBtn) {
+      addShareUserBtn.disabled = isViewer;
+      // Làm mờ nút Thêm nếu bị khóa
+      addShareUserBtn.style.opacity = isViewer ? "0.5" : "1";
+      addShareUserBtn.style.cursor = isViewer ? "not-allowed" : "pointer";
+    }
 
     // Lấy thông tin từ backend
     await fetchSharedUsers(currentTargetId, currentTargetType);
@@ -311,7 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (response && response.ok) {
         // Tải lại giao diện hiện tại
         loadDashboardData(window.currentViewType || "home");
-        if (typeof fetchStorageInfo === "function") fetchStorageInfo();
+        if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
       } else {
         alert("Có lỗi xảy ra khi xóa!");
       }
@@ -367,7 +453,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetchWithAuth(endpoint, { method: "DELETE" });
       if (response && response.ok) {
         loadDashboardData(window.currentViewType || "home");
-        if (typeof fetchStorageInfo === "function") fetchStorageInfo();
+        if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
       }
     } catch (err) {
       console.error(err);
@@ -381,22 +467,30 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("cancelRenameBtn")
     .addEventListener("click", () => (renameOverlay.style.display = "none"));
-  document.getElementById("confirmRenameBtn").addEventListener("click", () => {
+  document.getElementById("confirmRenameBtn").addEventListener("click", async () => {
     const newName = document.getElementById("renameInput").value.trim();
-    if (!newName) return; // Không làm gì nếu để trống
+    if (!newName || !currentTargetId) return; // Không làm gì nếu để trống
 
-    if (window.mockData) {
-      if (currentTargetType === 'file') {
-        const file = window.mockData.files.find(f => f.id === currentTargetId);
-        if (file) file.name = newName;
-      } else if (currentTargetType === 'folder') {
-        const folder = window.mockData.folders.find(f => f.id === currentTargetId);
-        if (folder) folder.name = newName;
+    try {
+      let endpoint = currentTargetType === 'folder'
+        ? `/folders/${currentTargetId}/rename`
+        : `/files/${currentTargetId}/rename`;
+
+      const response = await fetchWithAuth(endpoint, {
+        method: "PATCH",
+        body: JSON.stringify({ name: newName, fileName: newName, folderName: newName }) // Gửi cả 3 trường cho an toàn
+      });
+
+      if (response && response.ok) {
+        // Render lại giao diện
+        if (typeof loadDashboardData === "function") {
+          loadDashboardData(window.currentViewType || "home");
+        }
+      } else {
+        alert("Có lỗi xảy ra khi đổi tên!");
       }
-
-      // Render lại giao diện
-      if (typeof renderFolders === "function") renderFolders(window.mockData.folders);
-      if (typeof renderFiles === "function") renderFiles(window.mockData.files);
+    } catch (err) {
+      console.error(err);
     }
 
     renameOverlay.style.display = "none";
@@ -496,15 +590,25 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// ==========================================
-// RENDER & UPLOAD FILE/FOLDER (Moved from dashboard.js)
-// ==========================================
+// ================================================================
+// RENDER FILE & FOLDER
+// Các hàm này nhận dữ liệu từ backend và tạo ra HTML card cho từng item
+// ================================================================
 
 /**
- * Hàm để render danh sách thư mục ra giao diện
- * @param {Array} folders - Mảng các object thư mục lấy từ backend
+ * renderFolders(folders, viewType) - Render danh sách thư mục vào .grid-folders
+ * @param {Array}  folders  - Mảng object thư mục (từ backend hoặc mockData)
+ * @param {string} viewType - Tab hiện tại: 'home' | 'shared' | 'trash'
+ *
+ * Mỗi folder được render thành một .folder-card với:
+ *   - Icon thư mục màu ngẫu nhiên
+ *   - Tên thư mục
+ *   - Ngày sửa
+ *   - Badge trạng thái: Riêng tư / Đã chia sẻ / Được chia sẻ
+ *   - Avatar người chia sẻ (chỉ ở tab 'shared')
+ *   - Nút 3 chấm để mở Context Menu
  */
-function renderFolders(folders) {
+function renderFolders(folders, viewType = "home") {
   const foldersContainer = document.querySelector(".grid-folders");
   foldersContainer.innerHTML = ""; // Xóa dữ liệu cũ (hoặc dữ liệu mẫu)
 
@@ -536,8 +640,11 @@ function renderFolders(folders) {
 
     const folderCard = document.createElement("div");
     folderCard.className = "folder-card";
-    // Lưu ID thư mục để xử lý sự kiện click sau này
-    folderCard.dataset.id = folder.id;
+    
+    // Lưu ID thư mục để xử lý sự kiện click sau này (Hỗ trợ cả object shared)
+    const folderId = folder.folderId || folder.id;
+    folderCard.dataset.id = folderId;
+    const folderName = folder.folderName || folder.name || "Thư mục không tên";
 
     const displayDate = formatSmartDate(folder.updatedAt || folder.createdAt);
     const isSharedVal = folder.isShared !== undefined ? folder.isShared : folder.shared;
@@ -545,33 +652,51 @@ function renderFolders(folders) {
     let folderBadgeText = "Riêng tư";
     let folderBadgeClass = "shared-badge";
 
-    if (folderPerm && folderPerm !== "OWNER") {
-      folderBadgeText = "Được chia sẻ";
+    if (viewType === "shared" || (folderPerm && folderPerm !== "OWNER")) {
+      const rawPerm = String(folderPerm || "VIEW").toUpperCase();
+      const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
+      folderBadgeText = viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ";
       folderBadgeClass = "shared-badge active shared-received";
     } else if (isSharedVal) {
       folderBadgeText = "Đã chia sẻ";
       folderBadgeClass = "shared-badge active";
     }
 
+    let avatarHtml = "";
+    if (viewType === "shared") {
+      const sharerName = typeof formatSharerName === 'function' ? formatSharerName(folder) : (folder.ownerName || "Ai đó");
+      const initials = typeof getInitials === 'function' ? getInitials(sharerName) : "U";
+      const avatarColors = ["avatar-bg-blue", "avatar-bg-pink", "avatar-bg-orange", "avatar-bg-emerald", "avatar-bg-purple", "avatar-bg-cyan"];
+      const colorIndex = typeof hashCode === 'function' ? Math.abs(hashCode(sharerName)) % avatarColors.length : 0;
+      const avatarColor = avatarColors[colorIndex];
+      avatarHtml = `
+        <div class="shared-user-meta">
+          <div class="shared-user-avatar ${avatarColor}">${initials}</div>
+          <span class="shared-user-name" title="${sharerName}">${sharerName}</span>
+        </div>
+      `;
+    }
+
     folderCard.innerHTML = `
-      <div class="more-options" onclick="window.openContextMenu(event, ${folder.id}, 'folder')">
+      <div class="more-options" onclick="window.openContextMenu(event, ${folderId}, 'folder')">
         <i class="ph-bold ph-dots-three-vertical"></i>
       </div>
       <i class="ph-fill ph-folder folder-icon ${folder.color || randomColor}"></i>
       <div class="file-info-main">
-        <div class="folder-name" title="${folder.name}">${folder.name}</div>
+        <div class="folder-name" title="${folderName}">${folderName}</div>
         <div class="file-meta-mobile">${displayDate}</div>
         <div class="grid-shared-badge">
           <span class="${folderBadgeClass}">${folderBadgeText}</span>
         </div>
+        ${avatarHtml}
       </div>
       <div class="file-meta-col folder-meta-col file-date">${displayDate}</div>
-      <div class="file-meta-col folder-meta-col file-size">--</div>
+      <div class="file-meta-col folder-meta-col file-size"></div>
     `;
 
     // Tự động kiểm tra nếu folder chính chủ đã được chia sẻ cho người khác
-    if ((!folderPerm || folderPerm === "OWNER") && !isSharedVal) {
-      fetchWithAuth(`/shares/users?folderId=${folder.id}`)
+    if ((!folderPerm || folderPerm === "OWNER") && !isSharedVal && viewType !== "shared") {
+      fetchWithAuth(`/shares/users?folderId=${folderId}`)
         .then(async (res) => {
           if (res && res.ok) {
             const users = await res.json();
@@ -592,7 +717,7 @@ function renderFolders(folders) {
     folderCard.addEventListener("click", (e) => {
       if (e.target.closest(".more-options")) return;
       if (typeof window.openFolder === "function") {
-        window.openFolder(folder.id, folder.name);
+        window.openFolder(folderId, folderName);
       }
     });
 
@@ -601,10 +726,19 @@ function renderFolders(folders) {
 }
 
 /**
- * Hàm để render danh sách tệp tin ra giao diện
- * @param {Array} files - Mảng các object tệp tin lấy từ backend
+ * renderFiles(files, viewType) - Render danh sách tệp tin vào .grid-files
+ * @param {Array}  files    - Mảng object file (từ backend hoặc mockData)
+ * @param {string} viewType - Tab hiện tại: 'home' | 'shared' | 'trash'
+ *
+ * Mỗi file được render thành .file-card với:
+ *   - Icon loại file (pdf/img/doc/xls/vid/zip) + màu phù hợp
+ *   - Tên, ngày sửa, kích thước
+ *   - Badge trạng thái chia sẻ
+ *   - Avatar người chia sẻ (chỉ ở tab 'shared')
+ *   - Click để preview/download file
+ *   - Nút 3 chấm để mở Context Menu
  */
-function renderFiles(files) {
+function renderFiles(files, viewType = "home") {
   const filesContainer = document.querySelector(".grid-files");
   filesContainer.innerHTML = ""; // Xóa dữ liệu mẫu
 
@@ -637,8 +771,10 @@ function renderFiles(files) {
   files.forEach((file) => {
     const fileCard = document.createElement("div");
     fileCard.className = "file-card";
-    // Lưu ID tệp tin để xử lý sự kiện
-    fileCard.dataset.id = file.id;
+    
+    // Lưu ID tệp tin để xử lý sự kiện (Hỗ trợ object shared)
+    const fileId = file.fileId || file.id;
+    fileCard.dataset.id = fileId;
 
     // Lấy tên từ backend (fileName) hoặc mockData (name)
     const displayFileName = file.fileName || file.name || "Không tên";
@@ -676,12 +812,29 @@ function renderFiles(files) {
     let fileBadgeText = "Riêng tư";
     let fileBadgeClass = "shared-badge";
 
-    if (filePerm && filePerm !== "OWNER") {
-      fileBadgeText = "Được chia sẻ";
+    if (viewType === "shared" || (filePerm && filePerm !== "OWNER")) {
+      const rawPerm = String(filePerm || "VIEW").toUpperCase();
+      const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
+      fileBadgeText = viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ";
       fileBadgeClass = "shared-badge active shared-received";
     } else if (isSharedVal) {
       fileBadgeText = "Đã chia sẻ";
       fileBadgeClass = "shared-badge active";
+    }
+
+    let avatarHtml = "";
+    if (viewType === "shared") {
+      const sharerName = typeof formatSharerName === 'function' ? formatSharerName(file) : (file.ownerName || "Ai đó");
+      const initials = typeof getInitials === 'function' ? getInitials(sharerName) : "U";
+      const avatarColors = ["avatar-bg-blue", "avatar-bg-pink", "avatar-bg-orange", "avatar-bg-emerald", "avatar-bg-purple", "avatar-bg-cyan"];
+      const colorIndex = typeof hashCode === 'function' ? Math.abs(hashCode(sharerName)) % avatarColors.length : 0;
+      const avatarColor = avatarColors[colorIndex];
+      avatarHtml = `
+        <div class="shared-user-meta">
+          <div class="shared-user-avatar ${avatarColor}">${initials}</div>
+          <span class="shared-user-name" title="${sharerName}">${sharerName}</span>
+        </div>
+      `;
     }
 
     // Format Date (YYYY-MM-DD)
@@ -702,7 +855,7 @@ function renderFiles(files) {
     const displayDate = formatSmartDate(file.updatedAt || file.createdAt);
 
     fileCard.innerHTML = `
-      <div class="more-options" onclick="window.openContextMenu(event, ${file.id}, 'file')">
+      <div class="more-options" onclick="window.openContextMenu(event, ${fileId}, 'file')">
         <i class="ph-bold ph-dots-three-vertical"></i>
       </div>
       <div class="file-icon-box ${colorClass}">
@@ -714,6 +867,7 @@ function renderFiles(files) {
         <div class="grid-shared-badge">
           <span class="${fileBadgeClass}">${fileBadgeText}</span>
         </div>
+        ${avatarHtml}
       </div>
       <div class="file-meta-col file-date">${displayDate}</div>
       <div class="file-meta-col file-size">${displaySize}</div>
@@ -723,8 +877,8 @@ function renderFiles(files) {
     `;
 
     // Tự động kiểm tra nếu file chính chủ đã được chia sẻ cho người khác
-    if ((!filePerm || filePerm === "OWNER") && !isSharedVal) {
-      fetchWithAuth(`/shares/users?fileId=${file.id}`)
+    if ((!filePerm || filePerm === "OWNER") && !isSharedVal && viewType !== "shared") {
+      fetchWithAuth(`/shares/users?fileId=${fileId}`)
         .then(async (res) => {
           if (res && res.ok) {
             const users = await res.json();
@@ -794,8 +948,18 @@ function renderFiles(files) {
   });
 }
 
-let currentUploadMode = "file"; // 'file' or 'folder'
+// ================================================================
+// UPLOAD LOGIC
+// ================================================================
 
+// Chế độ tải lên hiện tại: 'file' (tải file đơn) hoặc 'folder' (tải cả thư mục)
+let currentUploadMode = "file";
+
+/**
+ * setUploadMode(mode) - Cập nhật UI của Upload Modal theo chế độ tải lên
+ * Thay đổi: tiêu đề, văn bản dropzone, văn bản nút Thêm, subtitle
+ * @param {string} mode - 'file' hoặc 'folder'
+ */
 function setUploadMode(mode) {
   currentUploadMode = mode;
   const isFolder = mode === "folder";
@@ -826,10 +990,17 @@ function setUploadMode(mode) {
   }
 }
 
+/**
+ * setupDragAndDrop() - Gắn các sự kiện Drag & Drop và File Input cho dropzone
+ * Hỗ trợ:
+ *   - Click vào dropzone → mở hộp thoại chọn file/folder
+ *   - Kéo file từ máy tính vào dropzone → bắt đầu tải lên
+ *   - Kéo thư mục vào dropzone → tự động chuyển sang chế độ folder
+ */
 function setupDragAndDrop() {
-  const dropzone = document.getElementById("dropzone");
-  const fileInput = document.getElementById("fileInput");
-  const folderInput = document.getElementById("folderInput");
+  const dropzone = document.getElementById("dropzone");         // Vùng kéo thả
+  const fileInput = document.getElementById("fileInput");       // Input ẩn chọn file
+  const folderInput = document.getElementById("folderInput");   // Input ẩn chọn folder
   const browseBtn = document.getElementById("browseFileBtn");
 
   if (!dropzone) return;
@@ -1085,14 +1256,21 @@ function setupDragAndDrop() {
     }
   }
 
+  /**
+   * uploadFolderWithProgress(group) - Upload một nhóm file (trong cùng thư mục)
+   * Hiển thị 1 card UI cho cả nhóm, tải tối đa 3 file song song (MAX_CONCURRENT_FILES)
+   * Hỗ trợ: Tạm dừng, Hủy, Retry từng file, cập nhật tiến trình theo thời gian thực
+   * @param {object} group - { folderName, files: [], totalSize }
+   */
   async function uploadFolderWithProgress(group) {
+    // Lấy JWT token để xác thực API
     const token =
       typeof checkAuth === "function"
-        ? checkAuth()
-        : localStorage.getItem("jwt_token");
+        ? checkAuth()                                // Ưu tiên dùng hàm checkAuth của dashboard.js
+        : localStorage.getItem("jwt_token");         // Fallback đọc thẳng từ localStorage
     if (!token) return;
 
-    const listSection = document.querySelector(".upload-list-section");
+    const listSection = document.querySelector(".upload-list-section"); // Container danh sách upload
     if (!listSection) return;
 
     const formatSize = (bytes) => {
@@ -1190,9 +1368,10 @@ function setupDragAndDrop() {
       metaEl.innerHTML = `${completedFilesCount} / ${group.files.length} tệp &middot; ${formatSize(totalUploadedBytes)} / ${formatSize(group.totalSize)} &middot; <span class="text-blue">Đang tải...</span>`;
     }
 
-    const queue = [...group.files];
-    const MAX_CONCURRENT_FILES = 3;
-    let activeFiles = 0;
+    // --- UPLOAD SONG SONG TỐI ĐA 3 FILE (CONCURRENT QUEUE) ---
+    const queue = [...group.files];       // Hàng đợi các file chưa tải
+    const MAX_CONCURRENT_FILES = 3;       // Giới hạn 3 file tải đồng thời (tránh quá tải server)
+    let activeFiles = 0;                  // Số file đang tải hiện tại
 
     return new Promise((resolve) => {
       function processNextFile() {
@@ -1219,8 +1398,11 @@ function setupDragAndDrop() {
             if (typeof loadDashboardData === "function") {
               loadDashboardData(window.currentViewType || "home");
             }
-            if (typeof fetchStorageInfo === "function") {
-              fetchStorageInfo();
+            if (typeof window.renderStorageInfo === "function") {
+              window.renderStorageInfo();
+            }
+            if (typeof fetchNotifications === "function") {
+              fetchNotifications();
             }
           }
           resolve();
@@ -1265,24 +1447,33 @@ function setupDragAndDrop() {
     });
   }
 
+  /**
+   * uploadSingleFileInFolder() - Upload 1 file đơn (thuộc nhóm folder) theo giao thức Chunked Upload:
+   *   1. POST /uploads/init → lấy sessionId
+   *   2. Chia file thành chunks 5MB
+   *   3. POST /uploads/{sessionId}/chunk (từng chunk một, hỗ trợ pause/cancel)
+   *   4. POST /uploads/{sessionId}/complete → server ghép lại
+   * @returns {boolean} true nếu upload thành công, false nếu lỗi
+   */
   async function uploadSingleFileInFolder(
-    file,
-    baseUrl,
-    token,
-    fileUploadedBytesMap,
-    onProgress,
-    getIsPaused,
-    getIsCancelled
+    file,               // File object
+    baseUrl,            // URL gốc API
+    token,              // JWT token
+    fileUploadedBytesMap, // Map lưu bytes đã tải của từng file (để cập nhật UI folder)
+    onProgress,         // Callback cập nhật UI tiến trình folder
+    getIsPaused,        // Hàm trả về trạng thái tạm dừng (closure)
+    getIsCancelled      // Hàm trả về trạng thái hủy (closure)
   ) {
     try {
+      // Xác định ID thư mục đích (backend sẽ tạo folder nếu chưa có)
       const relPath = file.relativePath || file.webkitRelativePath;
       let targetFolderId = window.currentFolderId || null;
       if (relPath && relPath.includes("/")) {
-        targetFolderId = await getOrCreateFolderIdOnBackend(relPath);
+        targetFolderId = await getOrCreateFolderIdOnBackend(relPath); // Tạo/lấy folder ID trên backend
       }
 
-      const CHUNK_SIZE = 5 * 1024 * 1024;
-      const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+      const CHUNK_SIZE = 5 * 1024 * 1024; // Mỗi chunk = 5MB
+      const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE)); // Số lượng chunk cần tải
 
       const initResponse = await fetch(`${baseUrl}/uploads/init`, {
         method: "POST",
@@ -1598,8 +1789,11 @@ function setupDragAndDrop() {
           if (typeof loadDashboardData === "function") {
             loadDashboardData(window.currentViewType || "home");
           }
-          if (typeof fetchStorageInfo === "function") {
-            fetchStorageInfo();
+          if (typeof window.renderStorageInfo === "function") {
+            window.renderStorageInfo();
+          }
+          if (typeof fetchNotifications === "function") {
+            fetchNotifications();
           }
         } else {
           // Tải chunk tiếp theo
@@ -1708,18 +1902,20 @@ window.updateMinimizedUploadUI = function () {
   const minTitle = document.getElementById("minimizedTitle") || document.querySelector(".upload-minimized .minimized-title");
   const minSubtitle = document.getElementById("minimizedSubtitle") || document.querySelector(".upload-minimized .minimized-subtitle");
   const minProgressText = document.querySelector(".upload-minimized .progress-text");
-  const minProgressCircle = document.querySelector(".upload-minimized .circle");
   const modalSubtitle = document.getElementById("modalUploadSubtitle");
 
   const noun = currentUploadMode === "folder" ? "thư mục" : "tệp";
 
-  if (!minTitle || !minSubtitle || !minProgressText || !minProgressCircle) return;
+  if (!minTitle || !minSubtitle || !minProgressText) return;
 
   if (!window.uploadGlobalState || window.uploadGlobalState.totalFiles === 0) {
     minTitle.textContent = currentUploadMode === "folder" ? "Không có thư mục nào đang tải" : "Không có tệp nào đang tải";
     minSubtitle.innerHTML = "0 hoàn thành &middot; Nhấn để xem";
     minProgressText.textContent = "0%";
-    minProgressCircle.setAttribute("stroke-dasharray", "0, 100");
+    const minProgressRing = document.getElementById("minProgressRing") || document.querySelector(".upload-minimized .progress-ring");
+    if (minProgressRing) {
+      minProgressRing.style.setProperty("--progress", "0%");
+    }
     if (modalSubtitle) modalSubtitle.textContent = currentUploadMode === "folder" ? "Chưa có thư mục nào đang tải" : "Chưa có tệp nào đang tải";
     return;
   }
@@ -1737,7 +1933,10 @@ window.updateMinimizedUploadUI = function () {
   percent = Math.min(percent, 100);
 
   minProgressText.textContent = `${percent}%`;
-  minProgressCircle.setAttribute("stroke-dasharray", `${percent}, 100`);
+  const minProgressRing = document.getElementById("minProgressRing") || document.querySelector(".upload-minimized .progress-ring");
+  if (minProgressRing) {
+    minProgressRing.style.setProperty("--progress", `${percent}%`);
+  }
 };
 
 function setupUploadDropdowns() {
@@ -2079,8 +2278,15 @@ function renderSharedView(sharedList) {
     sharedList = window.lastSharedData;
   }
 
-  const items = Array.isArray(sharedList) ? sharedList : [];
-
+  let items = [];
+  if (Array.isArray(sharedList)) {
+    items = sharedList;
+  } else if (sharedList && typeof sharedList === "object") {
+    // Đề phòng API trả về dạng { folders: [...], files: [...] } thay vì mảng phẳng
+    const f1 = sharedList.folders || sharedList.subfolders || [];
+    const f2 = sharedList.files || [];
+    items = [...f1, ...f2];
+  }
   // Tách riêng Thư mục chia sẻ & Tệp tin chia sẻ từ CSDDL
   const sharedFolders = items.filter(item => item.folderId != null || (item.folderName && item.fileId == null));
   const sharedFiles = items.filter(item => item.fileId != null || (item.fileName && item.folderId == null));
@@ -2122,226 +2328,34 @@ function renderSharedView(sharedList) {
   `;
   heroBanner.style.display = "flex";
 
-  // Ẩn các tiêu đề tĩnh cũ của Tệp của tôi
-  const defaultSectionTitles = contentScroll.querySelectorAll(".section-title:not(.shared-folder-title):not(.shared-file-title)");
-  defaultSectionTitles.forEach(t => t.style.display = "none");
-
-  // === 1. PHẦN THƯ MỤC ĐƯỢC CHIA SẺ ===
-  let folderTitle = contentScroll.querySelector(".shared-folder-title");
-  let gridFolders = contentScroll.querySelector(".grid-folders");
-
-  if (!folderTitle) {
-    folderTitle = document.createElement("div");
-    folderTitle.className = "section-title shared-folder-title";
-    folderTitle.textContent = "THƯ MỤC";
-    if (gridFolders) {
-      contentScroll.insertBefore(folderTitle, gridFolders);
-    } else {
-      contentScroll.appendChild(folderTitle);
-    }
+  // Cập nhật số lượng tệp chia sẻ lên Sidebar (Thanh menu bên trái)
+  const sidebarBadge = document.querySelector('.nav-item[data-view="shared"] .badge');
+  if (sidebarBadge) {
+    sidebarBadge.textContent = totalItems;
   }
-  folderTitle.style.display = "block";
 
-  if (gridFolders) {
-    gridFolders.style.display = "grid";
-    gridFolders.innerHTML = "";
+  // Hiển thị lại các tiêu đề section mặc định (THƯ MỤC, TỆP TIN) vì giờ ta dùng chung
+  const sectionTitles = contentScroll.querySelectorAll(".section-title");
+  sectionTitles.forEach(t => {
+    if (t.textContent.includes("THƯ MỤC") || t.textContent.includes("TỆP TIN")) {
+      t.style.display = "block";
+    }
+  });
 
-    if (sharedFolders.length > 0) {
-      sharedFolders.forEach(folder => {
-        const folderName = folder.folderName || folder.name || "Thư mục không tên";
-        const sharerName = formatSharerName(folder);
-        const initials = getInitials(sharerName);
-        const folderColor = folder.color || "blue";
-
-        const rawPerm = String(folder.permission || "VIEW").toUpperCase();
-        const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
-        const permLabel = isEdit ? "Chỉnh sửa" : "Xem";
-        const permClass = isEdit ? "edit" : "view";
-
-        const colorIndex = Math.abs(hashCode(sharerName)) % avatarColors.length;
-        const avatarColor = avatarColors[colorIndex];
-
-        const card = document.createElement("div");
-        card.className = "shared-grid-card shared-folder-card";
-        card.dataset.id = folder.folderId || folder.id;
-
-        card.innerHTML = `
-          <div class="more-options" onclick="window.openContextMenu(event, ${folder.folderId || folder.id}, 'folder')">
-            <i class="ph-bold ph-dots-three-vertical"></i>
-          </div>
-          <span class="perm-badge ${permClass}">${permLabel}</span>
-          <div class="shared-card-top">
-            <i class="ph-fill ph-folder folder-icon ${folderColor}" style="font-size: 38px;"></i>
-          </div>
-          <div class="shared-card-body">
-            <div class="shared-file-name" title="${folderName}">${folderName}</div>
-          </div>
-          <div class="shared-card-footer" style="border-top: none; padding-top: 4px; margin-top: 8px;">
-            <div class="shared-user-avatar ${avatarColor}">${initials}</div>
-            <div class="shared-user-details">
-              <span class="shared-user-name" title="${sharerName}">${sharerName}</span>
-            </div>
-          </div>
-        `;
-
-        card.addEventListener("click", (e) => {
-          if (e.target.closest(".more-options")) return;
-          if (typeof window.openFolder === "function") {
-            window.openFolder(folder.folderId || folder.id, folderName);
-          }
-        });
-
-        gridFolders.appendChild(card);
-      });
+  const gridFolders = contentScroll.querySelector(".grid-folders");
+  if (gridFolders) gridFolders.style.display = "grid";
+  const gridFiles = contentScroll.querySelector(".grid-files");
+  if (gridFiles) {
+    gridFiles.style.display = "";
+    if (!gridFiles.classList.contains("list-view") && !contentScroll.classList.contains("list-view")) {
+      gridFiles.style.display = "grid";
     } else {
-      gridFolders.innerHTML = '<p class="empty-shared-msg" style="grid-column: 1 / -1; color: #94a3b8; font-size: 14px; padding: 12px 0; margin: 0;">Chưa có thư mục được chia sẻ</p>';
+      gridFiles.style.display = "flex";
     }
   }
 
-  // === 2. PHẦN TỆP TIN ĐƯỢC CHIA SẺ ===
-  const filesContainer = contentScroll.querySelector(".grid-files");
-  let fileTitle = contentScroll.querySelector(".shared-file-title");
-
-  if (!fileTitle) {
-    fileTitle = document.createElement("div");
-    fileTitle.className = "section-title shared-file-title";
-    fileTitle.textContent = "TỆP TIN";
-    if (filesContainer) {
-      contentScroll.insertBefore(fileTitle, filesContainer);
-    } else {
-      contentScroll.appendChild(fileTitle);
-    }
-  }
-  fileTitle.style.display = "block";
-
-  if (filesContainer) {
-    const isListView = contentScroll.classList.contains("list-view") || filesContainer.classList.contains("list-view");
-
-    if (isListView) {
-      filesContainer.style.display = "flex";
-      filesContainer.style.flexDirection = "column";
-      filesContainer.style.gap = "8px";
-      filesContainer.style.gridTemplateColumns = "none";
-    } else {
-      filesContainer.style.display = "grid";
-      filesContainer.style.gridTemplateColumns = "";
-      filesContainer.style.gap = "20px";
-    }
-
-    filesContainer.innerHTML = "";
-
-    if (sharedFiles.length > 0) {
-      if (isListView) {
-        const listHeader = document.createElement("div");
-        listHeader.className = "shared-table-header";
-        listHeader.innerHTML = `
-          <div class="col-name">TỆP TIN</div>
-          <div class="col-sharer">NGƯỜI CHIA SẺ</div>
-          <div class="col-date">THỜI GIAN</div>
-          <div class="col-perm">QUYỀN</div>
-        `;
-        filesContainer.appendChild(listHeader);
-      }
-
-      sharedFiles.forEach(item => {
-        const fileName = item.fileName || item.name || "Tệp không tên";
-        const sharerName = formatSharerName(item);
-        const initials = getInitials(sharerName);
-
-        const timeStr = formatSmartDate(item.sharedAt || item.createdAt || item.updatedAt);
-
-        const fileSizeVal = item.sizeBytes !== undefined ? item.sizeBytes : (item.fileSize !== undefined ? item.fileSize : item.size);
-        const fileSize = fileSizeVal ? formatSize(fileSizeVal) : "0 B";
-
-        const rawPerm = String(item.permission || "VIEW").toUpperCase();
-        const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
-        const permLabel = isEdit ? "Chỉnh sửa" : "Xem";
-        const permClass = isEdit ? "edit" : "view";
-
-        const ext = fileName.split(".").pop().toLowerCase();
-        let iconClass = "ph-file";
-        let colorClass = "file-default";
-        if (["pdf"].includes(ext)) { iconClass = "ph-file-pdf"; colorClass = "file-pdf"; }
-        else if (["png", "jpg", "jpeg", "gif"].includes(ext)) { iconClass = "ph-image"; colorClass = "file-img"; }
-        else if (["doc", "docx", "txt"].includes(ext)) { iconClass = "ph-file-text"; colorClass = "file-doc"; }
-        else if (["xls", "xlsx", "csv"].includes(ext)) { iconClass = "ph-file-xls"; colorClass = "file-xls"; }
-        else if (["mp4", "avi", "mov"].includes(ext)) { iconClass = "ph-file-video"; colorClass = "file-vid"; }
-
-        const colorIndex = Math.abs(hashCode(sharerName)) % avatarColors.length;
-        const avatarColor = avatarColors[colorIndex];
-
-        if (isListView) {
-          const row = document.createElement("div");
-          row.className = "shared-table-row";
-          row.dataset.id = item.fileId || item.id;
-          row.innerHTML = `
-            <div class="col-name shared-file-cell">
-              <div class="file-icon-box ${colorClass}" style="width: 38px; height: 38px; font-size: 20px; margin-bottom: 0; flex-shrink: 0;">
-                <i class="ph-fill ${iconClass}"></i>
-              </div>
-              <div class="shared-file-info">
-                <span class="shared-file-name" title="${fileName}">${fileName}</span>
-                <span class="shared-file-size" style="font-size: 12px; color: #94a3b8;">${fileSize}</span>
-              </div>
-            </div>
-            <div class="col-sharer shared-user-cell">
-              <div class="shared-user-avatar ${avatarColor}" style="width: 32px; height: 32px; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">${initials}</div>
-              <span class="shared-user-name" title="${sharerName}">${sharerName}</span>
-            </div>
-            <div class="col-date shared-time-cell">${timeStr}</div>
-            <div class="col-perm shared-perm-cell">
-              <span class="perm-badge ${permClass}">${permLabel}</span>
-              <div class="more-options" onclick="window.openContextMenu(event, ${item.fileId || item.id}, 'file')">
-                <i class="ph-bold ph-dots-three-vertical"></i>
-              </div>
-            </div>
-          `;
-
-          row.addEventListener("click", async (e) => {
-            if (e.target.closest('.more-options')) return;
-            console.log("Xem chi tiết tệp được chia sẻ:", item.fileId || item.id);
-          });
-
-          filesContainer.appendChild(row);
-        } else {
-          const card = document.createElement("div");
-          card.className = "shared-grid-card";
-          card.dataset.id = item.fileId || item.id;
-          card.innerHTML = `
-            <div class="more-options" onclick="window.openContextMenu(event, ${item.fileId || item.id}, 'file')">
-              <i class="ph-bold ph-dots-three-vertical"></i>
-            </div>
-            <span class="perm-badge ${permClass}">${permLabel}</span>
-            <div class="shared-card-top">
-              <div class="file-icon-box ${colorClass}">
-                <i class="ph-fill ${iconClass}"></i>
-              </div>
-            </div>
-            <div class="shared-card-body">
-              <div class="shared-file-name" title="${fileName}">${fileName}</div>
-              <div class="shared-file-size">${fileSize}</div>
-            </div>
-            <div class="shared-card-footer">
-              <div class="shared-user-avatar ${avatarColor}">${initials}</div>
-              <div class="shared-user-details">
-                <span class="shared-user-name" title="${sharerName}">${sharerName}</span>
-                <span class="shared-time-text">${timeStr}</span>
-              </div>
-            </div>
-          `;
-
-          card.addEventListener("click", async (e) => {
-            if (e.target.closest('.more-options')) return;
-            console.log("Xem chi tiết tệp được chia sẻ:", item.fileId || item.id);
-          });
-
-          filesContainer.appendChild(card);
-        }
-      });
-    } else {
-      filesContainer.innerHTML = '<p class="empty-shared-msg" style="grid-column: 1 / -1; color: #94a3b8; font-size: 14px; padding: 12px 0; margin: 0;">Chưa có tệp tin được chia sẻ</p>';
-    }
-  }
+  renderFolders(sharedFolders, "shared");
+  renderFiles(sharedFiles, "shared");
 }
 
 /**
@@ -2379,7 +2393,7 @@ async function loadDashboardData(viewType = "home") {
     sharedTitles.forEach(t => t.remove());
 
     const sectionTitles = contentScroll.querySelectorAll(".section-title");
-    sectionTitles.forEach(t => t.style.display = (viewType === "trash" || viewType === "shared" || viewType === "settings") ? "none" : "block");
+    sectionTitles.forEach(t => t.style.display = (viewType === "trash" || viewType === "settings") ? "none" : "block");
 
     const gridFolders = contentScroll.querySelector(".grid-folders");
     if (gridFolders) gridFolders.style.display = (viewType === "trash" || viewType === "settings") ? "none" : "grid";
@@ -2430,8 +2444,17 @@ async function loadDashboardData(viewType = "home") {
       if (viewType === "trash") {
         renderTrashItems(data.folders || [], data.files || []);
       } else {
-        renderFolders(data.subfolders || data.folders || []);
-        renderFiles(data.files || []);
+        let folders = data.subfolders || data.folders || [];
+        let files = data.files || [];
+        
+        // Nếu đang ở "Tệp của tôi", lọc bỏ những file được người khác chia sẻ (permission khác OWNER)
+        if (viewType === "home") {
+          folders = folders.filter(f => !f.permission || f.permission === "OWNER");
+          files = files.filter(f => !f.permission || f.permission === "OWNER");
+        }
+        
+        renderFolders(folders);
+        renderFiles(files);
       }
       return;
     }
@@ -2449,177 +2472,4 @@ async function loadDashboardData(viewType = "home") {
   }
 }
 
-// -------------------------------------------------------------
-// TRASH UI & ACTIONS
-// -------------------------------------------------------------
-function getFileIconForTrash(fileName) {
-  if (!fileName) return '<i class="ph ph-file file-doc"></i>';
-  const ext = fileName.split('.').pop().toLowerCase();
-  switch (ext) {
-    case 'pdf': return '<i class="ph ph-file-pdf file-pdf"></i>';
-    case 'png': case 'jpg': case 'jpeg': case 'gif': return '<i class="ph ph-image file-img"></i>';
-    case 'doc': case 'docx': return '<i class="ph ph-file-text file-doc"></i>';
-    case 'xls': case 'xlsx': return '<i class="ph ph-file-xls file-xls"></i>';
-    case 'mp4': case 'mov': case 'avi': return '<i class="ph ph-file-video file-mp4"></i>';
-    case 'zip': case 'rar': case '7z': return '<i class="ph ph-file-zip file-zip"></i>';
-    default: return '<i class="ph ph-file file-doc"></i>';
-  }
-}
-
-function renderTrashItems(folders, files) {
-  const container = document.getElementById("trash-view-container");
-  const trashHeader = document.getElementById("trash-header-info");
-  const trashList = document.getElementById("trash-list");
-  const emptyState = document.getElementById("trash-empty-state");
-
-  if (!container || !trashHeader || !trashList || !emptyState) return;
-
-  const totalItems = folders.length + files.length;
-
-  if (totalItems === 0) {
-    trashHeader.style.display = "none";
-    trashList.style.display = "none";
-    emptyState.style.display = "flex";
-    return;
-  }
-
-  trashHeader.style.display = "block";
-  trashList.style.display = "block";
-  emptyState.style.display = "none";
-
-  trashHeader.innerHTML = `${totalItems} mục &middot; Tự động xóa sau 30 ngày`;
-
-  let html = '';
-
-  const calculateDaysLeft = (dateString) => {
-    if (!dateString) return 30;
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, 30 - diffDays);
-  };
-
-  const formatTrashDate = (dateString) => {
-    if (!dateString) return "Không rõ";
-    const date = new Date(dateString);
-    const now = new Date();
-    
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const timeString = `${hours}:${minutes}`;
-
-    // Kiểm tra xem có phải hôm nay không
-    if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
-      return `Hôm nay, ${timeString}`;
-    }
-    
-    // Kiểm tra xem có phải hôm qua không
-    const yesterday = new Date(now);
-    yesterday.setDate(now.getDate() - 1);
-    if (yesterday.getDate() === date.getDate() && yesterday.getMonth() === date.getMonth() && yesterday.getFullYear() === date.getFullYear()) {
-      return `Hôm qua, ${timeString}`;
-    }
-
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    return `${day}/${month}`;
-  };
-
-  // Render Folders
-  folders.forEach(folder => {
-    const daysLeft = calculateDaysLeft(folder.updatedAt); 
-    const isUrgent = daysLeft <= 15 ? 'urgent' : '';
-    const formattedDate = formatTrashDate(folder.updatedAt);
-    const user = folder.userEmail ? folder.userEmail.split('@')[0] : 'Tôi';
-
-    html += `
-      <div class="trash-item">
-        <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
-        <div class="trash-icon-box">
-          <i class="ph ph-folder" style="color: #64748b;"></i>
-        </div>
-        <div class="trash-item-info">
-          <div class="trash-item-name">${folder.name}</div>
-          <div class="trash-item-meta">
-            Xóa lúc ${formattedDate} &middot; bởi ${user}
-          </div>
-        </div>
-        <div class="trash-actions">
-          <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
-          <button class="btn-restore" onclick="restoreTrashItem(${folder.id}, 'folder')">Khôi phục</button>
-          <button class="btn-delete" onclick="permanentDeleteTrashItem(${folder.id}, 'folder')">Xóa</button>
-        </div>
-      </div>
-    `;
-  });
-
-  // Render Files
-  files.forEach(file => {
-    const daysLeft = calculateDaysLeft(file.updatedAt); 
-    const isUrgent = daysLeft <= 15 ? 'urgent' : '';
-    const size = typeof formatSizeGlobal === "function" ? formatSizeGlobal(file.sizeBytes) : file.sizeBytes;
-    const fileName = file.fileName || file.originalName || "Tệp không tên";
-    const formattedDate = formatTrashDate(file.updatedAt);
-    const user = file.userEmail ? file.userEmail.split('@')[0] : 'Tôi';
-
-    html += `
-      <div class="trash-item">
-        <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
-        <div class="trash-icon-box">
-          ${getFileIconForTrash(fileName)}
-        </div>
-        <div class="trash-item-info">
-          <div class="trash-item-name">${fileName}</div>
-          <div class="trash-item-meta">
-            Xóa lúc ${formattedDate} &middot; bởi ${user} &middot; ${size}
-          </div>
-        </div>
-        <div class="trash-actions">
-          <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
-          <button class="btn-restore" onclick="restoreTrashItem(${file.id}, 'file')">Khôi phục</button>
-          <button class="btn-delete" onclick="permanentDeleteTrashItem(${file.id}, 'file')">Xóa</button>
-        </div>
-      </div>
-    `;
-  });
-
-  trashList.innerHTML = html;
-}
-
-window.toggleTrashSelection = function(el) {
-  el.classList.toggle('selected');
-};
-
-window.restoreTrashItem = async function(id, type) {
-  try {
-    const endpoint = type === 'folder' ? `/folders/${id}/restore` : `/files/${id}/restore`;
-    const response = await fetchWithAuth(endpoint, { method: "PATCH" });
-    if (response && response.ok) {
-      // Reload trash data
-      loadDashboardData("trash");
-    } else {
-      alert("Lỗi khôi phục mục!");
-    }
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-window.permanentDeleteTrashItem = async function(id, type) {
-  if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Thao tác không thể hoàn tác!")) return;
-  try {
-    const endpoint = type === 'folder' ? `/folders/${id}/permanent` : `/files/${id}/permanent`;
-    const response = await fetchWithAuth(endpoint, { method: "DELETE" });
-    if (response && response.ok) {
-      // Reload trash data
-      loadDashboardData("trash");
-      // Update storage info if available
-      if (typeof fetchStorageInfo === "function") fetchStorageInfo();
-    } else {
-      alert("Lỗi xóa vĩnh viễn!");
-    }
-  } catch (error) {
-    console.error(error);
-  }
-};
+// Các hàm xử lý Thùng rác đã được tách ra file js/trash.js để giảm tải cho file-actions.js
