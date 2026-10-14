@@ -26,7 +26,8 @@ public class FileItem {
     @Column(name = "size_bytes", nullable = false)
     private Long sizeBytes;
 
-    @Column(name = "file_path", nullable = false)
+    @Nationalized
+    @Column(name = "file_path", nullable = false, columnDefinition = "NVARCHAR(500)")
     private String filePath;
 
     @ManyToOne(fetch = FetchType.LAZY)

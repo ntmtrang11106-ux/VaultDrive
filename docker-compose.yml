@@ -8,6 +8,7 @@ services:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=Seer#2210
       - MSSQL_PID=Developer
+      - TZ=Asia/Ho_Chi_Minh
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433'"]
       interval: 5s
@@ -25,6 +26,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver_db:1433;databaseName=VaultDriveDB;encrypt=false;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=Seer#2210

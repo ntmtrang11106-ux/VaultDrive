@@ -10,6 +10,10 @@ mssql_data/
 *.mdf
 *.ldf
 
+# Uploaded files & storage
+uploads/
+**/uploads/
+
 # Environment / Secrets
 .env
 *.env

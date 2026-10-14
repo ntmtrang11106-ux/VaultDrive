@@ -274,19 +274,38 @@ public class DashboardService {
         }
 
         java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(baos)) {
-            zipFolderRecursive(folder, folder.getName() + "/", zos);
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(baos, java.nio.charset.StandardCharsets.UTF_8)) {
+            java.util.Set<String> addedEntries = new java.util.HashSet<>();
+            zipFolderRecursive(folder, folder.getName() + "/", zos, addedEntries);
             zos.finish();
         }
         return baos.toByteArray();
     }
 
-    private void zipFolderRecursive(Folder currentFolder, String currentPath, java.util.zip.ZipOutputStream zos) throws java.io.IOException {
+    private void zipFolderRecursive(Folder currentFolder, String currentPath, java.util.zip.ZipOutputStream zos, java.util.Set<String> addedEntries) throws java.io.IOException {
         List<FileItem> files = fileItemRepository.findByFolderIdAndIsTrashedFalseAndIsDeletedFalse(currentFolder.getId());
         for (FileItem file : files) {
             java.nio.file.Path filePath = java.nio.file.Paths.get(file.getFilePath()).toAbsolutePath();
             if (java.nio.file.Files.exists(filePath)) {
-                java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(currentPath + file.getOriginalName());
+                String itemFileName = (file.getFileName() != null && !file.getFileName().isBlank()) ? file.getFileName() : file.getOriginalName();
+                if (itemFileName == null || itemFileName.isBlank()) {
+                    itemFileName = "file";
+                }
+
+                String entryPath = currentPath + itemFileName;
+                if (addedEntries.contains(entryPath)) {
+                    int lastDot = itemFileName.lastIndexOf('.');
+                    String namePart = (lastDot > 0) ? itemFileName.substring(0, lastDot) : itemFileName;
+                    String extPart = (lastDot > 0) ? itemFileName.substring(lastDot) : "";
+                    int counter = 1;
+                    while (addedEntries.contains(currentPath + namePart + " (" + counter + ")" + extPart)) {
+                        counter++;
+                    }
+                    entryPath = currentPath + namePart + " (" + counter + ")" + extPart;
+                }
+                addedEntries.add(entryPath);
+
+                java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(entryPath);
                 zos.putNextEntry(entry);
                 java.nio.file.Files.copy(filePath, zos);
                 zos.closeEntry();
@@ -295,7 +314,7 @@ public class DashboardService {
 
         List<Folder> subfolders = folderRepository.findByParentIdAndIsTrashedFalseAndIsDeletedFalse(currentFolder.getId());
         for (Folder subfolder : subfolders) {
-            zipFolderRecursive(subfolder, currentPath + subfolder.getName() + "/", zos);
+            zipFolderRecursive(subfolder, currentPath + subfolder.getName() + "/", zos, addedEntries);
         }
     }
 }

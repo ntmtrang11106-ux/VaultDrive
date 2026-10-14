@@ -117,7 +117,6 @@ public class FileService {
         }
 
         fileItem.setFileName(request.getNewName());
-        fileItem.setOriginalName(request.getNewName());
         FileItem saved = fileItemRepository.save(fileItem);
 
         String perm = accessControlService.getEffectiveFilePermission(user, saved);

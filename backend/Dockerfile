@@ -15,6 +15,7 @@ RUN ./mvnw clean package -DskipTests
 # Stage 2: Run app bằng JDK 21
 FROM eclipse-temurin:21-jdk
 WORKDIR /app
+ENV TZ=Asia/Ho_Chi_Minh
 
 # Khớp alias builder ở trên
 COPY --from=builder /app/target/*.jar app.jar

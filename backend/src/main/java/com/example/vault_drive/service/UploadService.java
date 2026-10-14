@@ -243,7 +243,18 @@ public class UploadService {
         }
 
         // Merge chunks using FileChannel to handle large files efficiently
-        String storedFileName = UUID.randomUUID().toString() + "_" + session.getFileName();
+        String ext = "";
+        String rawFileName = session.getFileName();
+        if (rawFileName != null) {
+            int lastDot = rawFileName.lastIndexOf('.');
+            if (lastDot >= 0 && lastDot < rawFileName.length() - 1) {
+                String candidate = rawFileName.substring(lastDot);
+                if (candidate.matches("^\\.[a-zA-Z0-9]{1,10}$")) {
+                    ext = candidate;
+                }
+            }
+        }
+        String storedFileName = UUID.randomUUID().toString() + ext;
         Path destDir = uploadBaseDir.resolve("files").resolve(session.getUser().getId().toString());
         try {
             Files.createDirectories(destDir);
