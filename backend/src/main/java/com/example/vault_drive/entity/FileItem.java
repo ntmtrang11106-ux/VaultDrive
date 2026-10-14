@@ -16,10 +16,6 @@ public class FileItem {
     @Column(name = "file_name", nullable = false, columnDefinition = "NVARCHAR(255)")
     private String fileName;
 
-    @Nationalized
-    @Column(name = "original_name", columnDefinition = "NVARCHAR(255)")
-    private String originalName;
-
     @Column(name = "file_type")
     private String fileType;
 
@@ -61,10 +57,9 @@ public class FileItem {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public FileItem(String fileName, String originalName, String fileType, Long sizeBytes, String filePath,
+    public FileItem(String fileName, String fileType, Long sizeBytes, String filePath,
             Folder folder, User user) {
         this.fileName = fileName;
-        this.originalName = originalName;
         this.fileType = fileType;
         this.sizeBytes = sizeBytes;
         this.filePath = filePath;
@@ -95,14 +90,6 @@ public class FileItem {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
-    }
-
-    public String getOriginalName() {
-        return originalName;
-    }
-
-    public void setOriginalName(String originalName) {
-        this.originalName = originalName;
     }
 
     public String getFileType() {

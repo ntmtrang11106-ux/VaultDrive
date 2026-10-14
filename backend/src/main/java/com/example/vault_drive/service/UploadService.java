@@ -292,12 +292,12 @@ public class UploadService {
         } catch (IOException ignored) {}
 
         // Create FileItem record
+        String storedPath = destFile.toString().replace('\\', '/');
         FileItem fileItem = new FileItem(
-                session.getFileName(),
                 session.getFileName(),
                 fileType,
                 session.getTotalSizeBytes(),
-                destFile.toAbsolutePath().toString(),
+                storedPath,
                 session.getTargetFolder(),
                 session.getUser()
         );

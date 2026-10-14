@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 public class FileItemResponse {
     private Long id;
     private String fileName;
-    private String originalName;
     private String fileType;
     private Long sizeBytes;
     private String filePath;
@@ -24,7 +23,6 @@ public class FileItemResponse {
     public FileItemResponse(FileItem file, boolean isShared, String permission) {
         this.id = file.getId();
         this.fileName = file.getFileName();
-        this.originalName = file.getOriginalName();
         this.fileType = file.getFileType();
         this.sizeBytes = file.getSizeBytes();
         this.filePath = file.getFilePath();
@@ -44,9 +42,6 @@ public class FileItemResponse {
 
     public String getFileName() { return fileName; }
     public void setFileName(String fileName) { this.fileName = fileName; }
-
-    public String getOriginalName() { return originalName; }
-    public void setOriginalName(String originalName) { this.originalName = originalName; }
 
     public String getFileType() { return fileType; }
     public void setFileType(String fileType) { this.fileType = fileType; }

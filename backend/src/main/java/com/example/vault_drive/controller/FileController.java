@@ -50,8 +50,7 @@ public class FileController {
             contentType = "application/octet-stream";
         }
 
-        String displayName = (file.getFileName() != null && !file.getFileName().isBlank()) ? file.getFileName() : file.getOriginalName();
-        if (displayName == null || displayName.isBlank()) displayName = "file";
+        String displayName = (file.getFileName() != null && !file.getFileName().isBlank()) ? file.getFileName() : "file";
         ContentDisposition contentDisposition = ContentDisposition.inline()
                 .filename(displayName, StandardCharsets.UTF_8)
                 .build();
@@ -78,8 +77,7 @@ public class FileController {
             contentType = "application/octet-stream";
         }
 
-        String downloadName = (file.getFileName() != null && !file.getFileName().isBlank()) ? file.getFileName() : file.getOriginalName();
-        if (downloadName == null || downloadName.isBlank()) downloadName = "file";
+        String downloadName = (file.getFileName() != null && !file.getFileName().isBlank()) ? file.getFileName() : "file";
         ContentDisposition contentDisposition = ContentDisposition.attachment()
                 .filename(downloadName, StandardCharsets.UTF_8)
                 .build();

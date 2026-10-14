@@ -287,10 +287,7 @@ public class DashboardService {
         for (FileItem file : files) {
             java.nio.file.Path filePath = java.nio.file.Paths.get(file.getFilePath()).toAbsolutePath();
             if (java.nio.file.Files.exists(filePath)) {
-                String itemFileName = (file.getFileName() != null && !file.getFileName().isBlank()) ? file.getFileName() : file.getOriginalName();
-                if (itemFileName == null || itemFileName.isBlank()) {
-                    itemFileName = "file";
-                }
+                String itemFileName = (file.getFileName() != null && !file.getFileName().isBlank()) ? file.getFileName() : "file";
 
                 String entryPath = currentPath + itemFileName;
                 if (addedEntries.contains(entryPath)) {
