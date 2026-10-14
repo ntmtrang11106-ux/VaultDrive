@@ -2607,7 +2607,7 @@ function renderTrashItems(folders, files) {
     const daysLeft = calculateDaysLeft(file.updatedAt); 
     const isUrgent = daysLeft <= 15 ? 'urgent' : '';
     const size = typeof formatSizeGlobal === "function" ? formatSizeGlobal(file.sizeBytes) : file.sizeBytes;
-    const fileName = file.fileName || file.originalName || "Tệp không tên";
+    const fileName = file.fileName || "Tệp không tên";
     const formattedDate = formatTrashDate(file.updatedAt);
     const user = file.userEmail ? file.userEmail.split('@')[0] : 'Tôi';
 

@@ -178,7 +178,6 @@ Tài liệu này tổng hợp toàn bộ các API hiện có trong hệ thống 
       {
         "id": 101,
         "fileName": "baocao.pdf",
-        "originalName": "Báo cáo cuối kỳ.pdf",
         "fileType": "application/pdf",
         "sizeBytes": 2048576,
         "filePath": "uploads/101_baocao.pdf",
