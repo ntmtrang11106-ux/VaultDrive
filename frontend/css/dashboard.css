@@ -206,37 +206,100 @@ body {
   margin-bottom: 40px;
 }
 
-/* Thẻ thư mục dạng khối chữ nhật, có đổ bóng và hiệu ứng nổi khi hover */
+/* Thẻ thư mục dạng khối chữ nhật, bo góc, có đổ bóng và hiệu ứng nổi khi hover */
 .folder-card {
   position: relative;
   background-color: var(--card-bg);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 12px 12px 16px 12px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-color);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  justify-content: flex-start;
 }
 
 .folder-card:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-4px);
+  border-color: #cbd5e1;
+  transform: translateY(-3px);
 }
 
 .folder-card:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Icon lớn của thư mục */
-.folder-icon {
-  font-size: 32px;
+/* Khung vuông bo góc bao quanh icon của thư mục (Hình 1: icon ở giữa khung) */
+.folder-icon-box {
+  width: 100%;
+  height: 85px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 12px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-/* Màu sắc từng loại icon thư mục */
+/* Màu sắc khung icon thư mục theo Hình 1 */
+.folder-icon-box.blue {
+  background-color: #eff6ff;
+  color: #3b82f6;
+}
+
+.folder-icon-box.purple {
+  background-color: #f5f3ff;
+  color: #8b5cf6;
+}
+
+.folder-icon-box.cyan {
+  background-color: #ecfeff;
+  color: #06b6d4;
+}
+
+.folder-icon-box.green {
+  background-color: #ecfdf5;
+  color: #10b981;
+}
+
+.folder-icon-box.orange {
+  background-color: #fff7ed;
+  color: #ea580c;
+}
+
+.folder-icon-box.amber,
+.folder-icon-box.yellow {
+  background-color: #fffbeb;
+  color: #f59e0b;
+}
+
+.folder-icon-box.red {
+  background-color: #fef2f2;
+  color: #ef4444;
+}
+
+.folder-icon-box.default,
+.folder-icon-box.gray {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+/* Icon thư mục bên trong khung */
+.folder-icon {
+  font-size: 38px;
+  margin-bottom: 0;
+  transition: transform 0.2s ease;
+}
+
+.folder-card:hover .folder-icon {
+  transform: scale(1.08);
+}
+
+/* Màu sắc từng loại icon thư mục (tương thích ngược) */
 .folder-icon.blue {
   color: #3b82f6;
 }
@@ -284,74 +347,113 @@ body {
   gap: 20px;
 }
 
-/* Thẻ tệp tin, tương tự thư mục nhưng cao hơn để chứa nhiều thông tin */
+/* Thẻ tệp tin, bo góc, có đổ bóng và hiệu ứng nổi khi hover */
 .file-card {
   position: relative;
   background-color: var(--card-bg);
   border-radius: var(--radius-lg);
-  padding: 20px;
+  padding: 14px 14px 16px 14px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-color);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  min-height: 170px;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .file-card:hover {
   box-shadow: var(--shadow-md);
-  border-color: var(--border-color);
-  transform: translateY(-4px);
+  border-color: #cbd5e1;
+  transform: translateY(-3px);
 }
 
 .file-card:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Khối vuông bo góc bao quanh icon của tệp tin */
+/* Khung bo góc chứa icon tệp tin ở giữa khung (Hình 2 & 3) */
 .file-icon-box {
-  width: 50px;
-  height: 50px;
-  border-radius: var(--radius-md);
+  width: 100%;
+  height: 145px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin-bottom: 16px;
+  font-size: 42px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-/* Màu sắc tương ứng cho các định dạng file khác nhau */
+.file-icon-box i {
+  transition: transform 0.2s ease;
+}
+
+.file-card:hover .file-icon-box i {
+  transform: scale(1.08);
+}
+
+/* Màu sắc từng loại khung icon tệp tin theo Hình 2 và Hình 3 */
 .file-pdf {
-  background-color: #fee2e2;
+  background-color: #fef2f2;
   color: #ef4444;
 }
 
 .file-img {
-  background-color: #f3e8ff;
-  color: #a855f7;
+  background-color: #faf5ff;
+  color: #9333ea;
 }
 
 .file-doc {
-  background-color: #e0f2fe;
-  color: #3b82f6;
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.file-txt {
+  background-color: #f8fafc;
+  color: #475569;
 }
 
 .file-xls {
-  background-color: #dcfce7;
-  color: #22c55e;
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.file-ppt {
+  background-color: #fff7ed;
+  color: #ea580c;
 }
 
 .file-vid {
-  background-color: #ffedd5;
-  color: #f97316;
+  background-color: #fffbeb;
+  color: #f59e0b;
+}
+
+.file-audio {
+  background-color: #fdf2f8;
+  color: #db2777;
 }
 
 .file-zip {
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.file-code {
+  background-color: #eef2ff;
+  color: #4f46e5;
+}
+
+.file-md {
+  background-color: #f0fdfa;
+  color: #0d9488;
+}
+
+.file-default {
+  background-color: #f8fafc;
+  color: #64748b;
 }
 
 /* Tên file, tối đa hiển thị 2 dòng, tự động cắt nếu dài hơn */
@@ -392,23 +494,30 @@ body {
   flex-direction: row;
   align-items: center;
   padding: 12px 20px;
-  gap: 16px;
+  gap: 12px;
   height: 60px;
   min-height: 60px;
   justify-content: flex-start;
+  transform: none !important;
 }
 
-/* Thu nhỏ icon lại để vừa vặn với dòng ngang */
+.list-view .file-card:hover {
+  transform: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Thu nhỏ icon lại để vừa vặn với dòng ngang trong List View (chỉ áp dụng cho tệp tin, giữ nguyên kích thước thư mục như chế độ 4 ô vuông) */
 .list-view .file-icon-box {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   font-size: 18px;
   margin-bottom: 0;
   flex-shrink: 0;
 }
 
 /* Nhóm phần tên file và thông tin cơ bản chung một khối */
-.list-view .file-info-main {
+.list-view .file-card .file-info-main {
   flex: 2;
   min-width: 0;
   display: flex;
@@ -431,7 +540,7 @@ body {
   line-clamp: unset;
 }
 
-.list-view .file-meta-mobile {
+.list-view .file-card .file-meta-mobile {
   display: none;
 }
 
@@ -450,25 +559,43 @@ body {
   flex: 1;
 }
 
-/* Huy hiệu (Badge) mô tả trạng thái chia sẻ nền xám nhạt (Ví dụ: "Riêng tư") */
+/* Huy hiệu (Badge) mô tả trạng thái chia sẻ */
 .shared-badge {
   font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  background-color: #f3f4f6;
-  color: #9ca3af;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #64748b;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
 }
 
 /* Huy hiệu đổi thành nền xanh khi trạng thái là "Đã chia sẻ" */
 .shared-badge.active {
-  background-color: #eff6ff;
-  color: #3b82f6;
+  background-color: rgba(239, 246, 255, 0.95);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.2);
 }
 
-/* Ẩn bớt thông tin dạng cột nếu không bật chế độ list-view */
+/* Khi được chia sẻ (quyền xem/sửa) */
+.shared-badge.active.shared-received {
+  background-color: rgba(240, 253, 244, 0.95);
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+}
+
+/* Ẩn bớt thông tin dạng cột nếu không bật chế độ list-view (và luôn ẩn trên folder-card) */
 .content-scroll:not(.list-view) .file-meta-col,
-.content-scroll:not(.list-view) .folder-meta-col {
-  display: none;
+.folder-meta-col,
+.folder-card .file-meta-col {
+  display: none !important;
 }
 
 /* Hiển thị avatar và tên của người đã chia sẻ tệp/thư mục ở phía dưới thẻ tệp */

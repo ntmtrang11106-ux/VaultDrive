@@ -218,15 +218,20 @@ function initLayoutEvents() {
 
 
 // ================================================================
-// TẢI VÀ CHÈN LAYOUT HTML VÀO TRANG
+// TẢI VÀ CHÈN LAYOUT HTML VÀO TRANG (Bỏ qua nếu đang mở xem trước riêng biệt)
 // ================================================================
-fetch('layout.html') // GET file layout.html từ cùng thư mục
-  .then(response => {
-    // Kiểm tra HTTP status (200 OK, 404 Not Found, ...)
-    if (!response.ok) throw new Error('Không thể tải file layout.html');
-    return response.text(); // Chuyển response body thành chuỗi HTML
-  })
-  .then(html => {
+const layoutUrlParams = new URLSearchParams(window.location.search);
+const isPreviewLayoutMode = !!(layoutUrlParams.get("token") || layoutUrlParams.get("shareToken") || layoutUrlParams.get("fileId") || layoutUrlParams.get("previewFileId")) ||
+  document.documentElement.classList.contains("preview-only-mode");
+
+if (!isPreviewLayoutMode) {
+  fetch('layout.html') // GET file layout.html từ cùng thư mục
+    .then(response => {
+      // Kiểm tra HTTP status (200 OK, 404 Not Found, ...)
+      if (!response.ok) throw new Error('Không thể tải file layout.html');
+      return response.text(); // Chuyển response body thành chuỗi HTML
+    })
+    .then(html => {
     // 1. Tạo một container ảo (không hiển thị) để parse HTML tải về
     //    Dùng div ảo thay vì DOMParser để dễ dàng querySelector
     const tempDiv = document.createElement('div');
@@ -256,6 +261,7 @@ fetch('layout.html') // GET file layout.html từ cùng thư mục
   .catch(err => {
     console.error("Lỗi tải layout:", err);
   });
+}
 
 
 // ================================================================
@@ -353,9 +359,10 @@ window.fetchNotifications = async function () {
     }
 
     // Điền text
-    itemNode.querySelector('.notif-title').innerHTML = notif.title || 'Thông báo';
-    itemNode.querySelector('.notif-desc').textContent = notif.message || '';
-    itemNode.querySelector('.notif-time').textContent = notif.createdAt || 'Vừa xong';
+    itemNode.querySelector('.notif-title').textContent = notif.title || 'Thông báo';
+    itemNode.querySelector('.notif-desc').textContent = notif.content || notif.message || '';
+    const formatTimeFn = window.formatSmartDate || (typeof formatSmartDate === 'function' ? formatSmartDate : null);
+    itemNode.querySelector('.notif-time').textContent = formatTimeFn ? formatTimeFn(notif.createdAt) : (notif.createdAt || 'Vừa xong');
 
     // Xử lý sự kiện click từng thông báo để đánh dấu đã đọc
     itemNode.addEventListener('click', async (e) => {

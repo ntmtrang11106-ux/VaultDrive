@@ -419,7 +419,7 @@
   background-color: var(--bg-color);
   border-radius: 20px;
   padding: 10px 18px;
-  width: 250px;
+  width: 300px;
 }
 
 /* Icon kính lúp */
@@ -438,21 +438,6 @@
   width: 100%;
   font-size: 14px;
   font-family: var(--font-family);
-}
-
-/* ================================================================
-   13. SORT DROPDOWN - Nút chọn kiểu sắp xếp
-================================================================ */
-.sort-dropdown {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background-color: var(--bg-color);
-  border-radius: 20px;
-  font-size: 14px;
-  color: var(--text-main);
-  cursor: pointer;
 }
 
 /* ================================================================
@@ -685,7 +670,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-right: 24px; /* Chừa chỗ cho dấu chấm */
+  padding-right: 24px;
+  /* Chừa chỗ cho dấu chấm */
 }
 
 .notif-title {
@@ -729,19 +715,26 @@
 /* Panel danh sách thông báo, mở ra dưới nút chuông (góc trên phải Header) */
 /* Dropdown ẩn mặc định (display:none), hiện khi JS thêm class .show */
 .notification-dropdown {
-  position: absolute; /* Bám vào .notifications (có position:relative) */
-  top: 48px;          /* Hiện bên dưới nút chuông (42px + 6px khoảng cách) */
-  right: -10px;       /* Lệch sang phải 10px cho cân đối */
+  position: absolute;
+  /* Bám vào .notifications (có position:relative) */
+  top: 48px;
+  /* Hiện bên dưới nút chuông (42px + 6px khoảng cách) */
+  right: -10px;
+  /* Lệch sang phải 10px cho cân đối */
   width: 380px;
   background-color: white;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
-  z-index: 100;       /* Nổi trên các phần tử thông thường */
-  display: none;      /* Ẩn mặc định */
+  z-index: 100;
+  /* Nổi trên các phần tử thông thường */
+  display: none;
+  /* Ẩn mặc định */
   flex-direction: column;
-  overflow: hidden;   /* Bo tròn góc cắt nội dung bên trong */
-  cursor: default;    /* Con trỏ bình thường khi di vào dropdown */
+  overflow: hidden;
+  /* Bo tròn góc cắt nội dung bên trong */
+  cursor: default;
+  /* Con trỏ bình thường khi di vào dropdown */
 }
 
 /* Khi JS add class .show → dropdown hiện ra (flexbox) */
@@ -886,16 +879,19 @@
 /* ─── CONTEXT MENU (Menu chuột phải / nút 3 chấm) ─── */
 /* Hiện tại vị trí cố định (fixed), JS tính toán left/top sau khi click */
 .custom-context-menu {
-  position: fixed;  /* Cố định trên viewport, không bị scroll cuốn đi */
+  position: fixed;
+  /* Cố định trên viewport, không bị scroll cuốn đi */
   background-color: white;
   min-width: 260px;
   border-radius: 8px;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.2);
   padding: 8px 0;
-  z-index: 9999;    /* Nổi lên trên MỌI thứ khác (trừ modal z-index:99999) */
+  z-index: 9999;
+  /* Nổi lên trên MỌI thứ khác (trừ modal z-index:99999) */
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  display: none;    /* Bị ẩn mặc định, JS set display:block khi cần */
+  display: none;
+  /* Bị ẩn mặc định, JS set display:block khi cần */
 }
 
 /* Các nhóm mục (có đường kẻ phân cách) */
@@ -924,4 +920,3 @@
 .context-menu-item:hover {
   background-color: #f1f5f9;
 }
-

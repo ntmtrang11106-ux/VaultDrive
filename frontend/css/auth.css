@@ -228,6 +228,33 @@ body {
   text-decoration: underline;
 }
 
+/* Khung bao bọc ô nhập mật khẩu và icon ẩn/hiện mắt */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  padding-right: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 18px;
+  transition: color 0.2s ease;
+  z-index: 2;
+  user-select: none;
+}
+
+.password-toggle:hover {
+  color: var(--text-main, #333333);
+}
+
 /* --- PHẦN HIỂN THỊ THÔNG BÁO VÀ LOADING --- */
 /* Chữ thông báo lỗi màu đỏ */
 .error-message {

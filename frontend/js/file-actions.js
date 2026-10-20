@@ -102,11 +102,56 @@ async function downloadItem(id, type, name) {
       alert("Không thể tải xuống mục này!");
       return;
     }
+
+    // 1. Tự động tìm tên tệp tin từ dữ liệu đã nạp nếu chưa có tham số name
+    let finalFileName = name;
+    if (!finalFileName && type === 'file') {
+      const allFiles = [
+        ...(window.currentLoadedData?.files || []),
+        ...(window.lastSharedData?.files || []),
+        ...(Array.isArray(window.lastSharedData) ? window.lastSharedData : []),
+        ...(window.mockData?.files || [])
+      ];
+      const found = allFiles.find(item => (item.fileId || item.id) == id);
+      if (found) {
+        finalFileName = found.fileName || found.name || found.originalName;
+      }
+    } else if (!finalFileName && type === 'folder') {
+      const allFolders = [
+        ...(window.currentLoadedData?.folders || []),
+        ...(window.currentLoadedData?.subfolders || []),
+        ...(window.mockData?.folders || [])
+      ];
+      const found = allFolders.find(item => (item.folderId || item.id) == id);
+      if (found) {
+        finalFileName = (found.folderName || found.name || `folder_${id}`) + ".zip";
+      }
+    }
+
+    // 2. Nếu vẫn chưa có, phân tích từ header Content-Disposition của máy chủ
+    if (!finalFileName) {
+      const disposition = response.headers.get("content-disposition") || "";
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      if (utf8Match && utf8Match[1]) {
+        finalFileName = decodeURIComponent(utf8Match[1]);
+      } else {
+        const asciiMatch = disposition.match(/filename="?([^";]+)"?/i);
+        if (asciiMatch && asciiMatch[1]) {
+          finalFileName = asciiMatch[1];
+        }
+      }
+    }
+
+    // 3. Fallback cuối cùng nếu hoàn toàn không xác định được tên
+    if (!finalFileName) {
+      finalFileName = type === 'folder' ? `folder_${id}.zip` : `file_${id}`;
+    }
+
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = name || (type === 'folder' ? `folder_${id}.zip` : `file_${id}`);
+    a.download = finalFileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -118,9 +163,1021 @@ async function downloadItem(id, type, name) {
 }
 window.downloadItem = downloadItem;
 
+// ================================================================
+// FILE PREVIEW SUBSYSTEM (Xem trước tệp tin đa định dạng)
+// ================================================================
+
+let currentPreviewBlobUrl = null;
+let currentPreviewZoom = 1;
+let currentPreviewRotation = 0;
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getFileCategoryAndIcon(fileName) {
+  const ext = (fileName || "").split(".").pop().toLowerCase();
+  let iconClass = "ph-file";
+  let colorClass = "file-default";
+
+  if (["pdf"].includes(ext)) {
+    iconClass = "ph-file-pdf";
+    colorClass = "file-pdf";
+  } else if (["doc", "docx", "rtf", "odt"].includes(ext)) {
+    iconClass = "ph-file-doc";
+    colorClass = "file-doc";
+  } else if (["txt", "log", "ini", "env"].includes(ext)) {
+    iconClass = "ph-file-txt";
+    colorClass = "file-txt";
+  } else if (["xls", "xlsx", "ods"].includes(ext)) {
+    iconClass = "ph-file-xls";
+    colorClass = "file-xls";
+  } else if (["csv"].includes(ext)) {
+    iconClass = "ph-file-csv";
+    colorClass = "file-xls";
+  } else if (["ppt", "pptx", "odp"].includes(ext)) {
+    iconClass = "ph-file-ppt";
+    colorClass = "file-ppt";
+  } else if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico", "tiff"].includes(ext)) {
+    iconClass = "ph-file-image";
+    colorClass = "file-img";
+  } else if (["mp4", "avi", "mov", "webm", "mkv", "flv", "wmv"].includes(ext)) {
+    iconClass = "ph-file-video";
+    colorClass = "file-vid";
+  } else if (["mp3", "wav", "ogg", "m4a", "flac", "aac", "wma"].includes(ext)) {
+    iconClass = "ph-file-audio";
+    colorClass = "file-audio";
+  } else if (["zip", "rar", "tar", "gz", "7z", "bz2", "xz", "iso"].includes(ext)) {
+    iconClass = "ph-file-zip";
+    colorClass = "file-zip";
+  } else if (["md"].includes(ext)) {
+    iconClass = "ph-file-md";
+    colorClass = "file-md";
+  } else if (["html", "htm"].includes(ext)) {
+    iconClass = "ph-file-html";
+    colorClass = "file-code";
+  } else if (["css", "scss", "sass", "less"].includes(ext)) {
+    iconClass = "ph-file-css";
+    colorClass = "file-code";
+  } else if (["js", "jsx", "mjs"].includes(ext)) {
+    iconClass = "ph-file-js";
+    colorClass = "file-code";
+  } else if (["ts", "tsx"].includes(ext)) {
+    iconClass = "ph-file-ts";
+    colorClass = "file-code";
+  } else if (["py"].includes(ext)) {
+    iconClass = "ph-file-py";
+    colorClass = "file-code";
+  } else if (["sql"].includes(ext)) {
+    iconClass = "ph-file-sql";
+    colorClass = "file-code";
+  } else if (["c", "h"].includes(ext)) {
+    iconClass = "ph-file-c";
+    colorClass = "file-code";
+  } else if (["cpp", "hpp", "cc"].includes(ext)) {
+    iconClass = "ph-file-cpp";
+    colorClass = "file-code";
+  } else if (["cs"].includes(ext)) {
+    iconClass = "ph-file-c-sharp";
+    colorClass = "file-code";
+  } else if (["rs"].includes(ext)) {
+    iconClass = "ph-file-rs";
+    colorClass = "file-code";
+  } else if (["json", "xml", "yaml", "yml", "php", "java", "sh", "bat"].includes(ext)) {
+    iconClass = "ph-file-code";
+    colorClass = "file-code";
+  }
+
+  return { ext, iconClass, colorClass };
+}
+window.getFileCategoryAndIcon = getFileCategoryAndIcon;
+
+function closeFilePreview() {
+  const params = new URLSearchParams(window.location.search);
+  const isPreviewOnly = !!(params.get("token") || params.get("shareToken") || params.get("fileId") || params.get("previewFileId")) ||
+    document.documentElement.classList.contains("preview-only-mode");
+
+  // Nếu người dùng mở bằng link trong tab riêng: khi bấm dấu X thì trong tab đó KHÔNG chuyển lại giao diện dashboard
+  if (isPreviewOnly) {
+    if (currentPreviewBlobUrl) {
+      URL.revokeObjectURL(currentPreviewBlobUrl);
+      currentPreviewBlobUrl = null;
+    }
+    try {
+      window.close();
+    } catch (e) { }
+
+    // Nếu trình duyệt chặn window.close() (do gõ/dán link trực tiếp): giữ nguyên màn hình tối và hiện thông báo đã đóng sạch sẽ
+    const container = document.getElementById("previewModalContainer");
+    if (container) {
+      container.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-family: 'Inter', sans-serif; text-align: center; padding: 24px;">
+          <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+            <i class="ph-bold ph-check" style="font-size: 28px; color: #10b981;"></i>
+          </div>
+          <h3 style="color: #f1f5f9; margin-bottom: 8px; font-size: 20px; font-weight: 600;">Đã đóng bản xem trước</h3>
+          <p style="font-size: 14px; max-width: 340px; line-height: 1.6; color: #64748b; margin: 0;">Bạn có thể đóng tab trình duyệt này.</p>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  const overlay = document.getElementById("previewModalOverlay");
+  if (overlay) {
+    overlay.style.display = "none";
+  }
+  document.body.classList.remove("modal-open");
+  if (currentPreviewBlobUrl) {
+    URL.revokeObjectURL(currentPreviewBlobUrl);
+    currentPreviewBlobUrl = null;
+  }
+  const bodyEl = document.getElementById("previewModalBody");
+  if (bodyEl) {
+    bodyEl.innerHTML = "";
+  }
+  // Xóa param ?token= hoặc ?fileId= trên thanh địa chỉ URL nếu có
+  if (window.location.search) {
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+}
+window.closeFilePreview = closeFilePreview;
+
+function cloneTemplate(templateId) {
+  const tmpl = document.getElementById(templateId);
+  if (!tmpl) return null;
+  return tmpl.content.cloneNode(true);
+}
+
+function renderPreviewError(container, message, fileId, fileName) {
+  const fragment = cloneTemplate("tmpl-preview-error");
+  if (!fragment) {
+    container.innerHTML = `
+      <div class="preview-media-wrapper preview-error-wrapper">
+        <div class="preview-error-card">
+          <i class="ph-bold ph-warning-circle preview-error-icon"></i>
+          <h4>Không thể tải bản xem trước</h4>
+          <p>${escapeHtml(message)}</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const msgEl = fragment.querySelector(".preview-error-msg");
+  if (msgEl) msgEl.textContent = message || "Đã xảy ra sự cố khi tải bản xem trước.";
+
+  const retryBtn = fragment.querySelector(".preview-retry-btn");
+  if (retryBtn) {
+    retryBtn.addEventListener("click", () => window.openFilePreview(fileId));
+  }
+
+  const dlBtn = fragment.querySelector(".preview-download-fallback-btn");
+  if (dlBtn) {
+    dlBtn.addEventListener("click", () => {
+      if (typeof downloadItem === "function") {
+        downloadItem(fileId, "file", fileName);
+      }
+    });
+  }
+
+  container.innerHTML = "";
+  container.appendChild(fragment);
+}
+
+function renderImagePreview(container, url, fileName) {
+  currentPreviewZoom = 1;
+  currentPreviewRotation = 0;
+
+  const fragment = cloneTemplate("tmpl-preview-image");
+  if (!fragment) {
+    console.error("Không tìm thấy template #tmpl-preview-image");
+    return;
+  }
+
+  const imgEl = fragment.querySelector("#previewImageEl");
+  const zoomValEl = fragment.querySelector("#previewZoomVal");
+  const zoomInBtn = fragment.querySelector("#previewZoomIn");
+  const zoomOutBtn = fragment.querySelector("#previewZoomOut");
+  const rotateBtn = fragment.querySelector("#previewRotate");
+  const scrollArea = fragment.querySelector("#previewImgScrollArea");
+
+  if (imgEl) {
+    imgEl.src = url;
+    imgEl.alt = fileName || "Ảnh xem trước";
+    imgEl.onerror = () => {
+      renderPreviewError(container, "Không thể giải mã dữ liệu hình ảnh.", null, fileName);
+    };
+  }
+
+  const updateTransform = () => {
+    if (!imgEl) return;
+    imgEl.style.transform = `scale(${currentPreviewZoom}) rotate(${currentPreviewRotation}deg)`;
+    if (zoomValEl) zoomValEl.textContent = `${Math.round(currentPreviewZoom * 100)}%`;
+  };
+
+  zoomInBtn?.addEventListener("click", () => {
+    if (currentPreviewZoom < 3.0) {
+      currentPreviewZoom = Math.min(3.0, currentPreviewZoom + 0.25);
+      updateTransform();
+    }
+  });
+
+  zoomOutBtn?.addEventListener("click", () => {
+    if (currentPreviewZoom > 0.3) {
+      currentPreviewZoom = Math.max(0.3, currentPreviewZoom - 0.25);
+      updateTransform();
+    }
+  });
+
+  zoomValEl?.addEventListener("click", () => {
+    currentPreviewZoom = 1;
+    currentPreviewRotation = 0;
+    updateTransform();
+  });
+
+  rotateBtn?.addEventListener("click", () => {
+    currentPreviewRotation = (currentPreviewRotation + 90) % 360;
+    updateTransform();
+  });
+
+  // Cuộn chuột phóng to/thu nhỏ
+  scrollArea?.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      if (currentPreviewZoom < 3.0) {
+        currentPreviewZoom = Math.min(3.0, currentPreviewZoom + 0.15);
+        updateTransform();
+      }
+    } else {
+      if (currentPreviewZoom > 0.3) {
+        currentPreviewZoom = Math.max(0.3, currentPreviewZoom - 0.15);
+        updateTransform();
+      }
+    }
+  }, { passive: false });
+
+  // Kéo rê ảnh khi zoom lớn
+  let isDragging = false;
+  let startX = 0, startY = 0, scrollLeft = 0, scrollTop = 0;
+  if (scrollArea) {
+    scrollArea.addEventListener("mousedown", (e) => {
+      if (currentPreviewZoom > 1.0) {
+        isDragging = true;
+        scrollArea.classList.add("is-dragging");
+        startX = e.pageX - scrollArea.offsetLeft;
+        startY = e.pageY - scrollArea.offsetTop;
+        scrollLeft = scrollArea.scrollLeft;
+        scrollTop = scrollArea.scrollTop;
+      }
+    });
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+      scrollArea?.classList.remove("is-dragging");
+    });
+    scrollArea.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = e.pageX - scrollArea.offsetLeft;
+      const y = e.pageY - scrollArea.offsetTop;
+      const walkX = (x - startX) * 1.5;
+      const walkY = (y - startY) * 1.5;
+      scrollArea.scrollLeft = scrollLeft - walkX;
+      scrollArea.scrollTop = scrollTop - walkY;
+    });
+  }
+
+  container.innerHTML = "";
+  container.appendChild(fragment);
+}
+
+function renderPdfPreview(container, url) {
+  const fragment = cloneTemplate("tmpl-preview-pdf");
+  if (!fragment) return;
+  const iframe = fragment.querySelector(".preview-pdf-iframe");
+  if (iframe) iframe.src = `${url}#toolbar=1`;
+  container.innerHTML = "";
+  container.appendChild(fragment);
+}
+
+function renderVideoPreview(container, url) {
+  const fragment = cloneTemplate("tmpl-preview-video");
+  if (!fragment) return;
+  const video = fragment.querySelector("#previewVideoEl") || fragment.querySelector(".preview-video-player");
+  if (video) video.src = url;
+
+  // Điều khiển tốc độ phát video
+  const speedBtns = fragment.querySelectorAll(".btn-vspeed");
+  speedBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const speed = parseFloat(btn.dataset.speed || "1.0");
+      if (video) video.playbackRate = speed;
+      speedBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    });
+  });
+
+  container.innerHTML = "";
+  container.appendChild(fragment);
+}
+
+function renderAudioPreview(container, url, fileName, sizeText) {
+  const fragment = cloneTemplate("tmpl-preview-audio");
+  if (!fragment) return;
+  const titleEl = fragment.querySelector("#previewAudioTitle") || fragment.querySelector(".preview-audio-title");
+  if (titleEl) titleEl.textContent = fileName || "Tệp âm thanh";
+  const metaEl = fragment.querySelector("#previewAudioMeta") || fragment.querySelector(".preview-audio-meta");
+  if (metaEl) metaEl.textContent = sizeText || "";
+  const audio = fragment.querySelector("#previewAudioPlayer") || fragment.querySelector(".preview-audio-player");
+  const card = fragment.querySelector("#previewAudioCard") || fragment.querySelector(".preview-audio-card");
+
+  if (audio) {
+    audio.src = url;
+    audio.addEventListener("play", () => {
+      card?.classList.add("playing");
+    });
+    audio.addEventListener("pause", () => {
+      card?.classList.remove("playing");
+    });
+    audio.addEventListener("ended", () => {
+      card?.classList.remove("playing");
+    });
+  }
+
+  container.innerHTML = "";
+  container.appendChild(fragment);
+}
+
+async function renderTextPreview(container, blob, ext, fileId = null, fileName = "") {
+  try {
+    let currentText = await blob.text();
+    let initialText = currentText;
+    const fragment = cloneTemplate("tmpl-preview-text");
+    if (!fragment) return;
+
+    const badge = fragment.querySelector("#previewTextBadge") || fragment.querySelector(".preview-text-badge");
+    if (badge) badge.textContent = (ext || "TXT").toUpperCase();
+
+    const statsEl = fragment.querySelector("#previewTextStats") || fragment.querySelector(".preview-text-stats");
+    const dirtyBadge = fragment.querySelector("#previewTextDirty");
+    const linesEl = fragment.querySelector("#previewCodeLines");
+    const preEl = fragment.querySelector("#previewTextPre") || fragment.querySelector(".preview-text-pre");
+    const codeEl = fragment.querySelector("#previewTextCode") || fragment.querySelector(".preview-text-code");
+    const editorEl = fragment.querySelector("#previewTextEditor");
+    const copyBtn = fragment.querySelector("#previewCopyCodeBtn");
+    const toggleEditBtn = fragment.querySelector("#previewToggleEditBtn");
+    const editModeText = fragment.querySelector("#previewEditModeText");
+    const saveBtn = fragment.querySelector("#previewSaveCodeBtn");
+
+    let isEditing = false;
+
+    // Hàm cập nhật số dòng và số ký tự
+    const updateStatsAndLines = (textVal) => {
+      const lines = textVal.split("\n");
+      if (statsEl) {
+        statsEl.textContent = `${lines.length} dòng · ${textVal.length.toLocaleString('vi-VN')} ký tự`;
+      }
+      if (linesEl) {
+        linesEl.innerHTML = lines.map((_, i) => `<div>${i + 1}</div>`).join("");
+      }
+    };
+
+    // Khởi tạo hiển thị ban đầu
+    if (codeEl) codeEl.textContent = currentText;
+    if (editorEl) editorEl.value = currentText;
+    updateStatsAndLines(currentText);
+
+    // 1. Chức năng sao chép nội dung (Giữ nguyên trạng thái "Đã sao chép")
+    let isCopied = false;
+    const setCopiedStatus = (copied) => {
+      isCopied = copied;
+      if (!copyBtn) return;
+      if (copied) {
+        copyBtn.innerHTML = '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã sao chép</span>';
+        copyBtn.classList.add("copied");
+      } else {
+        copyBtn.innerHTML = '<i class="ph-bold ph-copy"></i> <span>Sao chép</span>';
+        copyBtn.classList.remove("copied");
+      }
+    };
+
+    copyBtn?.addEventListener("click", () => {
+      const textToCopy = isEditing && editorEl ? editorEl.value : (codeEl?.textContent || currentText);
+      navigator.clipboard.writeText(textToCopy)
+        .then(() => {
+          setCopiedStatus(true);
+        })
+        .catch(() => alert("Không thể tự động sao chép!"));
+    });
+
+    // 3. Chức năng chuyển đổi Chế độ Xem / Chỉnh sửa
+    toggleEditBtn?.addEventListener("click", () => {
+      isEditing = !isEditing;
+      if (isEditing) {
+        // Vào chế độ chỉnh sửa
+        if (preEl) preEl.style.display = "none";
+        if (editorEl) {
+          editorEl.style.display = "block";
+          editorEl.value = currentText;
+          editorEl.focus();
+        }
+        if (saveBtn) saveBtn.style.display = "inline-flex";
+        if (editModeText) editModeText.textContent = "Xem";
+        toggleEditBtn.classList.add("active");
+      } else {
+        // Trở về chế độ xem
+        if (preEl) preEl.style.display = "block";
+        if (editorEl) editorEl.style.display = "none";
+        if (saveBtn) saveBtn.style.display = "none";
+        if (editModeText) editModeText.textContent = "Chỉnh sửa";
+        toggleEditBtn.classList.remove("active");
+        if (codeEl && editorEl) codeEl.textContent = editorEl.value;
+      }
+    });
+
+    // 4. Lắng nghe gõ phím khi sửa nội dung
+    if (editorEl) {
+      editorEl.addEventListener("input", () => {
+        const val = editorEl.value;
+        updateStatsAndLines(val);
+        // Khi người dùng gõ sửa văn bản mới, nút tự chuyển lại thành "Sao chép"
+        if (isCopied) {
+          setCopiedStatus(false);
+        }
+        // Hiển thị trạng thái chưa lưu nếu có thay đổi
+        if (dirtyBadge) {
+          dirtyBadge.style.display = (val !== initialText) ? "inline-block" : "none";
+        }
+      });
+
+      // Hỗ trợ phím Tab thụt đầu dòng (2 dấu cách) và Ctrl + S để Lưu
+      editorEl.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          const start = editorEl.selectionStart;
+          const end = editorEl.selectionEnd;
+          editorEl.value = editorEl.value.substring(0, start) + "  " + editorEl.value.substring(end);
+          editorEl.selectionStart = editorEl.selectionEnd = start + 2;
+          updateStatsAndLines(editorEl.value);
+          if (dirtyBadge) dirtyBadge.style.display = "inline-block";
+        } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+          e.preventDefault();
+          saveContent();
+        }
+      });
+
+      // Cuộn đồng bộ số dòng với nội dung text
+      editorEl.addEventListener("scroll", () => {
+        if (linesEl) linesEl.scrollTop = editorEl.scrollTop;
+      });
+    }
+
+    if (preEl) {
+      preEl.addEventListener("scroll", () => {
+        if (linesEl) linesEl.scrollTop = preEl.scrollTop;
+      });
+    }
+
+    // 5. Hàm lưu nội dung (Chuẩn bị sẵn để gọi API Backend PUT /api/files/{id}/content)
+    async function saveContent() {
+      if (!editorEl) return;
+      const newText = editorEl.value;
+
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="ph-bold ph-spinner"></i> <span>Đang lưu...</span>';
+      }
+
+      try {
+        if (!fileId) throw new Error("Không có fileId để lưu");
+
+        // Gọi API Backend chuẩn bị sẵn: PUT /api/files/{id}/content
+        const response = await fetchWithAuth(`/files/${fileId}/content`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8"
+          },
+          body: newText
+        });
+
+        if (response && response.ok) {
+          currentText = newText;
+          initialText = newText;
+          if (codeEl) codeEl.textContent = newText;
+          if (dirtyBadge) dirtyBadge.style.display = "none";
+          if (saveBtn) saveBtn.innerHTML = '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã lưu!</span>';
+        } else {
+          // Trường hợp Backend chưa có endpoint PUT /files/{id}/content
+          currentText = newText;
+          initialText = newText;
+          if (codeEl) codeEl.textContent = newText;
+          if (dirtyBadge) dirtyBadge.style.display = "none";
+          if (saveBtn) saveBtn.innerHTML = '<i class="ph-bold ph-check" style="color:#38bdf8;"></i> <span style="color:#38bdf8;">Đã lưu tạm!</span>';
+          console.info(`[Frontend] Đã chuẩn bị sẵn API PUT /api/files/${fileId}/content. Hiện tại Backend chưa triển khai nên nội dung được cập nhật trên giao diện.`);
+        }
+      } catch (err) {
+        // Fallback lưu giao diện tạm thời khi chưa có Backend
+        currentText = newText;
+        initialText = newText;
+        if (codeEl) codeEl.textContent = newText;
+        if (dirtyBadge) dirtyBadge.style.display = "none";
+        if (saveBtn) saveBtn.innerHTML = '<i class="ph-bold ph-check" style="color:#38bdf8;"></i> <span style="color:#38bdf8;">Đã lưu tạm!</span>';
+      } finally {
+        setTimeout(() => {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> <span>Lưu thay đổi</span>';
+          }
+        }, 2000);
+      }
+    }
+
+    // Gắn sự kiện click cho nút Lưu
+    saveBtn?.addEventListener("click", () => {
+      saveContent();
+    });
+
+    container.innerHTML = "";
+    container.appendChild(fragment);
+  } catch (err) {
+    console.error("Lỗi khi đọc file văn bản:", err);
+    renderPreviewError(container, "Không thể đọc nội dung văn bản. Tệp tin có thể mã hóa theo định dạng nhị phân không tương thích.");
+  }
+}
+
+
+function renderUnsupportedPreview(container, fileName, ext, sizeText, iconClass, colorClass, fileId) {
+  const fragment = cloneTemplate("tmpl-preview-unsupported");
+  if (!fragment) return;
+
+  const dlBtn = fragment.querySelector("#previewUnsupportedDownloadBtn");
+  dlBtn?.addEventListener("click", () => {
+    if (typeof downloadItem === "function") {
+      downloadItem(fileId, "file", fileName);
+    }
+  });
+
+  container.innerHTML = "";
+  container.appendChild(fragment);
+}
+
+async function openFilePreview(fileId, fileData = null) {
+  if (!fileId) return;
+
+  // Tìm thông tin file trong bộ nhớ đệm hoặc tham số
+  let file = fileData;
+  if (!file && window.currentLoadedData && window.currentLoadedData.files) {
+    file = window.currentLoadedData.files.find(f => (f.fileId || f.id) == fileId);
+  }
+  if (!file && window.mockData && window.mockData.files) {
+    file = window.mockData.files.find(f => (f.fileId || f.id) == fileId);
+  }
+
+  const fileName = file ? (file.fileName || file.name || file.originalName || `file_${fileId}`) : `file_${fileId}`;
+  const fileSizeVal = file ? (file.sizeBytes !== undefined ? file.sizeBytes : file.size) : null;
+  const formatSize = (bytes) => {
+    if (!bytes && bytes !== 0) return "";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const num = parseFloat((bytes / Math.pow(k, i)).toFixed(1));
+    return num.toString().replace(".", ",") + " " + sizes[i];
+  };
+
+  const formatShortDate = (dateVal) => {
+    if (!dateVal) return "";
+    try {
+      const d = (typeof parseLocalDate === 'function') ? parseLocalDate(dateVal) : new Date(dateVal);
+      if (!d || isNaN(d.getTime())) return "";
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      return `Chỉnh sửa ${dd}/${mm}`;
+    } catch (_) {
+      return "";
+    }
+  };
+
+  const displaySize = fileSizeVal ? formatSize(fileSizeVal) : "";
+  const dateText = file ? formatShortDate(file.updatedAt || file.createdAt) : "";
+  const { ext, iconClass, colorClass } = getFileCategoryAndIcon(fileName);
+
+  const buildMetaString = (sizeStr, dateStr, extStr) => {
+    const parts = [];
+    if (sizeStr) parts.push(sizeStr);
+    if (dateStr) parts.push(dateStr);
+    if (parts.length === 0) return `.${(extStr || "").toUpperCase()}`;
+    return parts.join(" · ");
+  };
+
+  // Lấy các DOM phần tử
+  const overlay = document.getElementById("previewModalOverlay");
+  const fileNameEl = document.getElementById("previewFileName");
+  const fileMetaEl = document.getElementById("previewFileMeta");
+  const fileIconEl = document.getElementById("previewFileIcon");
+  const fileIconInner = document.getElementById("previewFileIconInner");
+  const bodyEl = document.getElementById("previewModalBody");
+  const downloadBtn = document.getElementById("previewDownloadBtn");
+
+  if (!overlay || !bodyEl) {
+    console.error("Preview modal DOM element không tìm thấy!");
+    return;
+  }
+
+  // Cập nhật Header
+  if (fileNameEl) {
+    fileNameEl.textContent = fileName;
+    fileNameEl.title = fileName;
+  }
+  document.title = `${fileName} - VaultDrive`;
+  if (fileMetaEl) {
+    fileMetaEl.textContent = buildMetaString(displaySize, dateText, ext);
+  }
+  if (fileIconEl) {
+    fileIconEl.className = `preview-file-icon ${colorClass}`;
+  }
+  if (fileIconInner) {
+    fileIconInner.className = `ph-fill ${iconClass}`;
+  }
+
+  if (downloadBtn) {
+    downloadBtn.onclick = () => {
+      if (typeof downloadItem === "function") {
+        downloadItem(fileId, 'file', fileName);
+      }
+    };
+  }
+
+  // Hủy blob URL cũ nếu có
+  if (currentPreviewBlobUrl) {
+    URL.revokeObjectURL(currentPreviewBlobUrl);
+    currentPreviewBlobUrl = null;
+  }
+
+  // Danh sách các định dạng hỗ trợ và không hỗ trợ
+  const imageExts = ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"];
+  const pdfExts = ["pdf"];
+  const videoExts = ["mp4", "webm", "ogg", "mov"];
+  const audioExts = ["mp3", "wav", "ogg", "m4a", "flac"];
+  const textCodeExts = ["txt", "md", "json", "js", "ts", "html", "css", "py", "java", "c", "cpp", "cs", "php", "sql", "xml", "yaml", "yml", "sh", "bat", "log", "ini", "env"];
+  const unsupportedExts = ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "rar", "7z", "tar", "gz", "exe", "apk", "dmg", "iso", "bin"];
+
+  const isImage = imageExts.includes(ext);
+  const isPdf = pdfExts.includes(ext);
+  const isVideo = videoExts.includes(ext);
+  const isAudio = audioExts.includes(ext);
+  const isTextOrCode = textCodeExts.includes(ext);
+  const isKnownSupported = isImage || isPdf || isVideo || isAudio || isTextOrCode;
+  const isKnownUnsupported = unsupportedExts.includes(ext);
+
+  overlay.style.display = "flex";
+  document.body.classList.add("modal-open");
+
+  // 1. Nếu là định dạng KHÔNG THỂ XEM TRỰC TIẾP (Office: doc, docx, xls, xlsx, ppt, pptx; Nén: zip, rar...)
+  // Hoặc định dạng lạ không hỗ trợ: hiển thị NGAY giao diện Chuẩn Hình 1 (không cần gọi fetch tốn băng thông)
+  if (isKnownUnsupported || (!isKnownSupported && ext)) {
+    renderUnsupportedPreview(bodyEl, fileName, ext, displaySize, iconClass, colorClass, fileId);
+    return;
+  }
+
+  // 2. Với các tệp XEM ĐƯỢC: Hiển thị trạng thái đang tải từ template trong khi fetch
+  const loadingFrag = cloneTemplate("tmpl-preview-loading");
+  bodyEl.innerHTML = "";
+  if (loadingFrag) {
+    bodyEl.appendChild(loadingFrag);
+  } else {
+    bodyEl.innerHTML = `
+      <div class="preview-loading">
+        <div class="preview-spinner"></div>
+        <p>Đang tải bản xem trước...</p>
+      </div>
+    `;
+  }
+
+  try {
+    let objectUrl = file?.previewUrl || file?.url || null;
+    let blob = null;
+
+    if (!objectUrl) {
+      const token = localStorage.getItem("jwt_token") || localStorage.getItem("token");
+      const baseUrl = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : "http://localhost:8080/api";
+      const response = await fetch(`${baseUrl}/files/${fileId}/preview`, {
+        headers: {
+          ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Máy chủ không thể cung cấp bản xem trước`);
+      }
+
+      // Trích xuất tên tệp từ header Content-Disposition nếu chưa có tên thật
+      const disposition = response.headers.get("content-disposition") || "";
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const asciiMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const serverFileName = (utf8Match && utf8Match[1]) ? decodeURIComponent(utf8Match[1]) : (asciiMatch ? asciiMatch[1] : null);
+      if (serverFileName && (!file || fileName.startsWith("file_"))) {
+        fileName = serverFileName;
+        const iconInfo = getFileCategoryAndIcon(serverFileName);
+        ext = iconInfo.ext;
+        if (fileNameEl) {
+          fileNameEl.textContent = fileName;
+          fileNameEl.title = fileName;
+        }
+        if (fileIconEl) fileIconEl.className = `preview-file-icon ${iconInfo.colorClass}`;
+        if (fileIconInner) fileIconInner.className = `ph-fill ${iconInfo.iconClass}`;
+        document.title = `${fileName} - VaultDrive`;
+      }
+
+      blob = await response.blob();
+      objectUrl = URL.createObjectURL(blob);
+      currentPreviewBlobUrl = objectUrl;
+    }
+
+    if (fileMetaEl && blob && blob.size) {
+      fileMetaEl.textContent = buildMetaString(formatSize(blob.size), dateText, ext);
+    }
+
+    const mimeType = blob ? (blob.type || "") : "";
+    const finalIsImage = isImage || mimeType.startsWith("image/");
+    const finalIsPdf = isPdf || mimeType === "application/pdf";
+    const finalIsVideo = isVideo || mimeType.startsWith("video/");
+    const finalIsAudio = isAudio || mimeType.startsWith("audio/");
+    const finalIsTextOrCode = isTextOrCode || mimeType.startsWith("text/");
+
+    if (finalIsImage) {
+      // Hình ảnh (.png, .jpg, .jpeg, .gif, .svg, .webp, .bmp, .ico) — Chuẩn Hình 2
+      renderImagePreview(bodyEl, objectUrl, fileName);
+    } else if (finalIsPdf) {
+      renderPdfPreview(bodyEl, objectUrl);
+    } else if (finalIsVideo) {
+      renderVideoPreview(bodyEl, objectUrl);
+    } else if (finalIsAudio) {
+      renderAudioPreview(bodyEl, objectUrl, fileName, displaySize || (blob ? formatSize(blob.size) : ""));
+    } else if (finalIsTextOrCode) {
+      if (blob) {
+        await renderTextPreview(bodyEl, blob, ext, fileId, fileName);
+      } else {
+        const textRes = await fetch(objectUrl);
+        const textBlob = await textRes.blob();
+        await renderTextPreview(bodyEl, textBlob, ext, fileId, fileName);
+      }
+    } else {
+      // Trường hợp dự phòng nếu mimeType thực tế không hỗ trợ xem
+      renderUnsupportedPreview(bodyEl, fileName, ext, displaySize || (blob ? formatSize(blob.size) : ""), iconClass, colorClass, fileId);
+    }
+
+  } catch (err) {
+    console.error("Lỗi khi mở bản xem trước:", err);
+    // Nếu tệp thuộc nhóm xem được (như JPG/PNG) nhưng tải bị lỗi (lỗi mạng hoặc file không tồn tại trên ổ đĩa),
+    // hiển thị giao diện báo lỗi kèm nút Thử lại / Tải về máy
+    renderPreviewError(bodyEl, "Không thể tải bản xem trước của tệp tin. Vui lòng kiểm tra kết nối mạng hoặc thử tải tệp về máy.", fileId, fileName);
+  }
+}
+window.openFilePreview = openFilePreview;
+
+/**
+ * Xem trước file công khai qua token chia sẻ (/api/public/share-links/{token})
+ * Tái sử dụng toàn bộ code preview cũ (renderImagePreview, renderPdfPreview, renderTextPreview, renderUnsupportedPreview...)
+ */
+async function openPublicFilePreview(token) {
+  if (!token) return;
+
+  const overlay = document.getElementById("previewModalOverlay");
+  const fileNameEl = document.getElementById("previewFileName");
+  const fileMetaEl = document.getElementById("previewFileMeta");
+  const fileIconEl = document.getElementById("previewFileIcon");
+  const fileIconInner = document.getElementById("previewFileIconInner");
+  const bodyEl = document.getElementById("previewModalBody");
+  const downloadBtn = document.getElementById("previewDownloadBtn");
+
+  if (!overlay || !bodyEl) {
+    console.error("Preview modal DOM element không tìm thấy!");
+    return;
+  }
+
+  overlay.style.display = "flex";
+  document.body.classList.add("modal-open");
+
+  // Hiển thị trạng thái đang tải
+  const loadingFrag = cloneTemplate("tmpl-preview-loading");
+  bodyEl.innerHTML = "";
+  if (loadingFrag) {
+    bodyEl.appendChild(loadingFrag);
+  } else {
+    bodyEl.innerHTML = `
+      <div class="preview-loading">
+        <div class="preview-spinner"></div>
+        <p>Đang tải bản xem trước...</p>
+      </div>
+    `;
+  }
+
+  try {
+    const baseUrl = typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "http://localhost:8080/api";
+    const res = await fetch(`${baseUrl}/public/share-links/${token}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Liên kết chia sẻ không tồn tại hoặc đã hết hạn!");
+    }
+
+    const data = await res.json();
+    if (data.type !== "FILE" || !data.file) {
+      if (data.type === "FOLDER") {
+        window.location.href = `dashboard.html?token=${encodeURIComponent(token)}`;
+        return;
+      }
+      throw new Error("Liên kết chia sẻ không trỏ đến một tệp tin xem trước được!");
+    }
+
+    const file = data.file;
+    const fileId = file.fileId || file.id;
+    const fileName = file.fileName || "Tệp chia sẻ";
+    const fileSizeVal = file.sizeBytes;
+
+    const formatSize = (bytes) => {
+      if (!bytes && bytes !== 0) return "";
+      const k = 1024;
+      const sizes = ["B", "KB", "MB", "GB", "TB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      const num = parseFloat((bytes / Math.pow(k, i)).toFixed(1));
+      return num.toString().replace(".", ",") + " " + sizes[i];
+    };
+
+    const formatShortDate = (dateVal) => {
+      if (!dateVal) return "";
+      try {
+        const d = typeof parseLocalDate === "function" ? parseLocalDate(dateVal) : new Date(dateVal);
+        if (!d || isNaN(d.getTime())) return "";
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        return `Chỉnh sửa ${dd}/${mm}`;
+      } catch (_) {
+        return "";
+      }
+    };
+
+    const displaySize = fileSizeVal ? formatSize(fileSizeVal) : "";
+    const dateText = file ? formatShortDate(file.updatedAt || file.createdAt) : "";
+    const { ext, iconClass, colorClass } = getFileCategoryAndIcon(fileName);
+
+    const buildMetaString = (sizeStr, dateStr, extStr) => {
+      const parts = [];
+      if (sizeStr) parts.push(sizeStr);
+      if (dateStr) parts.push(dateStr);
+      if (parts.length === 0) return `.${(extStr || "").toUpperCase()}`;
+      return parts.join(" · ");
+    };
+
+    // Cập nhật Header
+    if (fileNameEl) {
+      fileNameEl.textContent = fileName;
+      fileNameEl.title = fileName;
+    }
+    document.title = `${fileName} - VaultDrive`;
+    if (fileMetaEl) {
+      fileMetaEl.textContent = buildMetaString(displaySize, dateText, ext);
+    }
+    if (fileIconEl) {
+      fileIconEl.className = `preview-file-icon ${colorClass}`;
+    }
+    if (fileIconInner) {
+      fileIconInner.className = `ph-fill ${iconClass}`;
+    }
+
+    // Nút tải xuống công khai
+    const publicDownloadUrl = `${baseUrl}/public/share-links/${token}/download`;
+    if (downloadBtn) {
+      downloadBtn.onclick = () => {
+        window.location.href = publicDownloadUrl;
+      };
+    }
+
+    // Hủy blob URL cũ nếu có
+    if (currentPreviewBlobUrl) {
+      URL.revokeObjectURL(currentPreviewBlobUrl);
+      currentPreviewBlobUrl = null;
+    }
+
+    // Danh sách các định dạng
+    const imageExts = ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"];
+    const pdfExts = ["pdf"];
+    const videoExts = ["mp4", "webm", "ogg", "mov"];
+    const audioExts = ["mp3", "wav", "ogg", "m4a", "flac"];
+    const textCodeExts = ["txt", "md", "json", "js", "ts", "html", "css", "py", "java", "c", "cpp", "cs", "php", "sql", "xml", "yaml", "yml", "sh", "bat", "log", "ini", "env"];
+    const unsupportedExts = ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "rar", "7z", "tar", "gz", "exe", "apk", "dmg", "iso", "bin"];
+
+    const isImage = imageExts.includes(ext);
+    const isPdf = pdfExts.includes(ext);
+    const isVideo = videoExts.includes(ext);
+    const isAudio = audioExts.includes(ext);
+    const isTextOrCode = textCodeExts.includes(ext);
+    const isKnownSupported = isImage || isPdf || isVideo || isAudio || isTextOrCode;
+    const isKnownUnsupported = unsupportedExts.includes(ext);
+
+    // 1. Định dạng không hỗ trợ xem trực tiếp (docx, xlsx, pptx, zip...) -> renderUnsupportedPreview (Hình 1)
+    if (isKnownUnsupported || (!isKnownSupported && ext)) {
+      renderUnsupportedPreview(bodyEl, fileName, ext, displaySize, iconClass, colorClass, fileId);
+      const unsuppBtn = bodyEl.querySelector("#previewUnsupportedDownloadBtn");
+      if (unsuppBtn) {
+        unsuppBtn.onclick = () => {
+          window.location.href = publicDownloadUrl;
+        };
+      }
+      return;
+    }
+
+    // 2. Tải blob từ endpoint xem trước công khai
+    const previewRes = await fetch(`${baseUrl}/public/share-links/${token}/preview`);
+    if (!previewRes.ok) {
+      throw new Error(`HTTP ${previewRes.status}: Máy chủ không thể cung cấp bản xem trước`);
+    }
+
+    const blob = await previewRes.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    currentPreviewBlobUrl = objectUrl;
+
+    if (fileMetaEl && blob && blob.size) {
+      fileMetaEl.textContent = buildMetaString(formatSize(blob.size), dateText, ext);
+    }
+
+    const mimeType = blob ? (blob.type || "") : "";
+    const finalIsImage = isImage || mimeType.startsWith("image/");
+    const finalIsPdf = isPdf || mimeType === "application/pdf";
+    const finalIsVideo = isVideo || mimeType.startsWith("video/");
+    const finalIsAudio = isAudio || mimeType.startsWith("audio/");
+    const finalIsTextOrCode = isTextOrCode || mimeType.startsWith("text/");
+
+    if (finalIsImage) {
+      renderImagePreview(bodyEl, objectUrl, fileName);
+    } else if (finalIsPdf) {
+      renderPdfPreview(bodyEl, objectUrl);
+    } else if (finalIsVideo) {
+      renderVideoPreview(bodyEl, objectUrl);
+    } else if (finalIsAudio) {
+      renderAudioPreview(bodyEl, objectUrl, fileName, displaySize || formatSize(blob.size));
+    } else if (finalIsTextOrCode) {
+      // Xem văn bản/mã nguồn (Hình 2: hiển thị cả Sao chép và Chỉnh sửa)
+      await renderTextPreview(bodyEl, blob, ext, fileId, fileName);
+    } else {
+      renderUnsupportedPreview(bodyEl, fileName, ext, displaySize || formatSize(blob.size), iconClass, colorClass, fileId);
+      const unsuppBtn = bodyEl.querySelector("#previewUnsupportedDownloadBtn");
+      if (unsuppBtn) {
+        unsuppBtn.onclick = () => {
+          window.location.href = publicDownloadUrl;
+        };
+      }
+    }
+
+  } catch (err) {
+    console.error("Lỗi khi mở bản xem trước công khai:", err);
+    renderPreviewError(bodyEl, err.message || "Không thể tải bản xem trước của tệp tin.", null, "Tệp chia sẻ");
+  }
+}
+window.openPublicFilePreview = openPublicFilePreview;
+
 document.addEventListener("DOMContentLoaded", () => {
   // Lấy tham chiếu đến Context Menu và các Modal overlay
   const contextMenu = document.getElementById("globalContextMenu");  // Menu chuột phải
+
+  // Nếu đang ở trang xem trước riêng biệt (preview.html) hoặc trang không có context menu
+  if (!contextMenu) {
+    const closePreviewBtn = document.getElementById("closePreviewModal");
+    if (closePreviewBtn) {
+      closePreviewBtn.addEventListener("click", closeFilePreview);
+    }
+    const previewOverlayEl = document.getElementById("previewModalOverlay");
+    if (previewOverlayEl) {
+      previewOverlayEl.addEventListener("click", (e) => {
+        if (e.target === previewOverlayEl) {
+          closeFilePreview();
+        }
+      });
+    }
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeFilePreview();
+      }
+    });
+
+    // Tự động mở xem trước nếu URL có param token hoặc fileId
+    const pageParams = new URLSearchParams(window.location.search);
+    const paramToken = pageParams.get("token") || pageParams.get("shareToken");
+    const paramFileId = pageParams.get("fileId") || pageParams.get("previewFileId");
+
+    if (paramToken && typeof openPublicFilePreview === "function") {
+      openPublicFilePreview(paramToken);
+    } else if (paramFileId && typeof openFilePreview === "function") {
+      openFilePreview(paramFileId);
+    }
+    return;
+  }
 
   // DOM elements của Modals (lớp phủ tối toàn màn hình)
   const renameOverlay = document.getElementById("renameModalOverlay"); // Modal đổi tên
@@ -133,7 +1190,7 @@ document.addEventListener("DOMContentLoaded", () => {
       !e.target.closest(".custom-context-menu") &&
       !e.target.closest(".more-options")
     ) {
-      contextMenu.style.display = "none";
+      if (contextMenu) contextMenu.style.display = "none";
       // Xóa class .active của tất cả nút 3 chấm đang nổi bật
       document
         .querySelectorAll(".more-options.active")
@@ -200,6 +1257,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const ctxDelete = document.getElementById("ctxDelete");       // "Chuyển vào thùng rác"
     const ctxRestore = document.getElementById("ctxRestore");     // "Khôi phục"
     const ctxDeletePerm = document.getElementById("ctxDeletePermanent"); // "Xóa vĩnh viễn"
+    const ctxPreview = document.getElementById("ctxPreview");     // "Xem trước"
+
+    if (ctxPreview) {
+      if (type === 'file' && window.currentViewType !== "trash") {
+        ctxPreview.style.display = "flex";
+      } else {
+        ctxPreview.style.display = "none";
+      }
+    }
 
     if (window.currentViewType === "trash") {
       // Đang ở Thùng rác → Ẩn "Xóa", Hiện "Khôi phục" và "Xóa vĩnh viễn"
@@ -240,6 +1306,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 2. Logic click các mục trong Context Menu
   document.getElementById("ctxRename").addEventListener("click", () => {
     contextMenu.style.display = "none";
+    clearRenameError();
 
     let currentName = "";
     const data = window.currentLoadedData || window.mockData;
@@ -267,11 +1334,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     container.innerHTML = '<div style="text-align: center; color: #64748b; font-size: 13px; padding: 20px;">Đang tải danh sách...</div>';
 
+    // Lấy thông tin phụ trợ từ cache nếu có
+    const allItems = [
+      ...(window.currentLoadedData?.files || []),
+      ...(window.currentLoadedData?.folders || []),
+      ...(Array.isArray(window.lastSharedData) ? window.lastSharedData : [])
+    ];
+    const sharedMeta = allItems.find(i => (i.fileId || i.id) == itemId || (i.folderId || i.id) == itemId);
+
     try {
       const queryParam = itemType === 'file' ? `fileId=${itemId}` : `folderId=${itemId}`;
       const res = await fetchWithAuth(`/shares/users?${queryParam}`);
-      if (!res || !res.ok) throw new Error("API Lỗi");
-      let sharedUsers = await res.json();
+
+      let sharedUsers = [];
+      if (res && res.ok) {
+        sharedUsers = await res.json();
+      } else {
+        // Dự phòng nếu backend chưa mở quyền cho viewer xem API /shares/users
+        sharedUsers = getFallbackSharedUsers(sharedMeta);
+      }
       if (!Array.isArray(sharedUsers)) sharedUsers = [];
 
       // Tự động kiểm tra và bổ sung dòng Chủ sở hữu (OWNER) ở vị trí đầu tiên
@@ -280,13 +1361,16 @@ document.addEventListener("DOMContentLoaded", () => {
         let ownerEmail = null;
         if (window.currentLoadedData) {
           const list = itemType === 'file' ? (window.currentLoadedData.files || []) : (window.currentLoadedData.subfolders || window.currentLoadedData.folders || []);
-          const currentItem = list.find(i => i.id == itemId);
+          const currentItem = list.find(i => (i.fileId || i.id) == itemId);
           if (currentItem && currentItem.userEmail) {
             ownerEmail = currentItem.userEmail;
           }
         }
         if (!ownerEmail && sharedUsers.length > 0 && sharedUsers[0].sharedByEmail) {
           ownerEmail = sharedUsers[0].sharedByEmail;
+        }
+        if (!ownerEmail && sharedMeta && (sharedMeta.sharedByEmail || sharedMeta.userEmail)) {
+          ownerEmail = sharedMeta.sharedByEmail || sharedMeta.userEmail;
         }
 
         if (ownerEmail) {
@@ -302,6 +1386,8 @@ document.addEventListener("DOMContentLoaded", () => {
         container.innerHTML = '<div style="text-align: center; color: #64748b; font-size: 13px; padding: 20px;">Chưa chia sẻ với ai.</div>';
         return;
       }
+
+      const isCurrentOwner = !window.currentTargetPermission || window.currentTargetPermission === "OWNER";
 
       container.innerHTML = sharedUsers.map(share => {
         const userEmail = share.sharedToEmail || share.sharedByEmail || "User";
@@ -320,6 +1406,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
               </div>
               <span class="shared-owner-badge" style="color: #64748b; font-size: 13px; font-weight: 500; padding-right: 12px;">Chủ sở hữu</span>
+            </div>
+          `;
+        }
+
+        // Nếu người xem hiện tại không phải Owner thì chỉ xem quyền dạng text (không thể sửa quyền của người khác)
+        if (!isCurrentOwner) {
+          const roleText = perm === 'EDIT' ? 'Người chỉnh sửa' : 'Người xem';
+          return `
+            <div class="shared-user-item">
+              <div class="shared-user-info">
+                <div class="shared-user-avatar" style="background-color: #0ea5e9;">${initial}</div>
+                <div class="shared-user-details">
+                  <span class="su-name">${userEmail.split('@')[0]}</span>
+                  <span class="su-email">${userEmail}</span>
+                </div>
+              </div>
+              <span style="color: #64748b; font-size: 13px; font-weight: 500; padding-right: 12px;">${roleText}</span>
             </div>
           `;
         }
@@ -343,8 +1446,38 @@ document.addEventListener("DOMContentLoaded", () => {
       }).join('');
     } catch (err) {
       console.error(err);
-      container.innerHTML = '<div style="color: red; text-align: center; font-size: 13px; padding: 20px;">Lỗi tải dữ liệu người dùng.</div>';
+      const fallbackList = getFallbackSharedUsers(sharedMeta);
+      container.innerHTML = fallbackList.map(share => {
+        const userEmail = share.sharedToEmail || "User";
+        const initial = userEmail.charAt(0).toUpperCase();
+        const roleText = share.permission === 'OWNER' ? 'Chủ sở hữu' : (share.permission === 'EDIT' ? 'Người chỉnh sửa' : 'Người xem');
+        return `
+          <div class="shared-user-item">
+            <div class="shared-user-info">
+              <div class="shared-user-avatar" style="background-color: #0ea5e9;">${initial}</div>
+              <div class="shared-user-details">
+                <span class="su-name">${userEmail.split('@')[0]}</span>
+                <span class="su-email">${userEmail}</span>
+              </div>
+            </div>
+            <span style="color: #64748b; font-size: 13px; font-weight: 500; padding-right: 12px;">${roleText}</span>
+          </div>
+        `;
+      }).join('');
     }
+  }
+
+  function getFallbackSharedUsers(sharedMeta) {
+    const list = [];
+    const ownerEmail = sharedMeta?.sharedByEmail || sharedMeta?.userEmail;
+    if (ownerEmail) {
+      list.push({ id: -1, sharedToEmail: ownerEmail, permission: 'OWNER' });
+    }
+    const myEmail = sharedMeta?.sharedToEmail || localStorage.getItem("user_email");
+    if (myEmail && myEmail !== ownerEmail) {
+      list.push({ id: -2, sharedToEmail: myEmail, permission: sharedMeta?.permission || window.currentTargetPermission || 'VIEW' });
+    }
+    return list;
   }
 
   // Khai báo hàm updateShareRole ở dạng global để có thể gọi từ onchange trong HTML
@@ -377,16 +1510,22 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof clearShareError === "function") clearShareError();
     const emailInput = document.getElementById("shareEmailInput");
     if (emailInput) emailInput.value = "";
-    
-    // Khóa vùng nhập nếu người dùng chỉ có quyền VIEWER
+
+    const shareInputGroup = document.querySelector(".share-input-group");
     const shareRoleSelect = document.getElementById("shareRoleSelect");
     const addShareUserBtn = document.getElementById("addShareUserBtn");
+
+    // Chế độ xem: nếu quyền là VIEWER / VIEW thì làm mờ khung nhập email
     const isViewer = window.currentTargetPermission === "VIEWER" || window.currentTargetPermission === "VIEW";
-    
+
+    if (shareInputGroup) {
+      shareInputGroup.style.display = "flex";
+      shareInputGroup.style.opacity = isViewer ? "0.55" : "1";
+    }
+
     if (emailInput) {
       emailInput.disabled = isViewer;
-      emailInput.placeholder = isViewer ? "Bạn không có quyền chia sẻ" : "Thêm người bằng email...";
-      // Tùy chỉnh màu nền cho ô input khi bị disable để dễ nhận biết
+      emailInput.placeholder = isViewer ? "Bạn chỉ có quyền xem" : "Thêm người bằng email...";
       emailInput.style.backgroundColor = isViewer ? "#f1f5f9" : "white";
     }
     if (shareRoleSelect) {
@@ -395,35 +1534,226 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (addShareUserBtn) {
       addShareUserBtn.disabled = isViewer;
-      // Làm mờ nút Thêm nếu bị khóa
       addShareUserBtn.style.opacity = isViewer ? "0.5" : "1";
       addShareUserBtn.style.cursor = isViewer ? "not-allowed" : "pointer";
     }
 
     // Lấy thông tin từ backend
     await fetchSharedUsers(currentTargetId, currentTargetType);
-  });
-
-  document.getElementById("ctxDownload").addEventListener("click", (e) => {
-    e.preventDefault();
-    contextMenu.style.display = "none";
-    if (currentTargetId && currentTargetType) {
-      downloadItem(currentTargetId, currentTargetType);
+    if (typeof initGeneralAccessModal === "function") {
+      await initGeneralAccessModal(currentTargetId, currentTargetType);
     }
   });
 
-  document.getElementById("ctxCopyLink").addEventListener("click", () => {
+  const ctxPreviewItem = document.getElementById("ctxPreview");
+  if (ctxPreviewItem) {
+    ctxPreviewItem.addEventListener("click", (e) => {
+      e.preventDefault();
+      contextMenu.style.display = "none";
+      if (currentTargetId && currentTargetType === 'file') {
+        openFilePreview(currentTargetId);
+      }
+    });
+  }
+
+  document.getElementById("ctxDownload")?.addEventListener("click", (e) => {
+    e.preventDefault();
     contextMenu.style.display = "none";
-    const link = `https://vaultdrive.com/share/${currentTargetId}`;
-    navigator.clipboard.writeText(link)
-      .then(() => alert(`Đã sao chép liên kết:\n${link}`))
-      .catch(() => alert("Trình duyệt không hỗ trợ sao chép tự động!"));
+    if (currentTargetId && currentTargetType) {
+      let targetName = null;
+      if (currentTargetType === 'file') {
+        const list = window.currentLoadedData?.files || [];
+        const f = list.find(item => (item.fileId || item.id) == currentTargetId);
+        if (f) targetName = f.fileName || f.name || f.originalName;
+      } else {
+        const list = window.currentLoadedData?.folders || [];
+        const f = list.find(item => (item.folderId || item.id) == currentTargetId);
+        if (f) targetName = (f.folderName || f.name || `folder_${currentTargetId}`) + ".zip";
+      }
+      downloadItem(currentTargetId, currentTargetType, targetName);
+    }
+  });
+
+  // Trạng thái quyền truy cập chung (General Access)
+  let currentGeneralAccessMode = "RESTRICTED"; // 'RESTRICTED' | 'PUBLIC'
+  let currentActiveShareLinkId = null;
+  let currentShareUrl = null;
+  let currentActiveToken = null;
+
+  /**
+   * Tạo đường dẫn liên kết xem trước tệp trực tiếp trên dashboard (mở ở tab mới)
+   */
+  function buildShareWebUrl(token, fileId, targetType = "file") {
+    const href = window.location.href;
+    const base = href.substring(0, href.lastIndexOf('/') + 1);
+    if (token) {
+      return `${base}dashboard.html?token=${encodeURIComponent(token)}`;
+    }
+    const idParam = targetType === "folder" ? "folderId" : "fileId";
+    return `${base}dashboard.html?${idParam}=${encodeURIComponent(fileId)}`;
+  }
+  window.buildShareWebUrl = buildShareWebUrl;
+
+  /**
+   * Sao chép liên kết xem trước tệp qua Backend (/api/share-links) hoặc link nội bộ tùy theo chế độ truy cập chung
+   */
+  async function copyResourceShareLink(targetId, targetType, triggerBtn = null) {
+    if (!targetId || !targetType) return;
+
+    const originalHtml = triggerBtn ? triggerBtn.innerHTML : "";
+    if (triggerBtn) {
+      triggerBtn.disabled = true;
+      triggerBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Đang lấy liên kết...';
+    }
+
+    try {
+      let webShareUrl = null;
+
+      // 1. Nếu đang mở modal chia sẻ và đang ở chế độ HẠN CHẾ
+      if (triggerBtn && currentGeneralAccessMode === "RESTRICTED") {
+        webShareUrl = buildShareWebUrl(null, targetId, targetType);
+      } else {
+        // Chế độ công khai hoặc gọi ngoài context menu
+        let activeToken = currentActiveToken || (currentShareUrl ? currentShareUrl.split("/").pop() : null);
+
+        if (!activeToken) {
+          const queryParam = targetType === "file" ? `fileId=${targetId}` : `folderId=${targetId}`;
+
+          // Kiểm tra xem file/folder đã có link chia sẻ công khai nào đang hoạt động chưa
+          try {
+            const checkRes = await fetchWithAuth(`/share-links?${queryParam}`);
+            if (checkRes && checkRes.ok) {
+              const links = await checkRes.json();
+              if (Array.isArray(links) && links.length > 0) {
+                const activeLink = links.find((l) => l.isActive !== false) || links[0];
+                if (activeLink && activeLink.publicUrl) {
+                  currentActiveShareLinkId = activeLink.id;
+                  currentShareUrl = activeLink.publicUrl;
+                  currentActiveToken = activeLink.token || activeLink.publicUrl.split("/").pop();
+                  activeToken = currentActiveToken;
+                }
+              }
+            }
+          } catch (checkErr) {
+            console.warn("Chưa có link chia sẻ hoặc không thể lấy danh sách:", checkErr);
+          }
+
+          // Nếu chưa có link, tạo link mới bằng POST /api/share-links
+          if (!activeToken) {
+            const body = targetType === "file"
+              ? { fileId: Number(targetId) }
+              : { folderId: Number(targetId) };
+
+            const createRes = await fetchWithAuth("/share-links", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body)
+            });
+
+            if (createRes && createRes.ok) {
+              const data = await createRes.json();
+              currentActiveShareLinkId = data.id;
+              currentShareUrl = data.publicUrl;
+              currentActiveToken = data.token || (data.publicUrl ? data.publicUrl.split("/").pop() : null);
+              activeToken = currentActiveToken;
+              if (typeof renderGeneralAccessUI === "function") {
+                renderGeneralAccessUI("PUBLIC");
+              }
+            } else if (createRes) {
+              // Nếu không tạo được (VD: không có quyền OWNER để tạo link công khai), fallback sang link nội bộ fileId
+              webShareUrl = buildShareWebUrl(null, targetId, targetType);
+            }
+          }
+        }
+
+        if (activeToken) {
+          webShareUrl = buildShareWebUrl(activeToken, targetId, targetType);
+        } else if (currentShareUrl) {
+          const extractedToken = currentShareUrl.split("/").pop();
+          if (extractedToken) {
+            webShareUrl = buildShareWebUrl(extractedToken, targetId, targetType);
+          } else {
+            webShareUrl = currentShareUrl;
+          }
+        }
+      }
+
+      if (!webShareUrl) {
+        const errMsg = "Không tìm thấy hoặc không tạo được liên kết chia sẻ!";
+        if (triggerBtn && typeof showShareError === "function") {
+          showShareError(errMsg, false);
+        } else {
+          alert(errMsg);
+        }
+        return;
+      }
+
+      // 3. Sao chép link vào Clipboard
+      let copied = false;
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(webShareUrl);
+          copied = true;
+        } catch (clipErr) {
+          console.warn("navigator.clipboard không khả dụng, dùng textarea fallback:", clipErr);
+        }
+      }
+
+      if (!copied) {
+        const textArea = document.createElement("textarea");
+        textArea.value = webShareUrl;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          copied = document.execCommand("copy");
+        } catch (exErr) {
+          console.error("Lỗi execCommand copy:", exErr);
+        }
+        document.body.removeChild(textArea);
+      }
+
+      // 4. Phản hồi người dùng
+      if (triggerBtn) {
+        triggerBtn.innerHTML = '<i class="ph ph-check" style="color: #10b981;"></i> Đã sao chép liên kết!';
+        setTimeout(() => {
+          if (triggerBtn) {
+            triggerBtn.innerHTML = originalHtml;
+          }
+        }, 2500);
+      } else {
+        alert(`Đã sao chép liên kết xem trước tệp:\n${webShareUrl}`);
+      }
+
+    } catch (err) {
+      console.error("Lỗi khi sao chép liên kết:", err);
+      const errMsg = err.message || "Có lỗi xảy ra khi lấy liên kết chia sẻ!";
+      if (triggerBtn && typeof showShareError === "function") {
+        showShareError(errMsg, false);
+      } else {
+        alert(errMsg);
+      }
+    } finally {
+      if (triggerBtn) {
+        triggerBtn.disabled = false;
+      }
+    }
+  }
+  window.copyResourceShareLink = copyResourceShareLink;
+
+  document.getElementById("ctxCopyLink")?.addEventListener("click", () => {
+    if (contextMenu) contextMenu.style.display = "none";
+    if (currentTargetId && currentTargetType) {
+      copyResourceShareLink(currentTargetId, currentTargetType);
+    }
   });
 
   // Logic Thùng rác
-  document.getElementById("ctxDelete").addEventListener("click", async () => {
-    const contextMenu = document.getElementById("globalContextMenu");
-    contextMenu.style.display = "none";
+  document.getElementById("ctxDelete")?.addEventListener("click", async () => {
+    if (contextMenu) contextMenu.style.display = "none";
     if (!currentTargetId) return;
 
     try {
@@ -499,16 +1829,76 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // 3. Logic đóng mở Rename Modal
+  // 3. Logic hiển thị và xóa lỗi trong Rename Modal
+  function showRenameError(msg) {
+    const errorLabel = document.getElementById("renameErrorMsg");
+    const input = document.getElementById("renameInput");
+    if (errorLabel) {
+      errorLabel.textContent = msg;
+      errorLabel.style.display = "block";
+    }
+    if (input) {
+      input.classList.add("input-error");
+      input.focus();
+    }
+  }
+
+  function clearRenameError() {
+    const errorLabel = document.getElementById("renameErrorMsg");
+    const input = document.getElementById("renameInput");
+    if (errorLabel) {
+      errorLabel.textContent = "";
+      errorLabel.style.display = "none";
+    }
+    if (input) {
+      input.classList.remove("input-error");
+    }
+  }
+
+  // Tự động xóa lỗi khi người dùng sửa tên trong ô nhập
+  const renameInputEl = document.getElementById("renameInput");
+  if (renameInputEl) {
+    renameInputEl.addEventListener("input", clearRenameError);
+    renameInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        document.getElementById("confirmRenameBtn").click();
+      }
+    });
+  }
+
+  // Logic đóng mở Rename Modal
   document
     .getElementById("closeRenameModal")
-    .addEventListener("click", () => (renameOverlay.style.display = "none"));
+    ?.addEventListener("click", () => {
+      clearRenameError();
+      if (renameOverlay) renameOverlay.style.display = "none";
+    });
   document
     .getElementById("cancelRenameBtn")
-    .addEventListener("click", () => (renameOverlay.style.display = "none"));
-  document.getElementById("confirmRenameBtn").addEventListener("click", async () => {
-    const newName = document.getElementById("renameInput").value.trim();
-    if (!newName || !currentTargetId) return;
+    ?.addEventListener("click", () => {
+      clearRenameError();
+      if (renameOverlay) renameOverlay.style.display = "none";
+    });
+
+  // Đóng khi click ngoài modal box
+  if (renameOverlay) {
+    renameOverlay.addEventListener("click", (e) => {
+      if (e.target === renameOverlay) {
+        clearRenameError();
+        renameOverlay.style.display = "none";
+      }
+    });
+  }
+
+  document.getElementById("confirmRenameBtn")?.addEventListener("click", async () => {
+    clearRenameError();
+    const newName = document.getElementById("renameInput")?.value.trim();
+    if (!newName) {
+      showRenameError("Vui lòng nhập tên mới!");
+      return;
+    }
+    if (!currentTargetId) return;
 
     try {
       const endpoint = currentTargetType === 'folder'
@@ -522,41 +1912,285 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (response && response.ok) {
+        if (renameOverlay) renameOverlay.style.display = "none";
         loadDashboardData(window.currentViewType || "home");
       } else {
         const errData = await response.json().catch(() => ({}));
-        alert(errData.message || "Không thể đổi tên!");
+        showRenameError(errData.message || "Bạn không có quyền đổi tên file này!");
       }
     } catch (err) {
       console.error("Lỗi khi đổi tên:", err);
-      alert("Lỗi kết nối khi đổi tên!");
-    } finally {
-      renameOverlay.style.display = "none";
+      showRenameError("Lỗi kết nối khi đổi tên!");
     }
   });
 
   // 4. Logic đóng mở Share Modal
   document
     .getElementById("closeShareModal")
-    .addEventListener("click", () => (shareOverlay.style.display = "none"));
+    ?.addEventListener("click", () => {
+      if (shareOverlay) shareOverlay.style.display = "none";
+      if (typeof clearShareError === "function") clearShareError();
+      const menu = document.getElementById("generalAccessMenu");
+      if (menu) menu.style.display = "none";
+      const btn = document.getElementById("generalAccessBtn");
+      if (btn) btn.classList.remove("open");
+      const shareInputGroup = document.querySelector(".share-input-group");
+      if (shareInputGroup) shareInputGroup.style.display = "flex";
+    });
   document
     .getElementById("doneShareBtn")
-    .addEventListener("click", () => (shareOverlay.style.display = "none"));
-  document.getElementById("copyLinkBtnModal").addEventListener("click", () => {
-    const link = `https://vaultdrive.com/share/${currentTargetId}`;
-    navigator.clipboard.writeText(link)
-      .then(() => alert(`Đã sao chép liên kết:\n${link}`))
-      .catch(() => alert("Trình duyệt không hỗ trợ sao chép tự động!"));
+    ?.addEventListener("click", () => {
+      if (shareOverlay) shareOverlay.style.display = "none";
+      if (typeof clearShareError === "function") clearShareError();
+      const menu = document.getElementById("generalAccessMenu");
+      if (menu) menu.style.display = "none";
+      const btn = document.getElementById("generalAccessBtn");
+      if (btn) btn.classList.remove("open");
+      const shareInputGroup = document.querySelector(".share-input-group");
+      if (shareInputGroup) shareInputGroup.style.display = "flex";
+    });
+
+  const copyLinkBtnModal = document.getElementById("copyLinkBtnModal");
+  if (copyLinkBtnModal) {
+    copyLinkBtnModal.addEventListener("click", () => {
+      if (currentTargetId && currentTargetType) {
+        if (typeof clearShareError === "function") clearShareError();
+        copyResourceShareLink(currentTargetId, currentTargetType, copyLinkBtnModal);
+      }
+    });
+  }
+
+  // ─── QUYỀN TRUY CẬP CHUNG (GENERAL ACCESS) ───
+  function renderGeneralAccessUI(mode) {
+    currentGeneralAccessMode = mode;
+    const iconWrap = document.getElementById("generalAccessIconWrap");
+    const icon = document.getElementById("generalAccessIcon");
+    const label = document.getElementById("generalAccessLabel");
+    const desc = document.getElementById("generalAccessDesc");
+    const optRestricted = document.getElementById("optRestricted");
+    const optPublic = document.getElementById("optPublic");
+
+    const checkRestricted = optRestricted?.querySelector(".general-access-check i");
+    const checkPublic = optPublic?.querySelector(".general-access-check i");
+
+    if (mode === "PUBLIC") {
+      if (iconWrap) iconWrap.classList.add("is-public");
+      if (icon) icon.className = "ph ph-globe";
+      if (label) label.textContent = "Bất kỳ ai có đường liên kết";
+      if (desc) desc.textContent = "Bất kỳ ai trên Internet có đường liên kết này đều có thể xem";
+
+      if (optRestricted) optRestricted.classList.remove("selected");
+      if (checkRestricted) checkRestricted.style.display = "none";
+
+      if (optPublic) optPublic.classList.add("selected");
+      if (checkPublic) checkPublic.style.display = "inline-flex";
+    } else {
+      if (iconWrap) iconWrap.classList.remove("is-public");
+      if (icon) icon.className = "ph ph-lock";
+      if (label) label.textContent = "Hạn chế";
+      if (desc) desc.textContent = "Chỉ những người có quyền truy cập mới có thể mở bằng đường liên kết này";
+
+      if (optRestricted) optRestricted.classList.add("selected");
+      if (checkRestricted) checkRestricted.style.display = "inline-flex";
+
+      if (optPublic) optPublic.classList.remove("selected");
+      if (checkPublic) checkPublic.style.display = "none";
+    }
+  }
+  window.renderGeneralAccessUI = renderGeneralAccessUI;
+
+  async function setGeneralAccessMode(newMode) {
+    if (newMode === currentGeneralAccessMode) return;
+
+    const isOwner = !window.currentTargetPermission || window.currentTargetPermission === "OWNER";
+    if (!isOwner) {
+      alert("Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chung!");
+      return;
+    }
+
+    const targetId = currentTargetId;
+    const targetType = currentTargetType;
+    if (!targetId || !targetType) return;
+
+    if (newMode === "PUBLIC") {
+      // 1. Chuyển sang công khai: Tạo link qua POST /api/share-links
+      try {
+        const body = targetType === "file" ? { fileId: Number(targetId) } : { folderId: Number(targetId) };
+        const res = await fetchWithAuth("/share-links", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        if (res && res.ok) {
+          const data = await res.json();
+          currentActiveShareLinkId = data.id;
+          currentShareUrl = data.publicUrl;
+          currentActiveToken = data.token || (data.publicUrl ? data.publicUrl.split("/").pop() : null);
+          renderGeneralAccessUI("PUBLIC");
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.message || "Không thể chuyển sang chế độ Bất kỳ ai có đường liên kết!");
+        }
+      } catch (err) {
+        console.error("Lỗi khi chuyển quyền truy cập chung sang công khai:", err);
+        alert("Lỗi khi kết nối đến máy chủ!");
+      }
+    } else {
+      // 2. Chuyển về HẠN CHẾ: Thu hồi link chia sẻ công khai qua DELETE /api/share-links/{id}
+      try {
+        if (currentActiveShareLinkId) {
+          await fetchWithAuth(`/share-links/${currentActiveShareLinkId}`, {
+            method: "DELETE"
+          });
+        } else {
+          const queryParam = targetType === "file" ? `fileId=${targetId}` : `folderId=${targetId}`;
+          const checkRes = await fetchWithAuth(`/share-links?${queryParam}`);
+          if (checkRes && checkRes.ok) {
+            const links = await checkRes.json();
+            for (const l of links) {
+              if (l.id && l.isActive !== false) {
+                await fetchWithAuth(`/share-links/${l.id}`, { method: "DELETE" });
+              }
+            }
+          }
+        }
+        currentActiveShareLinkId = null;
+        currentShareUrl = null;
+        currentActiveToken = null;
+        renderGeneralAccessUI("RESTRICTED");
+      } catch (err) {
+        console.error("Lỗi khi thu hồi link chia sẻ:", err);
+        currentActiveShareLinkId = null;
+        currentShareUrl = null;
+        currentActiveToken = null;
+        renderGeneralAccessUI("RESTRICTED");
+      }
+    }
+  }
+  window.setGeneralAccessMode = setGeneralAccessMode;
+
+  async function initGeneralAccessModal(targetId, targetType) {
+    const isOwner = !window.currentTargetPermission || window.currentTargetPermission === "OWNER";
+    const btn = document.getElementById("generalAccessBtn");
+    const menu = document.getElementById("generalAccessMenu");
+    if (menu) menu.style.display = "none";
+    if (btn) btn.classList.remove("open");
+
+    if (!isOwner) {
+      if (btn) {
+        btn.style.cursor = "default";
+        btn.title = "Chỉ chủ sở hữu mới có quyền thay đổi";
+        const caret = btn.querySelector(".general-access-caret");
+        if (caret) caret.style.display = "none";
+      }
+    } else {
+      if (btn) {
+        btn.style.cursor = "pointer";
+        btn.removeAttribute("title");
+        const caret = btn.querySelector(".general-access-caret");
+        if (caret) caret.style.display = "inline-block";
+      }
+    }
+
+    currentActiveShareLinkId = null;
+    currentShareUrl = null;
+    currentActiveToken = null;
+    renderGeneralAccessUI("RESTRICTED");
+
+    if (isOwner && targetId && targetType) {
+      try {
+        const queryParam = targetType === "file" ? `fileId=${targetId}` : `folderId=${targetId}`;
+        const res = await fetchWithAuth(`/share-links?${queryParam}`);
+        if (res && res.ok) {
+          const links = await res.json();
+          if (Array.isArray(links) && links.length > 0) {
+            const activeLink = links.find(l => l.isActive !== false) || links[0];
+            if (activeLink && activeLink.isActive !== false) {
+              currentActiveShareLinkId = activeLink.id;
+              currentShareUrl = activeLink.publicUrl;
+              currentActiveToken = activeLink.token || (activeLink.publicUrl ? activeLink.publicUrl.split("/").pop() : null);
+              renderGeneralAccessUI("PUBLIC");
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Lỗi kiểm tra link chia sẻ hiện có:", e);
+      }
+    }
+  }
+  window.initGeneralAccessModal = initGeneralAccessModal;
+
+  const generalAccessBtn = document.getElementById("generalAccessBtn");
+  const generalAccessMenu = document.getElementById("generalAccessMenu");
+
+  if (generalAccessBtn && generalAccessMenu) {
+    generalAccessBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOwner = !window.currentTargetPermission || window.currentTargetPermission === "OWNER";
+      if (!isOwner) {
+        alert("Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chung!");
+        return;
+      }
+      const isOpen = generalAccessMenu.style.display === "block";
+      generalAccessMenu.style.display = isOpen ? "none" : "block";
+      generalAccessBtn.classList.toggle("open", !isOpen);
+    });
+
+    document.getElementById("optRestricted")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      generalAccessMenu.style.display = "none";
+      generalAccessBtn.classList.remove("open");
+      setGeneralAccessMode("RESTRICTED");
+    });
+
+    document.getElementById("optPublic")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      generalAccessMenu.style.display = "none";
+      generalAccessBtn.classList.remove("open");
+      setGeneralAccessMode("PUBLIC");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#generalAccessDropdownWrapper")) {
+        if (generalAccessMenu) generalAccessMenu.style.display = "none";
+        if (generalAccessBtn) generalAccessBtn.classList.remove("open");
+      }
+    });
+  }
+
+  // 5. Logic đóng Preview Modal
+  const closePreviewBtn = document.getElementById("closePreviewModal");
+  if (closePreviewBtn) {
+    closePreviewBtn.addEventListener("click", closeFilePreview);
+  }
+
+  const previewOverlayEl = document.getElementById("previewModalOverlay");
+  if (previewOverlayEl) {
+    previewOverlayEl.addEventListener("click", (e) => {
+      if (e.target === previewOverlayEl) {
+        closeFilePreview();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const pOverlay = document.getElementById("previewModalOverlay");
+      if (pOverlay && pOverlay.style.display === "flex") {
+        closeFilePreview();
+      }
+    }
   });
 
-  function showShareError(msg) {
+  function showShareError(msg, highlightInput = true) {
     const errorLabel = document.getElementById("shareErrorMsg");
     const emailInput = document.getElementById("shareEmailInput");
     if (errorLabel) {
       errorLabel.textContent = msg;
       errorLabel.style.display = "block";
     }
-    if (emailInput) {
+    if (emailInput && highlightInput) {
       emailInput.classList.add("input-error");
     }
   }
@@ -578,10 +2212,11 @@ document.addEventListener("DOMContentLoaded", () => {
     shareEmailInputEl.addEventListener("input", clearShareError);
   }
 
-  document.getElementById("addShareUserBtn").addEventListener("click", async () => {
+  document.getElementById("addShareUserBtn")?.addEventListener("click", async () => {
     clearShareError();
     const emailInput = document.getElementById("shareEmailInput");
     const roleSelect = document.getElementById("shareRoleSelect");
+    if (!emailInput || !roleSelect) return;
     const email = emailInput.value.trim();
     const role = roleSelect.value;
 
@@ -627,6 +2262,17 @@ document.addEventListener("DOMContentLoaded", () => {
       showShareError("Lỗi kết nối khi gửi yêu cầu chia sẻ.");
     }
   });
+
+  // Tự động mở xem trước nếu URL có param token hoặc fileId (hỗ trợ cả khi mở dashboard.html?token=...)
+  const pageParams = new URLSearchParams(window.location.search);
+  const paramToken = pageParams.get("token") || pageParams.get("shareToken");
+  const paramFileId = pageParams.get("fileId") || pageParams.get("previewFileId");
+
+  if (paramToken && typeof openPublicFilePreview === "function") {
+    openPublicFilePreview(paramToken);
+  } else if (paramFileId && typeof openFilePreview === "function") {
+    openFilePreview(paramFileId);
+  }
 });
 
 // ================================================================
@@ -647,9 +2293,42 @@ document.addEventListener("DOMContentLoaded", () => {
  *   - Avatar người chia sẻ (chỉ ở tab 'shared')
  *   - Nút 3 chấm để mở Context Menu
  */
+/**
+ * createSharedUserMetaNode(item) - Tạo phần tử DOM hiển thị avatar và tên người chia sẻ (XSS-safe)
+ */
+function createSharedUserMetaNode(item) {
+  const sharerName = typeof formatSharerName === "function" ? formatSharerName(item) : (item.ownerName || "Ai đó");
+  const initials = typeof getInitials === "function" ? getInitials(sharerName) : "U";
+  const avatarColors = ["avatar-bg-blue", "avatar-bg-pink", "avatar-bg-orange", "avatar-bg-emerald", "avatar-bg-purple", "avatar-bg-cyan"];
+  const colorIndex = typeof hashCode === "function" ? Math.abs(hashCode(sharerName)) % avatarColors.length : 0;
+  const avatarColor = avatarColors[colorIndex];
+
+  const metaWrap = document.createElement("div");
+  metaWrap.className = "shared-user-meta";
+
+  const avatarEl = document.createElement("div");
+  avatarEl.className = `shared-user-avatar ${avatarColor}`;
+  avatarEl.textContent = initials;
+
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "shared-user-name";
+  nameSpan.title = sharerName;
+  nameSpan.textContent = sharerName;
+
+  metaWrap.appendChild(avatarEl);
+  metaWrap.appendChild(nameSpan);
+  return metaWrap;
+}
+
+/**
+ * renderFolders(folders, viewType) - Render danh sách thư mục sử dụng HTML5 <template id="tmpl-folder-card">
+ * @param {Array}  folders  - Mảng object thư mục (từ backend hoặc mockData)
+ * @param {string} viewType - Tab hiện tại: 'home' | 'shared' | 'trash'
+ */
 function renderFolders(folders, viewType = "home") {
   const foldersContainer = document.querySelector(".grid-folders");
-  foldersContainer.innerHTML = ""; // Xóa dữ liệu cũ (hoặc dữ liệu mẫu)
+  if (!foldersContainer) return;
+  foldersContainer.innerHTML = ""; // Xóa dữ liệu cũ
 
   if (!folders || folders.length === 0) {
     foldersContainer.innerHTML =
@@ -657,37 +2336,15 @@ function renderFolders(folders, viewType = "home") {
     return;
   }
 
-  // Format Date (YYYY-MM-DD)
-  const formatDate = (isoString) => {
-    if (!isoString) return "Gần đây";
-    try {
-      const d = new Date(isoString);
-      if (isNaN(d.getTime())) return isoString;
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    } catch (e) {
-      return isoString;
-    }
-  };
-
   folders.forEach((folder) => {
-    // Tùy chọn màu sắc icon dựa vào loại thư mục hoặc ngẫu nhiên
     const colors = ["blue", "purple", "cyan", "green"];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
-    const folderCard = document.createElement("div");
-    folderCard.className = "folder-card";
-    
-    // Lưu ID thư mục để xử lý sự kiện click sau này (Hỗ trợ cả object shared)
     const folderId = folder.folderId || folder.id;
-    folderCard.dataset.id = folderId;
     const folderName = folder.folderName || folder.name || "Thư mục không tên";
-
     const displayDate = formatSmartDate(folder.updatedAt || folder.createdAt);
     const isSharedVal = folder.isShared !== undefined ? folder.isShared : folder.shared;
     const folderPerm = folder.permission;
+
     let folderBadgeText = "Riêng tư";
     let folderBadgeClass = "shared-badge";
 
@@ -701,37 +2358,62 @@ function renderFolders(folders, viewType = "home") {
       folderBadgeClass = "shared-badge active";
     }
 
-    let avatarHtml = "";
-    if (viewType === "shared") {
-      const sharerName = typeof formatSharerName === 'function' ? formatSharerName(folder) : (folder.ownerName || "Ai đó");
-      const initials = typeof getInitials === 'function' ? getInitials(sharerName) : "U";
-      const avatarColors = ["avatar-bg-blue", "avatar-bg-pink", "avatar-bg-orange", "avatar-bg-emerald", "avatar-bg-purple", "avatar-bg-cyan"];
-      const colorIndex = typeof hashCode === 'function' ? Math.abs(hashCode(sharerName)) % avatarColors.length : 0;
-      const avatarColor = avatarColors[colorIndex];
-      avatarHtml = `
-        <div class="shared-user-meta">
-          <div class="shared-user-avatar ${avatarColor}">${initials}</div>
-          <span class="shared-user-name" title="${sharerName}">${sharerName}</span>
-        </div>
-      `;
+    // Nhân bản từ <template id="tmpl-folder-card">
+    const fragment = cloneTemplate("tmpl-folder-card");
+    let folderCard;
+    if (fragment) {
+      folderCard = fragment.querySelector(".folder-card");
+    } else {
+      folderCard = document.createElement("div");
+      folderCard.className = "folder-card";
     }
 
-    folderCard.innerHTML = `
-      <div class="more-options" onclick="window.openContextMenu(event, ${folderId}, 'folder')">
-        <i class="ph-bold ph-dots-three-vertical"></i>
-      </div>
-      <i class="ph-fill ph-folder folder-icon ${folder.color || randomColor}"></i>
-      <div class="file-info-main">
-        <div class="folder-name" title="${folderName}">${folderName}</div>
-        <div class="file-meta-mobile">${displayDate}</div>
-        <div class="grid-shared-badge">
-          <span class="${folderBadgeClass}">${folderBadgeText}</span>
-        </div>
-        ${avatarHtml}
-      </div>
-      <div class="file-meta-col folder-meta-col file-date">${displayDate}</div>
-      <div class="file-meta-col folder-meta-col file-size"></div>
-    `;
+    folderCard.dataset.id = folderId;
+
+    // Nút ba chấm mở Context Menu
+    const moreOptions = folderCard.querySelector(".more-options");
+    if (moreOptions) {
+      moreOptions.onclick = (e) => window.openContextMenu(e, folderId, "folder");
+    }
+
+    // Icon thư mục
+    const folderColor = folder.color || randomColor || "blue";
+    const folderBox = folderCard.querySelector(".folder-icon-box");
+    if (folderBox) {
+      folderBox.className = `folder-icon-box ${folderColor}`;
+    }
+    const iconEl = folderCard.querySelector(".folder-icon");
+    if (iconEl) {
+      iconEl.className = `ph-fill ph-folder folder-icon ${folderColor}`;
+    }
+
+    // Tên thư mục (gán qua textContent chống XSS)
+    const nameEl = folderCard.querySelector(".folder-name");
+    if (nameEl) {
+      nameEl.textContent = folderName;
+      nameEl.title = folderName;
+    }
+
+    // Ngày sửa
+    const metaMobile = folderCard.querySelector(".file-meta-mobile");
+    if (metaMobile) metaMobile.textContent = displayDate;
+    const dateCol = folderCard.querySelector(".file-date");
+    if (dateCol) dateCol.textContent = displayDate;
+
+    // Badges chia sẻ (cả dạng Grid và List)
+    const badges = folderCard.querySelectorAll(".shared-badge");
+    badges.forEach((b) => {
+      b.textContent = folderBadgeText;
+      b.className = folderBadgeClass;
+    });
+
+    // Thông tin người chia sẻ (tab 'shared')
+    if (viewType === "shared") {
+      const slot = folderCard.querySelector(".shared-user-meta-slot") || folderCard.querySelector(".file-info-main");
+      if (slot) {
+        slot.appendChild(createSharedUserMetaNode(folder));
+      }
+    }
 
     // Tự động kiểm tra nếu folder chính chủ đã được chia sẻ cho người khác
     if ((!folderPerm || folderPerm === "OWNER") && !isSharedVal && viewType !== "shared") {
@@ -741,8 +2423,8 @@ function renderFolders(folders, viewType = "home") {
             const users = await res.json();
             const recipients = users.filter((u) => u.permission !== "OWNER");
             if (recipients.length > 0) {
-              const badges = folderCard.querySelectorAll(".shared-badge");
-              badges.forEach((b) => {
+              const bList = folderCard.querySelectorAll(".shared-badge");
+              bList.forEach((b) => {
                 b.textContent = "Đã chia sẻ";
                 b.className = "shared-badge active";
               });
@@ -752,7 +2434,7 @@ function renderFolders(folders, viewType = "home") {
         .catch(() => { });
     }
 
-    // Thêm sự kiện click vào thư mục để mở nội dung thư mục
+    // Sự kiện mở thư mục
     folderCard.addEventListener("click", (e) => {
       if (e.target.closest(".more-options")) return;
       if (typeof window.openFolder === "function") {
@@ -765,21 +2447,16 @@ function renderFolders(folders, viewType = "home") {
 }
 
 /**
- * renderFiles(files, viewType) - Render danh sách tệp tin vào .grid-files
+ * renderFiles(files, viewType) - Render danh sách tệp tin sử dụng HTML5 <template id="tmpl-file-card">
  * @param {Array}  files    - Mảng object file (từ backend hoặc mockData)
  * @param {string} viewType - Tab hiện tại: 'home' | 'shared' | 'trash'
- *
- * Mỗi file được render thành .file-card với:
- *   - Icon loại file (pdf/img/doc/xls/vid/zip) + màu phù hợp
- *   - Tên, ngày sửa, kích thước
- *   - Badge trạng thái chia sẻ
- *   - Avatar người chia sẻ (chỉ ở tab 'shared')
- *   - Click để preview/download file
- *   - Nút 3 chấm để mở Context Menu
  */
 function renderFiles(files, viewType = "home") {
   const filesContainer = document.querySelector(".grid-files");
-  filesContainer.innerHTML = ""; // Xóa dữ liệu mẫu
+  if (!filesContainer) return;
+
+  const existingListHeader = filesContainer.querySelector(".list-header");
+  filesContainer.innerHTML = ""; // Xóa dữ liệu cũ
 
   if (!files || files.length === 0) {
     filesContainer.innerHTML =
@@ -787,16 +2464,20 @@ function renderFiles(files, viewType = "home") {
     return;
   }
 
-  // Thêm header cho dạng List View
-  const listHeader = document.createElement("div");
-  listHeader.className = "list-header";
-  listHeader.innerHTML = `
-    <div class="col-name">TÊN</div>
-    <div class="col-date">NGÀY SỬA</div>
-    <div class="col-size">KÍCH THƯỚC</div>
-    <div class="col-shared">CHIA SẺ</div>
-  `;
-  filesContainer.appendChild(listHeader);
+  // Giữ lại hoặc tạo mới List Header
+  if (existingListHeader) {
+    filesContainer.appendChild(existingListHeader);
+  } else {
+    const listHeader = document.createElement("div");
+    listHeader.className = "list-header";
+    listHeader.innerHTML = `
+      <div class="col-name">TÊN</div>
+      <div class="col-date">NGÀY SỬA</div>
+      <div class="col-size">KÍCH THƯỚC</div>
+      <div class="col-shared">CHIA SẺ</div>
+    `;
+    filesContainer.appendChild(listHeader);
+  }
 
   // Định dạng kích thước file
   const formatSize = (bytes) => {
@@ -808,42 +2489,11 @@ function renderFiles(files, viewType = "home") {
   };
 
   files.forEach((file) => {
-    const fileCard = document.createElement("div");
-    fileCard.className = "file-card";
-    
-    // Lưu ID tệp tin để xử lý sự kiện (Hỗ trợ object shared)
     const fileId = file.fileId || file.id;
-    fileCard.dataset.id = fileId;
-
-    // Lấy tên từ backend (fileName) hoặc mockData (name)
     const displayFileName = file.fileName || file.name || "Không tên";
 
-    // Xác định icon và màu sắc dựa trên phần mở rộng của file
-    let iconClass = "ph-file";
-    let colorClass = "file-default";
-    const ext = displayFileName.split(".").pop().toLowerCase();
+    const { ext, iconClass, colorClass } = getFileCategoryAndIcon(displayFileName);
 
-    if (["pdf"].includes(ext)) {
-      iconClass = "ph-file-pdf";
-      colorClass = "file-pdf";
-    } else if (["png", "jpg", "jpeg", "gif", "svg"].includes(ext)) {
-      iconClass = "ph-image";
-      colorClass = "file-img";
-    } else if (["doc", "docx", "txt"].includes(ext)) {
-      iconClass = "ph-file-text";
-      colorClass = "file-doc";
-    } else if (["xls", "xlsx", "csv"].includes(ext)) {
-      iconClass = "ph-file-xls";
-      colorClass = "file-xls";
-    } else if (["mp4", "avi", "mov"].includes(ext)) {
-      iconClass = "ph-file-video";
-      colorClass = "file-vid";
-    } else if (["zip", "rar", "tar", "gz"].includes(ext)) {
-      iconClass = "ph-file-zip";
-      colorClass = "file-zip";
-    }
-
-    // Backend: sizeBytes, isShared. Mock: size, shared
     const fileSizeVal = file.sizeBytes !== undefined ? file.sizeBytes : file.size;
     const displaySize = formatSize(fileSizeVal);
     const isSharedVal = file.isShared !== undefined ? file.isShared : file.shared;
@@ -861,59 +2511,63 @@ function renderFiles(files, viewType = "home") {
       fileBadgeClass = "shared-badge active";
     }
 
-    let avatarHtml = "";
-    if (viewType === "shared") {
-      const sharerName = typeof formatSharerName === 'function' ? formatSharerName(file) : (file.ownerName || "Ai đó");
-      const initials = typeof getInitials === 'function' ? getInitials(sharerName) : "U";
-      const avatarColors = ["avatar-bg-blue", "avatar-bg-pink", "avatar-bg-orange", "avatar-bg-emerald", "avatar-bg-purple", "avatar-bg-cyan"];
-      const colorIndex = typeof hashCode === 'function' ? Math.abs(hashCode(sharerName)) % avatarColors.length : 0;
-      const avatarColor = avatarColors[colorIndex];
-      avatarHtml = `
-        <div class="shared-user-meta">
-          <div class="shared-user-avatar ${avatarColor}">${initials}</div>
-          <span class="shared-user-name" title="${sharerName}">${sharerName}</span>
-        </div>
-      `;
-    }
-
-    // Format Date (YYYY-MM-DD)
-    const formatDate = (isoString) => {
-      if (!isoString) return "Gần đây";
-      try {
-        const d = new Date(isoString);
-        if (isNaN(d.getTime())) return isoString;
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-      } catch (e) {
-        return isoString;
-      }
-    };
-
     const displayDate = formatSmartDate(file.updatedAt || file.createdAt);
 
-    fileCard.innerHTML = `
-      <div class="more-options" onclick="window.openContextMenu(event, ${fileId}, 'file')">
-        <i class="ph-bold ph-dots-three-vertical"></i>
-      </div>
-      <div class="file-icon-box ${colorClass}">
-        <i class="ph-fill ${iconClass}"></i>
-      </div>
-      <div class="file-info-main">
-        <div class="file-name" title="${displayFileName}">${displayFileName}</div>
-        <div class="file-meta-mobile">${displayDate} &middot; ${displaySize}</div>
-        <div class="grid-shared-badge">
-          <span class="${fileBadgeClass}">${fileBadgeText}</span>
-        </div>
-        ${avatarHtml}
-      </div>
-      <div class="file-meta-col file-date">${displayDate}</div>
-      <div class="file-meta-col file-size">${displaySize}</div>
-      <div class="file-meta-col file-shared">
-        <span class="${fileBadgeClass}">${fileBadgeText}</span>
-      </div>
-    `;
+    // Nhân bản từ <template id="tmpl-file-card">
+    const fragment = cloneTemplate("tmpl-file-card");
+    let fileCard;
+    if (fragment) {
+      fileCard = fragment.querySelector(".file-card");
+    } else {
+      fileCard = document.createElement("div");
+      fileCard.className = "file-card";
+    }
+
+    fileCard.dataset.id = fileId;
+
+    // Nút ba chấm mở Context Menu
+    const moreOptions = fileCard.querySelector(".more-options");
+    if (moreOptions) {
+      moreOptions.onclick = (e) => window.openContextMenu(e, fileId, "file");
+    }
+
+    // Icon tệp tin
+    const iconBox = fileCard.querySelector(".file-icon-box");
+    if (iconBox) {
+      iconBox.className = `file-icon-box ${colorClass}`;
+      const iconEl = iconBox.querySelector("i");
+      if (iconEl) iconEl.className = `ph ${iconClass}`;
+    }
+
+    // Tên tệp tin (gán qua textContent chống XSS)
+    const nameEl = fileCard.querySelector(".file-name");
+    if (nameEl) {
+      nameEl.textContent = displayFileName;
+      nameEl.title = displayFileName;
+    }
+
+    // Ngày sửa và kích thước
+    const metaMobile = fileCard.querySelector(".file-meta-mobile");
+    if (metaMobile) metaMobile.textContent = `${displayDate} · ${displaySize}`;
+    const dateCol = fileCard.querySelector(".file-date");
+    if (dateCol) dateCol.textContent = displayDate;
+    const sizeCol = fileCard.querySelector(".file-size");
+    if (sizeCol) sizeCol.textContent = displaySize;
+
+    // Badges chia sẻ
+    const badges = fileCard.querySelectorAll(".shared-badge");
+    badges.forEach((b) => {
+      b.textContent = fileBadgeText;
+      b.className = fileBadgeClass;
+    });
+
+    // Thông tin người chia sẻ (tab 'shared')
+    if (viewType === "shared") {
+      const slot = fileCard.querySelector(".shared-user-meta-slot") || fileCard.querySelector(".file-info-main");
+      if (slot) {
+        slot.appendChild(createSharedUserMetaNode(file));
+      }
+    }
 
     // Tự động kiểm tra nếu file chính chủ đã được chia sẻ cho người khác
     if ((!filePerm || filePerm === "OWNER") && !isSharedVal && viewType !== "shared") {
@@ -923,8 +2577,8 @@ function renderFiles(files, viewType = "home") {
             const users = await res.json();
             const recipients = users.filter((u) => u.permission !== "OWNER");
             if (recipients.length > 0) {
-              const badges = fileCard.querySelectorAll(".shared-badge");
-              badges.forEach((b) => {
+              const bList = fileCard.querySelectorAll(".shared-badge");
+              bList.forEach((b) => {
                 b.textContent = "Đã chia sẻ";
                 b.className = "shared-badge active";
               });
@@ -934,53 +2588,11 @@ function renderFiles(files, viewType = "home") {
         .catch(() => { });
     }
 
-    // Sự kiện khi click vào file
-    fileCard.addEventListener("click", async (e) => {
-      // Bỏ qua nếu bấm vào nút more-options
-      if (e.target.closest('.more-options')) return;
-
-      console.log("Xem chi tiết file:", file.id);
-      try {
-        const token = localStorage.getItem("token");
-        const baseUrl = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : "http://localhost:8080/api";
-        const response = await fetch(`${baseUrl}/files/${file.id}/preview`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          if (response.status === 403) {
-            alert("Bạn không có quyền xem file này!");
-          } else {
-            alert("File không tồn tại hoặc đã bị xóa!");
-          }
-          return;
-        }
-
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = objectUrl;
-
-        // Phân loại: Ảnh, PDF, Video -> Mở tab mới. Docx, Xlsx -> Tải xuống
-        if (["pdf", "png", "jpg", "jpeg", "gif", "svg", "mp4", "txt"].includes(ext)) {
-          a.target = '_blank'; // Mở tab mới
-        } else {
-          a.download = displayFileName; // Tải xuống
-        }
-
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        // Dọn dẹp URL sau 10s
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
-      } catch (err) {
-        console.error("Lỗi khi mở file", err);
-        alert("Lỗi kết nối khi mở file.");
-      }
+    // Sự kiện mở modal xem trước
+    fileCard.addEventListener("click", (e) => {
+      if (e.target.closest(".more-options")) return;
+      console.log("Xem trước file:", fileId);
+      openFilePreview(fileId, file);
     });
 
     filesContainer.appendChild(fileCard);
@@ -1648,15 +3260,7 @@ function setupDragAndDrop() {
 
       const typeIcon = itemCard.querySelector(".item-type-icon");
       if (typeIcon) {
-        let iconClass = "ph-file";
-        const ext = file.name.split(".").pop().toLowerCase();
-        if (["pdf"].includes(ext)) iconClass = "ph-file-pdf";
-        else if (["png", "jpg", "jpeg", "gif", "svg"].includes(ext)) iconClass = "ph-image";
-        else if (["doc", "docx", "txt"].includes(ext)) iconClass = "ph-file-text";
-        else if (["xls", "xlsx", "csv"].includes(ext)) iconClass = "ph-file-xls";
-        else if (["mp4", "avi", "mov"].includes(ext)) iconClass = "ph-file-video";
-        else if (["zip", "rar", "tar", "gz"].includes(ext)) iconClass = "ph-file-zip";
-
+        const { iconClass } = getFileCategoryAndIcon(file.name);
         typeIcon.className = `ph-fill ${iconClass} item-type-icon`;
       }
 
@@ -2320,6 +3924,20 @@ function renderSharedView(sharedList) {
   const sharedFolders = items.filter(item => item.folderId != null || (item.folderName && item.fileId == null));
   const sharedFiles = items.filter(item => item.fileId != null || (item.fileName && item.folderId == null));
 
+  sharedFiles.forEach(f => {
+    if (!f.id && f.fileId) f.id = f.fileId;
+    if (!f.fileName && f.name) f.fileName = f.name;
+  });
+  sharedFolders.forEach(f => {
+    if (!f.id && f.folderId) f.id = f.folderId;
+    if (!f.folderName && f.name) f.folderName = f.name;
+  });
+
+  window.currentLoadedData = {
+    folders: sharedFolders,
+    files: sharedFiles
+  };
+
   // Render hoặc cập nhật Hero Banner
   let heroBanner = contentScroll.querySelector(".shared-hero-banner");
   if (!heroBanner) {
@@ -2475,13 +4093,13 @@ async function loadDashboardData(viewType = "home") {
       } else {
         let folders = data.subfolders || data.folders || [];
         let files = data.files || [];
-        
+
         // Nếu đang ở "Tệp của tôi", lọc bỏ những file được người khác chia sẻ (permission khác OWNER)
         if (viewType === "home") {
           folders = folders.filter(f => !f.permission || f.permission === "OWNER");
           files = files.filter(f => !f.permission || f.permission === "OWNER");
         }
-        
+
         renderFolders(folders);
         renderFiles(files);
       }
@@ -2505,17 +4123,9 @@ async function loadDashboardData(viewType = "home") {
 // TRASH UI & ACTIONS
 // -------------------------------------------------------------
 function getFileIconForTrash(fileName) {
-  if (!fileName) return '<i class="ph ph-file file-doc"></i>';
-  const ext = fileName.split('.').pop().toLowerCase();
-  switch (ext) {
-    case 'pdf': return '<i class="ph ph-file-pdf file-pdf"></i>';
-    case 'png': case 'jpg': case 'jpeg': case 'gif': return '<i class="ph ph-image file-img"></i>';
-    case 'doc': case 'docx': return '<i class="ph ph-file-text file-doc"></i>';
-    case 'xls': case 'xlsx': return '<i class="ph ph-file-xls file-xls"></i>';
-    case 'mp4': case 'mov': case 'avi': return '<i class="ph ph-file-video file-mp4"></i>';
-    case 'zip': case 'rar': case '7z': return '<i class="ph ph-file-zip file-zip"></i>';
-    default: return '<i class="ph ph-file file-doc"></i>';
-  }
+  if (!fileName) return '<i class="ph ph-file file-default"></i>';
+  const { iconClass, colorClass } = getFileCategoryAndIcon(fileName);
+  return `<i class="ph ${iconClass} ${colorClass}"></i>`;
 }
 
 function renderTrashItems(folders, files) {
@@ -2536,7 +4146,7 @@ function renderTrashItems(folders, files) {
   }
 
   trashHeader.style.display = "block";
-  trashList.style.display = "block";
+  trashList.style.display = "";
   emptyState.style.display = "none";
 
   trashHeader.innerHTML = `${totalItems} mục &middot; Tự động xóa sau 30 ngày`;
@@ -2557,7 +4167,7 @@ function renderTrashItems(folders, files) {
     const date = parseLocalDate(dateString);
     if (!date) return String(dateString);
     const now = new Date();
-    
+
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const timeString = `${hours}:${minutes}`;
@@ -2566,7 +4176,7 @@ function renderTrashItems(folders, files) {
     if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
       return `Hôm nay, ${timeString}`;
     }
-    
+
     // Kiểm tra xem có phải hôm qua không
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
@@ -2581,7 +4191,7 @@ function renderTrashItems(folders, files) {
 
   // Render Folders
   folders.forEach(folder => {
-    const daysLeft = calculateDaysLeft(folder.updatedAt); 
+    const daysLeft = calculateDaysLeft(folder.updatedAt);
     const isUrgent = daysLeft <= 15 ? 'urgent' : '';
     const formattedDate = formatTrashDate(folder.updatedAt);
     const user = folder.userEmail ? folder.userEmail.split('@')[0] : 'Tôi';
@@ -2589,8 +4199,8 @@ function renderTrashItems(folders, files) {
     html += `
       <div class="trash-item">
         <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
-        <div class="trash-icon-box">
-          <i class="ph ph-folder" style="color: #64748b;"></i>
+        <div class="trash-icon-box blue">
+          <i class="ph-fill ph-folder"></i>
         </div>
         <div class="trash-item-info">
           <div class="trash-item-name">${folder.name}</div>
@@ -2609,18 +4219,19 @@ function renderTrashItems(folders, files) {
 
   // Render Files
   files.forEach(file => {
-    const daysLeft = calculateDaysLeft(file.updatedAt); 
+    const daysLeft = calculateDaysLeft(file.updatedAt);
     const isUrgent = daysLeft <= 15 ? 'urgent' : '';
     const size = typeof formatSizeGlobal === "function" ? formatSizeGlobal(file.sizeBytes) : file.sizeBytes;
     const fileName = file.fileName || "Tệp không tên";
     const formattedDate = formatTrashDate(file.updatedAt);
     const user = file.userEmail ? file.userEmail.split('@')[0] : 'Tôi';
+    const { iconClass, colorClass } = getFileCategoryAndIcon(fileName);
 
     html += `
       <div class="trash-item">
         <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
-        <div class="trash-icon-box">
-          ${getFileIconForTrash(fileName)}
+        <div class="trash-icon-box ${colorClass}">
+          <i class="ph ${iconClass}"></i>
         </div>
         <div class="trash-item-info">
           <div class="trash-item-name">${fileName}</div>
@@ -2640,11 +4251,11 @@ function renderTrashItems(folders, files) {
   trashList.innerHTML = html;
 }
 
-window.toggleTrashSelection = function(el) {
+window.toggleTrashSelection = function (el) {
   el.classList.toggle('selected');
 };
 
-window.restoreTrashItem = async function(id, type) {
+window.restoreTrashItem = async function (id, type) {
   try {
     const endpoint = type === 'folder' ? `/folders/${id}/restore` : `/files/${id}/restore`;
     const response = await fetchWithAuth(endpoint, { method: "PATCH" });
@@ -2659,7 +4270,7 @@ window.restoreTrashItem = async function(id, type) {
   }
 };
 
-window.permanentDeleteTrashItem = async function(id, type) {
+window.permanentDeleteTrashItem = async function (id, type) {
   if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Thao tác không thể hoàn tác!")) return;
   try {
     const endpoint = type === 'folder' ? `/folders/${id}/permanent` : `/files/${id}/permanent`;

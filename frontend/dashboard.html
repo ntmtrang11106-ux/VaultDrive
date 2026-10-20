@@ -20,6 +20,18 @@
   <link rel="stylesheet" href="css/file-actions.css" />
   <link rel="stylesheet" href="css/trash.css" />
   <link rel="stylesheet" href="css/settings.css" />
+
+  <!-- Kích hoạt ngay chế độ xem trước độc lập (không hiện dashboard phía dưới) nếu URL có token hoặc fileId -->
+  <script>
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get("token") || params.get("shareToken") || params.get("fileId") || params.get("previewFileId")) {
+          document.documentElement.classList.add("preview-only-mode");
+        }
+      } catch (e) { }
+    })();
+  </script>
 </head>
 
 <body>
@@ -186,8 +198,13 @@
   ================================================================ -->
   <!-- position: fixed - JS sẽ tính toán tọa độ left/top để hiển thị đúng vị trí -->
   <div class="custom-context-menu" id="globalContextMenu">
-    <!-- 1: Tải xuống -->
+    <!-- 1: Xem trước & Tải xuống -->
     <div class="context-menu-group">
+      <div class="context-menu-item" id="ctxPreview">
+        <div class="menu-left">
+          <i class="ph ph-eye"></i> Xem trước
+        </div>
+      </div>
       <div class="context-menu-item" id="ctxDownload">
         <div class="menu-left">
           <i class="ph ph-download-simple"></i> Tải xuống
@@ -249,6 +266,7 @@
       <!-- 2. Body: Ô nhập tên mới -->
       <div class="action-modal-body">
         <input type="text" id="renameInput" class="action-input" placeholder="Nhập tên mới..." />
+        <label class="field-error rename-error-label" id="renameErrorMsg"></label>
       </div>
 
       <!-- 3. Footer: Nút Hủy + Nút xác nhận Đổi tên -->
@@ -287,6 +305,37 @@
 
         <!-- Container danh sách người được chia sẻ sẽ render HTML vào đây -->
         <div class="shared-users-list" id="sharedUsersListContainer"></div>
+
+        <!-- 3. QUYỀN TRUY CẬP CHUNG (General Access) -->
+        <div class="general-access-section">
+          <h4 class="share-list-title general-access-title">Quyền truy cập chung</h4>
+          <div class="general-access-row">
+            <div class="general-access-icon-wrap" id="generalAccessIconWrap">
+              <i class="ph ph-lock" id="generalAccessIcon"></i>
+            </div>
+            <div class="general-access-content">
+              <div class="general-access-dropdown-wrapper" id="generalAccessDropdownWrapper">
+                <button type="button" class="general-access-trigger-btn" id="generalAccessBtn">
+                  <span id="generalAccessLabel">Hạn chế</span>
+                  <i class="ph ph-caret-down general-access-caret"></i>
+                </button>
+                <div class="general-access-popover" id="generalAccessMenu" style="display: none;">
+                  <div class="general-access-menu-item selected" data-value="RESTRICTED" id="optRestricted">
+                    <span class="general-access-check"><i class="ph-bold ph-check"></i></span>
+                    <span class="general-access-item-text">Hạn chế</span>
+                  </div>
+                  <div class="general-access-menu-item" data-value="PUBLIC" id="optPublic">
+                    <span class="general-access-check"><i class="ph-bold ph-check" style="display: none;"></i></span>
+                    <span class="general-access-item-text">Bất kỳ ai có đường liên kết</span>
+                  </div>
+                </div>
+              </div>
+              <div class="general-access-desc" id="generalAccessDesc">
+                Chỉ những người có quyền truy cập mới có thể mở bằng đường liên kết này
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 3. Footer: Nút sao chép link + nút Xong -->
@@ -298,6 +347,253 @@
       </div>
     </div>
   </div>
+
+  <!-- ================================================================
+       PREVIEW MODAL - Hộp thoại xem trước file (Image, PDF, Video, Audio, Code...)
+  ================================================================ -->
+  <div class="preview-modal-overlay" id="previewModalOverlay" style="display: none;">
+    <div class="preview-modal-container" id="previewModalContainer">
+      <div class="preview-modal-header">
+        <div class="preview-header-left">
+          <div class="preview-file-icon file-default" id="previewFileIcon">
+            <i class="ph-fill ph-file" id="previewFileIconInner"></i>
+          </div>
+          <div class="preview-file-info">
+            <h3 class="preview-file-name" id="previewFileName" title="Tên tệp tin">Tên tệp tin</h3>
+            <div class="preview-file-meta" id="previewFileMeta">0 KB</div>
+          </div>
+        </div>
+        <div class="preview-header-actions">
+          <button class="btn-preview-action" id="previewDownloadBtn" title="Tải xuống tệp">
+            <i class="ph ph-download-simple"></i>
+            <span>Tải xuống</span>
+          </button>
+          <button class="btn-preview-close" id="closePreviewModal" title="Đóng (Esc)">
+            <i class="ph ph-x"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="preview-modal-body" id="previewModalBody">
+        <!-- Nội dung preview được chèn động từ file-actions.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       HTML5 TEMPLATES (Trình xem trước & Các thành phần giao diện)
+  ================================================================ -->
+  <!-- Template: Loading khi tải xem trước -->
+  <template id="tmpl-preview-loading">
+    <div class="preview-loading">
+      <div class="preview-spinner"></div>
+      <p class="preview-loading-text">Đang tải bản xem trước...</p>
+    </div>
+  </template>
+
+  <!-- Template: Báo lỗi xem trước -->
+  <template id="tmpl-preview-error">
+    <div class="preview-media-wrapper preview-error-wrapper">
+      <div class="preview-error-card">
+        <i class="ph-bold ph-warning-circle preview-error-icon"></i>
+        <h4 class="preview-error-title">Không thể tải bản xem trước</h4>
+        <p class="preview-error-msg"></p>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button class="btn-secondary preview-retry-btn" type="button">
+            <i class="ph-bold ph-arrow-clockwise"></i> Thử lại
+          </button>
+          <button class="btn-primary preview-download-fallback-btn" type="button">
+            <i class="ph-bold ph-download-simple"></i> Tải về máy
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Template: Xem ảnh (JPG, PNG, GIF, SVG, WEBP...) -->
+  <template id="tmpl-preview-image">
+    <div class="preview-media-wrapper preview-image-wrapper">
+      <div class="preview-image-scroll" id="previewImgScrollArea">
+        <img id="previewImageEl" class="preview-img-tag" draggable="false" />
+      </div>
+      <div class="preview-floating-toolbar">
+        <button class="preview-float-btn" id="previewZoomOut" title="Thu nhỏ"><i class="ph-bold ph-minus"></i></button>
+        <span class="preview-float-text" id="previewZoomVal" title="Nhấp để đặt lại kích thước 100%">100%</span>
+        <button class="preview-float-btn" id="previewZoomIn" title="Phóng to"><i class="ph-bold ph-plus"></i></button>
+        <span class="preview-toolbar-divider"></span>
+        <button class="preview-float-btn preview-rotate-btn" id="previewRotate" title="Xoay ảnh 90°">
+          <i class="ph-bold ph-arrow-clockwise"></i>
+          <span>Xoay</span>
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Template: Xem PDF -->
+  <template id="tmpl-preview-pdf">
+    <div class="preview-media-wrapper preview-pdf-wrapper">
+      <iframe class="preview-pdf-iframe" type="application/pdf"></iframe>
+    </div>
+  </template>
+
+  <!-- Template: Xem Video (MP4, WEBM, MOV...) -->
+  <template id="tmpl-preview-video">
+    <div class="preview-media-wrapper preview-video-wrapper">
+      <div class="preview-video-container">
+        <video class="preview-video-player" id="previewVideoEl" controls autoplay playsinline>
+          Trình duyệt của bạn không hỗ trợ phát định dạng video này.
+        </video>
+        <div class="preview-video-floating-bar">
+          <span class="video-bar-tag"><i class="ph-bold ph-video-camera"></i> Video</span>
+          <div class="video-speed-selector">
+            <span class="speed-label">Tốc độ:</span>
+            <button type="button" class="btn-vspeed" data-speed="0.75">0.75x</button>
+            <button type="button" class="btn-vspeed active" data-speed="1.0">1x</button>
+            <button type="button" class="btn-vspeed" data-speed="1.25">1.25x</button>
+            <button type="button" class="btn-vspeed" data-speed="1.5">1.5x</button>
+            <button type="button" class="btn-vspeed" data-speed="2.0">2x</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Template: Nghe Audio (MP3, WAV, OGG...) -->
+  <template id="tmpl-preview-audio">
+    <div class="preview-media-wrapper preview-audio-wrapper">
+      <div class="preview-audio-card" id="previewAudioCard">
+        <div class="preview-audio-disc-wrapper">
+          <div class="preview-audio-disc" id="previewAudioDisc">
+            <div class="preview-audio-disc-center">
+              <i class="ph-fill ph-music-notes"></i>
+            </div>
+          </div>
+        </div>
+        <div class="preview-audio-info">
+          <h4 class="preview-audio-title" id="previewAudioTitle">Tệp âm thanh</h4>
+          <div class="preview-audio-meta" id="previewAudioMeta"></div>
+        </div>
+        <div class="preview-audio-visualizer" id="previewAudioVisualizer">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </div>
+        <audio class="preview-audio-player" id="previewAudioPlayer" controls autoplay>
+          Trình duyệt của bạn không hỗ trợ phát âm thanh này.
+        </audio>
+      </div>
+    </div>
+  </template>
+
+  <!-- Template: Xem & Chỉnh sửa Text & Mã nguồn (TXT, MD, JSON, JS, HTML, CSS, PY...) -->
+  <template id="tmpl-preview-text">
+    <div class="preview-media-wrapper preview-text-wrapper">
+      <div class="preview-text-header">
+        <div class="preview-text-header-left">
+          <span class="preview-text-badge" id="previewTextBadge">TXT</span>
+          <span class="preview-text-stats" id="previewTextStats">0 dòng</span>
+          <span class="preview-text-dirty-badge" id="previewTextDirty" style="display: none;">• Chưa lưu</span>
+        </div>
+        <div class="preview-text-header-actions">
+          <button class="btn-preview-text-tool" id="previewCopyCodeBtn" type="button">
+            <i class="ph-bold ph-copy"></i>
+            <span>Sao chép</span>
+          </button>
+          <button class="btn-preview-text-tool btn-preview-text-edit" id="previewToggleEditBtn" type="button">
+            <i class="ph-bold ph-pencil-simple"></i>
+            <span id="previewEditModeText">Chỉnh sửa</span>
+          </button>
+          <button class="btn-preview-text-tool btn-preview-text-save" id="previewSaveCodeBtn" type="button"
+            style="display: none;">
+            <i class="ph-bold ph-floppy-disk"></i>
+            <span>Lưu thay đổi</span>
+          </button>
+        </div>
+      </div>
+      <div class="preview-code-body" id="previewCodeBody">
+        <div class="preview-code-lines" id="previewCodeLines"></div>
+        <pre class="preview-text-pre"
+          id="previewTextPre"><code class="preview-text-code" id="previewTextCode"></code></pre>
+        <textarea class="preview-text-editor" id="previewTextEditor" spellcheck="false" style="display: none;"
+          placeholder="Nhập nội dung văn bản..."></textarea>
+      </div>
+    </div>
+  </template>
+
+
+  <!-- Template: Định dạng không hỗ trợ trực tiếp (Hình 1) -->
+  <template id="tmpl-preview-unsupported">
+    <div class="preview-media-wrapper preview-unsupported-wrapper">
+      <div class="preview-unsupported-card">
+        <div class="preview-unsupported-icon-box">
+          <i class="ph ph-file-text"></i>
+        </div>
+        <h3 class="preview-unsupported-title">Không thể xem trực tiếp tệp này</h3>
+        <p class="preview-unsupported-desc">
+          Trình duyệt chưa hỗ trợ định dạng của tệp. Bạn có thể tải xuống để mở bằng ứng dụng phù hợp trên thiết bị.
+        </p>
+        <button class="preview-unsupported-btn" id="previewUnsupportedDownloadBtn" type="button">
+          <i class="ph ph-download-simple"></i>
+          <span>Tải xuống tệp tin</span>
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Template: Thẻ tệp tin (File Card) -->
+  <template id="tmpl-file-card">
+    <div class="file-card">
+      <div class="more-options">
+        <i class="ph-bold ph-dots-three-vertical"></i>
+      </div>
+      <div class="file-icon-box">
+        <i class="ph-fill"></i>
+      </div>
+      <div class="file-info-main">
+        <div class="file-name"></div>
+        <div class="file-meta-mobile"></div>
+        <div class="grid-shared-badge">
+          <span class="shared-badge"></span>
+        </div>
+        <div class="shared-user-meta-slot"></div>
+      </div>
+      <div class="file-meta-col file-date"></div>
+      <div class="file-meta-col file-size"></div>
+      <div class="file-meta-col file-shared">
+        <span class="shared-badge"></span>
+      </div>
+    </div>
+  </template>
+
+  <!-- Template: Thẻ thư mục (Folder Card) -->
+  <template id="tmpl-folder-card">
+    <div class="folder-card">
+      <div class="more-options">
+        <i class="ph-bold ph-dots-three-vertical"></i>
+      </div>
+      <div class="folder-icon-box">
+        <i class="ph-fill ph-folder folder-icon"></i>
+      </div>
+      <div class="file-info-main">
+        <div class="folder-name"></div>
+        <div class="file-meta-mobile"></div>
+        <div class="grid-shared-badge">
+          <span class="shared-badge"></span>
+        </div>
+        <div class="shared-user-meta-slot"></div>
+      </div>
+    </div>
+  </template>
+  <!-- Thư viện xem trước tài liệu Office (Word, Excel) trực tiếp trên trình duyệt -->
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@0.3.3/dist/docx-preview.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <script src="js/layout.js"></script>
   <script src="js/dashboard.js"></script>

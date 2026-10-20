@@ -148,23 +148,48 @@
 }
 
 .file-img {
-  color: #3b82f6;
+  color: #a855f7;
 }
 
 .file-doc {
   color: #2563eb;
 }
 
+.file-txt {
+  color: #475569;
+}
+
 .file-xls {
   color: #16a34a;
 }
 
-.file-mp4 {
-  color: #a855f7;
+.file-ppt {
+  color: #ea580c;
+}
+
+.file-mp4,
+.file-vid {
+  color: #e11d48;
+}
+
+.file-audio {
+  color: #db2777;
 }
 
 .file-zip {
-  color: #f59e0b;
+  color: #d97706;
+}
+
+.file-code {
+  color: #4f46e5;
+}
+
+.file-md {
+  color: #0d9488;
+}
+
+.file-default {
+  color: #64748b;
 }
 
 .trash-empty-state {
@@ -197,67 +222,199 @@
 
 /* ================= TRASH GRID VIEW ================= */
 .content-scroll:not(.list-view) .trash-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+  gap: 20px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
 }
 
 .content-scroll:not(.list-view) .trash-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: white;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  gap: 12px;
-  border-bottom: 1px solid var(--border-color);
-  width: 300px;
-  flex-shrink: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  background: var(--card-bg, #ffffff) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  border-radius: var(--radius-lg, 16px) !important;
+  padding: 12px 14px 14px 14px !important;
+  gap: 6px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.content-scroll:not(.list-view) .trash-item:hover {
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.08)) !important;
+  border-color: #cbd5e1 !important;
+  transform: translateY(-3px) !important;
 }
 
 .content-scroll:not(.list-view) .trash-checkbox {
   position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 2;
+  top: 14px;
+  left: 14px;
+  z-index: 5;
 }
 
 .content-scroll:not(.list-view) .trash-icon-box {
   width: 100%;
-  height: 120px;
-  font-size: 48px;
-  border: none;
-  background: transparent;
-  margin-top: 16px;
+  height: 125px;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #edf2f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  margin-top: 28px;
+  margin-bottom: 2px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.content-scroll:not(.list-view) .trash-icon-box i {
+  background-color: transparent !important;
+  font-size: 38px;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+.content-scroll:not(.list-view) .trash-item:hover .trash-icon-box i {
+  transform: scale(1.08);
+}
+
+/* Màu nền khung icon thùng rác đồng bộ 100% với màu sắc bên Dashboard */
+.trash-icon-box.file-pdf {
+  background-color: #fef2f2 !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+.trash-icon-box.file-img {
+  background-color: #faf5ff !important;
+  color: #9333ea !important;
+  border-color: rgba(147, 51, 234, 0.15) !important;
+}
+
+.trash-icon-box.file-doc {
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+  border-color: rgba(37, 99, 235, 0.15) !important;
+}
+
+.trash-icon-box.file-txt {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-color: rgba(71, 85, 105, 0.15) !important;
+}
+
+.trash-icon-box.file-xls {
+  background-color: #f0fdf4 !important;
+  color: #16a34a !important;
+  border-color: rgba(22, 163, 74, 0.15) !important;
+}
+
+.trash-icon-box.file-ppt {
+  background-color: #fff7ed !important;
+  color: #ea580c !important;
+  border-color: rgba(234, 88, 12, 0.15) !important;
+}
+
+.trash-icon-box.file-vid,
+.trash-icon-box.file-mp4 {
+  background-color: #fffbeb !important;
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.trash-icon-box.file-audio {
+  background-color: #fdf2f8 !important;
+  color: #db2777 !important;
+  border-color: rgba(219, 39, 119, 0.15) !important;
+}
+
+.trash-icon-box.file-zip {
+  background-color: #fef3c7 !important;
+  color: #d97706 !important;
+  border-color: rgba(217, 119, 6, 0.15) !important;
+}
+
+.trash-icon-box.file-code {
+  background-color: #eef2ff !important;
+  color: #4f46e5 !important;
+  border-color: rgba(79, 70, 229, 0.15) !important;
+}
+
+.trash-icon-box.file-md {
+  background-color: #f0fdfa !important;
+  color: #0d9488 !important;
+  border-color: rgba(13, 148, 136, 0.15) !important;
+}
+
+.trash-icon-box.blue {
+  background-color: #eff6ff !important;
+  color: #3b82f6 !important;
+  border-color: rgba(59, 130, 246, 0.15) !important;
 }
 
 .content-scroll:not(.list-view) .trash-item-info {
   width: 100%;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .content-scroll:not(.list-view) .trash-item-name {
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
-.content-scroll:not(.list-view) .trash-actions {
-  width: 100%;
-  justify-content: center;
-  flex-wrap: wrap;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 12px;
-  margin-top: auto;
+.content-scroll:not(.list-view) .trash-item-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin-top: 1px;
 }
 
 .content-scroll:not(.list-view) .days-left {
   width: 100%;
   text-align: center;
-  margin-bottom: 8px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  border-radius: 20px;
+  display: block;
+  box-sizing: border-box;
+}
+
+.content-scroll:not(.list-view) .trash-actions {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.content-scroll:not(.list-view) .btn-restore,
+.content-scroll:not(.list-view) .btn-delete {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 6px;
 }

@@ -11,6 +11,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/auth.css" />
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
   </head>
 
   <body>
@@ -98,25 +100,31 @@
 
           <div class="form-group">
             <label for="password">Mật khẩu</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              required
-              placeholder="Tạo mật khẩu mạnh"
-            />
+            <div class="password-input-wrapper">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                placeholder="Tạo mật khẩu mạnh"
+              />
+              <i class="ph ph-eye password-toggle" onclick="togglePasswordVisibility('password', this)"></i>
+            </div>
             <span class="field-error" id="passwordError"></span>
           </div>
 
           <div class="form-group">
             <label for="confirmPassword">Xác nhận mật khẩu</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              required
-              placeholder="Xác nhận lại mật khẩu của bạn"
-            />
+            <div class="password-input-wrapper">
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                required
+                placeholder="Xác nhận lại mật khẩu của bạn"
+              />
+              <i class="ph ph-eye password-toggle" onclick="togglePasswordVisibility('confirmPassword', this)"></i>
+            </div>
             <span class="field-error" id="confirmPasswordError"></span>
           </div>
 

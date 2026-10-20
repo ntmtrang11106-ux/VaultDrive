@@ -240,6 +240,24 @@
   display: block;
 }
 
+/* Thông báo lỗi trong modal Đổi tên */
+.rename-error-label,
+.action-modal-body .field-error {
+  color: #ef4444;
+  font-size: 12.5px;
+  margin-top: 8px;
+  display: none;
+  font-weight: 500;
+  text-align: left;
+}
+
+/* Hiển thị viền đỏ và nền hồng nhạt khi ô input có lỗi */
+.action-input.input-error {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
 .btn-secondary {
   background-color: white;
   border: 1px solid #cbd5e1;
@@ -784,81 +802,145 @@
   margin-bottom: 16px;
 }
 
-/* --- XỬ LÝ BADGE & NÚT 3 CHẤM CHO THƯ MỤC (FOLDER CARD) TRÊN CẢ 2 CHẾ ĐỘ ---
+/* --- XỬ LÝ BADGE & NÚT 3 CHẤM CHO THƯ MỤC (FOLDER CARD) & TỆP TIN TRÊN CÁC CHẾ ĐỘ ---
 */
-.folder-card {
+.folder-card,
+.file-card {
   position: relative;
 }
 
+/* Vị trí badge trạng thái riêng tư / đã chia sẻ ở góc trên phải khung icon */
 .folder-card .grid-shared-badge {
   display: block !important;
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 18px;
+  right: 18px;
   margin-top: 0;
-  transition: opacity 0.15s ease;
-  z-index: 2;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s ease;
+  z-index: 10;
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
+.content-scroll:not(.list-view) .file-card .grid-shared-badge {
+  display: block !important;
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  margin-top: 0;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s ease;
+  z-index: 10;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Nút 3 chấm more-options nằm cùng vị trí góc trên phải */
 .folder-card .more-options {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 16px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  color: #64748b;
+  font-size: 15px;
+  cursor: pointer;
+  z-index: 11;
   opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 3;
-}
-
-/* Khi hover vào thư mục: Ẩn chữ Riêng tư/Đã chia sẻ, Hiện nút 3 chấm */
-.folder-card:hover .grid-shared-badge {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-.folder-card:hover .more-options {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-.folder-shared {
-  display: none !important;
-}
-
-/* --- XỬ LÝ BADGE & NÚT 3 CHẤM CHO TỆP TIN (FILE CARD) --- */
-.grid-shared-badge {
-  display: none;
-}
-
-/* Ở dạng Ô vuông (Grid View) của Tệp tin */
-.content-scroll:not(.list-view) .file-card .grid-shared-badge {
-  display: block;
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  margin-top: 0;
-  transition: opacity 0.15s ease;
-  z-index: 2;
-  opacity: 1;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.9);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .content-scroll:not(.list-view) .file-card .more-options {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 20px;
+  right: 20px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  color: #64748b;
+  font-size: 15px;
+  cursor: pointer;
+  z-index: 11;
   opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 3;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.9);
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.2s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Khi hover vào thẻ: Ẩn chữ Riêng tư/Đã chia sẻ, Hiện nút 3 chấm lại như code cũ */
+.folder-card:hover .grid-shared-badge,
+.content-scroll:not(.list-view) .file-card:hover .grid-shared-badge {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: scale(0.9);
+}
+
+.folder-card:hover .more-options,
 .content-scroll:not(.list-view) .file-card:hover .more-options {
   opacity: 1 !important;
   visibility: visible !important;
+  pointer-events: auto !important;
+  transform: scale(1);
 }
 
-.content-scroll:not(.list-view) .file-card:hover .grid-shared-badge {
+/* Khi nút 3 chấm active (mở context menu): Giữ nguyên nút 3 chấm, ẩn badge */
+.folder-card .more-options.active,
+.content-scroll:not(.list-view) .file-card .more-options.active {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: scale(1);
+  background-color: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+.folder-card:has(.more-options.active) .grid-shared-badge,
+.content-scroll:not(.list-view) .file-card:has(.more-options.active) .grid-shared-badge {
   opacity: 0 !important;
+  visibility: hidden !important;
   pointer-events: none !important;
+}
+
+.folder-card .more-options:hover,
+.content-scroll:not(.list-view) .file-card .more-options:hover {
+  background-color: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: scale(1.08);
+}
+
+.folder-shared,
+.folder-meta-col,
+.folder-card .file-meta-col {
+  display: none !important;
+}
+
+.folder-card .file-meta-mobile {
+  display: block !important;
 }
 
 /* Ở dạng Bảng (List View) của Tệp tin: Ẩn badge góc của file-card */
@@ -866,8 +948,65 @@
   display: none !important;
 }
 
-.grid-files:not(.list-view) .file-info-main {
-  margin-top: auto;
+/* Nút 3 chấm ở List View căn giữa dòng dọc */
+.content-scroll.list-view .file-card .more-options {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  opacity: 0.7;
+  visibility: visible;
+  pointer-events: auto;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  color: #64748b;
+  z-index: 5;
+}
+
+.content-scroll.list-view .file-card:hover .more-options {
+  opacity: 1;
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+/* Ẩn hoàn toàn slot người chia sẻ khi rỗng để không tạo gap thừa ở đáy thẻ */
+.shared-user-meta-slot:empty {
+  display: none !important;
+}
+
+/* Thư mục luôn hiển thị tên và ngày theo dạng cột dọc (ngày ở dưới tên) trên mọi chế độ */
+.folder-card .file-info-main {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px;
+  width: 100%;
+}
+
+.content-scroll:not(.list-view) .file-card .file-info-main {
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+}
+
+.content-scroll:not(.list-view) .file-name,
+.folder-name {
+  margin-bottom: 0;
+}
+
+.file-meta-mobile {
+  margin-top: 0;
+}
+
+.content-scroll:not(.list-view) .shared-user-meta {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
 }
 
 .list-header {
@@ -908,35 +1047,1066 @@
   color: #ef4444;
 }
 
+/* ================================================================
+   FILE PREVIEW MODAL STYLES (Chế độ xem trước tệp tin đa định dạng)
+================================================================ */
 .preview-modal-overlay {
-  z-index: 10000;
-}
-
-.preview-modal {
-  width: 80%;
-  max-width: 800px;
-  height: 80vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.preview-modal-body {
-  flex: 1;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(7, 10, 19, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
-  border-radius: 8px;
+  padding: 16px;
+  animation: previewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.preview-modal-content {
+@keyframes previewFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.preview-modal-container {
+  background-color: #070a13;
+  width: 95vw;
+  max-width: 1200px;
+  height: 90vh;
+  max-height: 900px;
+  border-radius: 16px;
+  box-shadow: 0 25px 70px -10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: previewScaleUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes previewScaleUp {
+  from {
+    transform: scale(0.96) translateY(8px);
+  }
+
+  to {
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Header xem trước (Trắng, bo góc trên) */
+.preview-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  z-index: 10;
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.preview-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.preview-file-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.preview-file-info {
+  min-width: 0;
+}
+
+.preview-file-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 520px;
+  line-height: 1.3;
+}
+
+.preview-file-meta {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.preview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-preview-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: var(--primary-color, #1a66ff);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(26, 102, 255, 0.28);
+  transition: background-color 0.2s, transform 0.15s, box-shadow 0.15s;
+}
+
+.btn-preview-action i {
+  font-size: 16px;
+}
+
+.btn-preview-action:hover {
+  background-color: var(--primary-hover, #0052cc);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.15));
+  transform: translateY(-1px);
+  color: #ffffff;
+}
+
+/* Active (đang giữ click): lún xuống 2px + bóng nhỏ lại → cảm giác nhấn thật giống nút tải lên layout */
+.btn-preview-action:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.btn-preview-close {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #64748b;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+}
+
+.btn-preview-close:hover {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+  transform: translateY(-1px);
+}
+
+.btn-preview-close:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Modal Body Canvas (Nền tối sang trọng) */
+.preview-modal-body {
+  flex: 1;
+  background-color: #070a13;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.preview-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: previewSpin 0.8s linear infinite;
+}
+
+@keyframes previewSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Media Wrappers */
+.preview-media-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ================================================================
+   1. GIAO DIỆN KHÔNG THỂ XEM TRỰC TIẾP (HÌNH 1)
+================================================================ */
+.preview-unsupported-wrapper {
+  background-color: transparent;
+  padding: 24px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-unsupported-card {
+  background-color: #ffffff;
+  border-radius: 24px;
+  padding: 44px 36px;
+  max-width: 480px;
+  width: 100%;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: previewCardPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes previewCardPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.preview-unsupported-icon-box {
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  background-color: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.preview-unsupported-icon-box i {
+  font-size: 38px;
+  color: #3b82f6;
+}
+
+.preview-unsupported-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.preview-unsupported-desc {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+  max-width: 380px;
+  margin-bottom: 26px;
+}
+
+.preview-unsupported-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #1d61f2;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(29, 97, 242, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.preview-unsupported-btn:hover {
+  background-color: #1550cb;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(29, 97, 242, 0.45);
+}
+
+.preview-unsupported-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(29, 97, 242, 0.25);
+}
+
+.preview-unsupported-btn i {
+  font-size: 18px;
+}
+
+/* ================================================================
+   2. GIAO DIỆN XEM ẢNH (HÌNH 2)
+================================================================ */
+.preview-image-wrapper {
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.preview-image-scroll {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: grab;
+}
+
+.preview-image-scroll.is-dragging {
+  cursor: grabbing;
+}
+
+.preview-img-tag {
+  max-width: 95%;
+  max-height: 92%;
+  object-fit: contain;
+  transition: transform 0.15s ease-out;
+  border-radius: 6px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Floating Toolbar kiểu viên thuốc nổi (Hình 2) */
+.preview-floating-toolbar {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #0f172a;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 7px 18px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  z-index: 20;
+}
+
+.preview-float-btn {
+  background: transparent;
+  border: none;
+  color: #f1f5f9;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.preview-float-btn:hover {
+  background-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.preview-float-text {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 46px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.preview-float-text:hover {
+  color: #ffffff;
+}
+
+.preview-toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin: 0 2px;
+}
+
+.preview-rotate-btn {
+  width: auto !important;
+  padding: 0 8px;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.preview-rotate-btn i {
+  font-size: 15px;
+}
+
+/* ================================================================
+   3. GIAO DIỆN XEM TÀI LIỆU PDF
+================================================================ */
+.preview-pdf-wrapper {
+  background-color: #1e293b;
+  width: 100%;
+  height: 100%;
+}
+
+.preview-pdf-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #ffffff;
+}
+
+/* ================================================================
+   4. GIAO DIỆN XEM VIDEO
+================================================================ */
+.preview-video-wrapper {
+  padding: 24px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-video-container {
+  max-width: 95%;
+  max-height: 95%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.preview-video-player {
+  max-width: 100%;
+  max-height: 72vh;
+  border-radius: 12px;
+  outline: none;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  background-color: #000000;
+}
+
+.preview-video-floating-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background-color: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 6px 16px;
+  border-radius: 20px;
+}
+
+.video-bar-tag {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.video-speed-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.speed-label {
+  font-size: 12px;
   color: #64748b;
 }
 
-#previewModalIcon {
-  font-size: 64px;
-  margin-bottom: 16px;
+.btn-vspeed {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-vspeed:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-vspeed.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #3b82f6;
+  font-weight: 600;
+}
+
+/* ================================================================
+   5. GIAO DIỆN NGHE ÂM THANH (AUDIO PLAYER SANG TRỌNG)
+================================================================ */
+.preview-audio-wrapper {
+  padding: 30px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-audio-card {
+  background: linear-gradient(145deg, #162032, #0d1527);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 38px 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+  max-width: 480px;
+  width: 100%;
+}
+
+.preview-audio-disc-wrapper {
+  margin-bottom: 20px;
+}
+
+.preview-audio-disc {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #2d3748 0%, #1a202c 70%, #111827 100%);
+  border: 4px solid #374151;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s;
+}
+
+.preview-audio-card.playing .preview-audio-disc {
+  animation: previewSpinDisc 4s linear infinite;
+}
+
+@keyframes previewSpinDisc {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.preview-audio-disc-center {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 20px;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+}
+
+.preview-audio-info {
+  margin-bottom: 14px;
+  max-width: 100%;
+}
+
+.preview-audio-title {
+  color: #f8fafc;
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-audio-meta {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* Audio Visualizer Equalizer */
+.preview-audio-visualizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  margin-bottom: 22px;
+}
+
+.preview-audio-visualizer .bar {
+  width: 4px;
+  height: 6px;
+  background: linear-gradient(to top, #3b82f6, #8b5cf6);
+  border-radius: 3px;
+  transition: height 0.2s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(1) {
+  animation: soundWave 0.8s ease-in-out infinite alternate 0.1s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(2) {
+  animation: soundWave 0.6s ease-in-out infinite alternate 0.2s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(3) {
+  animation: soundWave 0.9s ease-in-out infinite alternate 0.3s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(4) {
+  animation: soundWave 0.7s ease-in-out infinite alternate 0.15s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(5) {
+  animation: soundWave 1.0s ease-in-out infinite alternate 0.25s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(6) {
+  animation: soundWave 0.8s ease-in-out infinite alternate 0.35s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(7) {
+  animation: soundWave 0.5s ease-in-out infinite alternate 0.1s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(8) {
+  animation: soundWave 0.9s ease-in-out infinite alternate 0.4s;
+}
+
+.preview-audio-card.playing .preview-audio-visualizer .bar:nth-child(9) {
+  animation: soundWave 0.7s ease-in-out infinite alternate 0.2s;
+}
+
+@keyframes soundWave {
+  0% {
+    height: 6px;
+  }
+
+  100% {
+    height: 26px;
+  }
+}
+
+.preview-audio-player {
+  width: 100%;
+  outline: none;
+  border-radius: 8px;
+}
+
+/* ================================================================
+   6. GIAO DIỆN XEM VĂN BẢN & MÃ NGUỒN (CODE VIEWER)
+================================================================ */
+.preview-text-wrapper {
+  background-color: #0b1120;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  align-items: stretch;
+}
+
+.preview-text-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background-color: #111827;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.preview-text-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.preview-text-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  padding: 3px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.preview-text-stats {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.preview-text-dirty-badge {
+  font-size: 11.5px;
+  color: #fbbf24;
+  font-weight: 600;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 2px 7px;
+  border-radius: 5px;
+  animation: pulseDirty 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseDirty {
+
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.preview-text-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-preview-text-tool {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-preview-text-tool i {
+  font-size: 15px;
+}
+
+.btn-preview-text-tool:hover {
+  background-color: #334155;
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Active (đang giữ click): lún xuống 2px + bóng nhỏ lại → cảm giác nhấn thật giống nút tải lên layout */
+.btn-preview-text-tool:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.btn-preview-text-tool.copied {
+  background-color: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  color: #34d399;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+.btn-preview-text-tool.copied:hover {
+  background-color: rgba(16, 185, 129, 0.28);
+  border-color: #34d399;
+  color: #6ee7b7;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-preview-text-tool.copied:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
+}
+
+.btn-preview-text-edit.active {
+  background: rgba(37, 99, 235, 0.22);
+  border-color: #3b82f6;
+  color: #60a5fa;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.btn-preview-text-edit.active:hover {
+  background: rgba(37, 99, 235, 0.32);
+  border-color: #60a5fa;
+  color: #93c5fd;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-preview-text-edit.active:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+
+.btn-preview-text-save {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  border: 1px solid #3b82f6;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.4);
+}
+
+.btn-preview-text-save:hover {
+  background: linear-gradient(135deg, #1e40af, #1d4ed8);
+  border-color: #60a5fa;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
+  transform: translateY(-1px);
+  color: #ffffff;
+}
+
+.btn-preview-text-save:active:not(:disabled) {
+  transform: translateY(2px) !important;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3) !important;
+}
+
+.btn-preview-text-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.preview-code-body {
+  flex: 1;
+  display: flex;
+  overflow: auto;
+  background-color: #0b1120;
+  font-family: 'Fira Code', 'Cascadia Code', Consolas, Monaco, monospace;
+  font-size: 13.5px;
+  line-height: 1.65;
+  position: relative;
+}
+
+.preview-code-lines {
+  padding: 16px 12px;
+  text-align: right;
+  color: #475569;
+  background-color: #070e1b;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  user-select: none;
+  font-size: 13px;
+  min-width: 48px;
+  overflow: hidden;
+}
+
+.preview-text-pre {
+  flex: 1;
+  margin: 0;
+  padding: 16px 20px;
+  color: #e2e8f0;
+  background: transparent;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.preview-text-pre.no-wrap {
+  white-space: pre !important;
+  overflow-x: auto;
+}
+
+.preview-text-code {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+.preview-text-editor {
+  flex: 1;
+  margin: 0;
+  padding: 16px 20px;
+  color: #e2e8f0;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre-wrap;
+  tab-size: 2;
+  overflow: auto;
+}
+
+.preview-text-editor.no-wrap {
+  white-space: pre !important;
+  overflow-x: auto;
+}
+
+/* ================================================================
+   7. BÁO LỖI KHI XEM TRƯỚC
+================================================================ */
+.preview-error-wrapper {
+  background-color: #070a13;
+}
+
+.preview-error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #f8fafc;
+  max-width: 420px;
+  padding: 32px 28px;
+  background-color: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+.preview-error-icon {
+  font-size: 48px;
+  color: #ef4444;
+  margin-bottom: 14px;
+}
+
+.preview-error-card h4 {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.preview-error-card p {
+  font-size: 13.5px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.preview-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  background-color: #334155;
+  color: #f8fafc;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: all 0.15s ease;
+}
+
+.preview-retry-btn:hover {
+  background-color: #475569;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
+}
+
+.preview-retry-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.preview-download-fallback-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  background-color: var(--primary-color, #1a66ff);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(26, 102, 255, 0.28);
+  transition: all 0.15s ease;
+}
+
+.preview-download-fallback-btn:hover {
+  background-color: var(--primary-hover, #0052cc);
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.12));
+  transform: translateY(-1px);
+}
+
+.preview-download-fallback-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Extra file icon color helpers */
+.file-txt {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.file-ppt {
+  background-color: #ffedd5;
+  color: #ea580c;
+}
+
+.file-audio {
+  background-color: #fce7f3;
+  color: #db2777;
+}
+
+.file-code {
+  background-color: #e0e7ff;
+  color: #4f46e5;
+}
+
+.file-md {
+  background-color: #ccfbf1;
+  color: #0d9488;
+}
+
+.file-default {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden !important;
 }
 
 .flex-1 {
@@ -1001,4 +2171,259 @@
   margin-right: auto;
   color: var(--primary-color);
   border-color: var(--primary-color);
+}
+
+/* ================================================================
+   QUYỀN TRUY CẬP CHUNG (GENERAL ACCESS) TRONG MODAL CHIA SẺ
+================================================================ */
+.general-access-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.general-access-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.general-access-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+}
+
+.general-access-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-top: 2px;
+}
+
+.general-access-icon-wrap i {
+  font-size: 19px;
+}
+
+/* Trạng thái Bất kỳ ai có đường liên kết (Màu xanh lá phong cách Google Drive) */
+.general-access-icon-wrap.is-public {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.general-access-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.general-access-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.general-access-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  margin-left: -8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  outline: none;
+}
+
+.general-access-trigger-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.general-access-trigger-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.general-access-caret {
+  font-size: 11px;
+  color: #475569;
+  transition: transform 0.2s ease;
+}
+
+.general-access-trigger-btn.open .general-access-caret {
+  transform: rotate(180deg);
+}
+
+/* Popover danh sách 2 chế độ (Hạn chế & Bất kỳ ai có đường liên kết) */
+.general-access-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: -8px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  min-width: 260px;
+  padding: 6px 0;
+  z-index: 100000;
+  animation: popoverFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.general-access-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 16px;
+  font-size: 14px;
+  color: #1e293b;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  user-select: none;
+}
+
+.general-access-menu-item:hover {
+  background-color: #f8fafc;
+}
+
+.general-access-check {
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.general-access-item-text {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.general-access-menu-item.selected .general-access-item-text {
+  font-weight: 500;
+}
+
+.general-access-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+  margin-top: 1px;
+}
+
+/* ================================================================
+   7. GIAO DIỆN TRANG XEM TRƯỚC TẬP TIN ĐỘC LẬP (PREVIEW ONLY MODE)
+   Ẩn hoàn toàn dashboard bên dưới khi mở qua liên kết chia sẻ tệp
+================================================================ */
+html.preview-only-mode,
+html.preview-only-mode body,
+body.preview-standalone-page {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  background-color: #070a13 !important;
+  font-family: 'Inter', sans-serif;
+}
+
+html.preview-only-mode #sidebar-container,
+html.preview-only-mode .sidebar,
+html.preview-only-mode #header-container,
+html.preview-only-mode .top-header,
+html.preview-only-mode .main-content,
+html.preview-only-mode #globalContextMenu,
+html.preview-only-mode #renameModalOverlay,
+html.preview-only-mode #shareModalOverlay,
+html.preview-only-mode #uploadModalOverlay {
+  display: none !important;
+}
+
+html.preview-only-mode .preview-modal-overlay,
+body.preview-standalone-page .preview-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  background-color: #070a13 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  animation: none !important;
+}
+
+html.preview-only-mode .preview-modal-container,
+body.preview-standalone-page .preview-modal-container {
+  width: 100% !important;
+  max-width: 1380px !important;
+  height: 100% !important;
+  max-height: calc(100vh - 32px) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 25px 70px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  background-color: #070a13 !important;
+  animation: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+html.preview-only-mode .preview-text-wrapper,
+body.preview-standalone-page .preview-text-wrapper {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+html.preview-only-mode .preview-code-body,
+body.preview-standalone-page .preview-code-body {
+  flex: 1 !important;
+  height: 100% !important;
+}
+
+@media (max-width: 768px) {
+  html.preview-only-mode .preview-modal-overlay,
+  body.preview-standalone-page .preview-modal-overlay {
+    padding: 0 !important;
+  }
+
+  html.preview-only-mode .preview-modal-container,
+  body.preview-standalone-page .preview-modal-container {
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
 }

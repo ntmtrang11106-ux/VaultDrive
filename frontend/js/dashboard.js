@@ -29,6 +29,11 @@ const API_BASE_URL = "http://localhost:8080/api";
 function checkAuth() {
   const token = localStorage.getItem("jwt_token"); // Đọc token đã lưu
   if (!token) {
+    // Nếu trong URL có token hoặc fileId để xem trước thì cho phép xem mà không bị chuyển hướng sang login
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("token") || urlParams.get("shareToken") || urlParams.get("fileId") || urlParams.get("previewFileId") || document.documentElement.classList.contains("preview-only-mode")) {
+      return null;
+    }
     // Token không tồn tại → user chưa đăng nhập hoặc đã đăng xuất
     window.location.href = "login.html"; // Chuyển về trang login
     return null;
@@ -37,7 +42,6 @@ function checkAuth() {
 }
 
 // Gọi ngay khi file được tải → bảo vệ trang dashboard
-// Nếu chưa đăng nhập, trang sẽ redirect về login ngay lập tức (trước khi render nội dung)
 checkAuth();
 
 
@@ -262,7 +266,14 @@ function setupViewToggle() {
  *   6. Lấy số lượng file được chia sẻ (hiện lên badge)
  *   7. Hiển thị thông tin user
  */
-window.initDashboardUI = function() {
+window.initDashboardUI = function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPreviewOnly = !!(urlParams.get("token") || urlParams.get("shareToken") || urlParams.get("fileId") || urlParams.get("previewFileId")) ||
+    document.documentElement.classList.contains("preview-only-mode");
+  if (isPreviewOnly) {
+    return;
+  }
+
   setupTabNavigation(); // 1a. Gắn sự kiện cho các tab
   setupViewToggle();    // 1b. Gắn sự kiện cho nút Grid/List
 
@@ -315,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * @param {number} bytes - Dung lượng tính bằng byte
  * @returns {string}      - Chuỗi định dạng đọc được
  */
-window.formatSizeGlobal = function(bytes) {
+window.formatSizeGlobal = function (bytes) {
   if (!bytes) return "0 B"; // Trả về "0 B" nếu bytes là null/undefined/0
 
   const k = 1024;                               // 1 KB = 1024 B
