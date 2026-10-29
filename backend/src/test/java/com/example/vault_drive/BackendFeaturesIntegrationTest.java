@@ -371,4 +371,102 @@ public class BackendFeaturesIntegrationTest {
         AuthResponse authResp = authService.login(loginReq);
         assertNotNull(authResp.getAccessToken());
     }
+
+    @Test
+    void test8_ZeroByteFileUpload() {
+        authenticateAs(user1);
+
+        // Upload 0-byte file
+        UploadInitRequest initReq = new UploadInitRequest("empty_file.txt", 0L, 1, null);
+        UploadSessionResponse sessionResp = uploadService.initUploadSession(user1, initReq);
+        assertNotNull(sessionResp);
+        assertEquals(0L, sessionResp.getTotalSizeBytes());
+
+        MockMultipartFile emptyChunk = new MockMultipartFile("file", "chunk0.part", "text/plain", new byte[0]);
+        UploadSessionResponse chunkResp = uploadService.uploadChunk(user1, sessionResp.getSessionId(), 0, emptyChunk);
+        assertEquals(1, chunkResp.getUploadedChunksCount());
+
+        FileItemResponse completed = uploadService.completeUploadSession(user1, sessionResp.getSessionId());
+        assertNotNull(completed);
+        assertEquals("empty_file.txt", completed.getFileName());
+        assertEquals(0L, completed.getSizeBytes());
+    }
+
+    @Test
+    void test9_FourGigabytesLimitAndRleCompression() {
+        authenticateAs(user1);
+
+        // Exceeds 4GB check
+        long over4GB = 4L * 1024 * 1024 * 1024L + 1024L;
+        UploadInitRequest overReq = new UploadInitRequest("too_large.iso", over4GB, 100, null);
+        Exception ex = assertThrows(RuntimeException.class, () -> uploadService.initUploadSession(user1, overReq));
+        assertTrue(ex.getMessage().contains("4GB"));
+
+        // Test RLE / interval compression for chunk indices (e.g. 1000 chunks)
+        java.util.Set<Integer> set1000 = new java.util.HashSet<>();
+        for (int i = 0; i < 1000; i++) set1000.add(i);
+        String compressed = UploadService.formatIndices(set1000);
+        assertEquals("0-999", compressed);
+
+        java.util.Set<Integer> parsed = UploadService.parseIndices(compressed);
+        assertEquals(1000, parsed.size());
+        assertTrue(parsed.contains(0));
+        assertTrue(parsed.contains(999));
+
+        // Test disjoint ranges
+        java.util.Set<Integer> disjoint = new java.util.HashSet<>(List.of(0, 1, 2, 5, 6, 9));
+        String disjointStr = UploadService.formatIndices(disjoint);
+        assertEquals("0-2,5-6,9", disjointStr);
+        assertEquals(disjoint, UploadService.parseIndices(disjointStr));
+    }
+
+    @Test
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    void test10_ConcurrentChunkUploadsWithoutLostProgress() throws Exception {
+        authenticateAs(user1);
+
+        int totalChunks = 8;
+        UploadInitRequest initReq = new UploadInitRequest("concurrent_file.bin", 80L, totalChunks, null);
+        UploadSessionResponse sessionResp = uploadService.initUploadSession(user1, initReq);
+        String sessionId = sessionResp.getSessionId();
+
+        // Concurrently upload 8 chunks across 8 threads
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(8);
+        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(totalChunks);
+        java.util.concurrent.atomic.AtomicInteger errorCount = new java.util.concurrent.atomic.AtomicInteger(0);
+
+        for (int i = 0; i < totalChunks; i++) {
+            final int chunkIndex = i;
+            executor.submit(() -> {
+                try {
+                    MockMultipartFile chunk = new MockMultipartFile(
+                            "file",
+                            "chunk_" + chunkIndex + ".part",
+                            "application/octet-stream",
+                            ("chunk_data_" + chunkIndex).getBytes(StandardCharsets.UTF_8)
+                    );
+                    uploadService.uploadChunk(user1, sessionId, chunkIndex, chunk);
+                } catch (Exception e) {
+                    errorCount.incrementAndGet();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await(10, java.util.concurrent.TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertEquals(0, errorCount.get(), "No errors should occur during concurrent chunk upload");
+
+        // Status check: all 8 chunks must be saved in DB
+        UploadStatusResponse status = uploadService.getSessionStatus(user1, sessionId);
+        assertEquals(8, status.getUploadedChunksCount(), "All 8 chunks must be registered in session");
+        assertTrue(status.getRemainingChunks().isEmpty(), "No remaining chunks should be left");
+
+        // Complete upload
+        FileItemResponse completed = uploadService.completeUploadSession(user1, sessionId);
+        assertNotNull(completed);
+        assertEquals("concurrent_file.bin", completed.getFileName());
+    }
 }

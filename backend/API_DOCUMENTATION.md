@@ -323,6 +323,7 @@ Quy trình Upload file dung lượng lớn (có hỗ trợ Tạm dừng / Tiếp
 ### 5.1 Khởi tạo Session Upload (`/init`)
 * **Endpoint:** `POST /api/uploads/init`
 * **Auth:** `Bearer Token`
+* **Quy mô hỗ trợ:** Tệp từ `0 B` đến tối đa `4 GB` (`4,294,967,296 bytes`).
 * **Request Body:**
   ```json
   {

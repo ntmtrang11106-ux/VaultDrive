@@ -39,7 +39,8 @@ public class UploadSession {
     @Column(name = "uploaded_chunks_count", nullable = false)
     private Integer uploadedChunksCount = 0;
 
-    @Column(name = "uploaded_chunk_indices", length = 4000)
+    @Nationalized
+    @Column(name = "uploaded_chunk_indices", columnDefinition = "NVARCHAR(MAX)")
     private String uploadedChunkIndices = "";
 
     @Enumerated(EnumType.STRING)

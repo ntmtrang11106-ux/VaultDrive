@@ -82,9 +82,12 @@ public class FileController {
                 .filename(downloadName, StandardCharsets.UTF_8)
                 .build();
 
+        long fileSize = Files.size(path);
+
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .contentLength(fileSize)
                 .body(resource);
     }
 

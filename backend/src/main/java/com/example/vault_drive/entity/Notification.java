@@ -1,6 +1,7 @@
 package com.example.vault_drive.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Nationalized;
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,10 +26,12 @@ public class Notification {
     @JoinColumn(name = "sender_id", nullable = true)
     private User sender;
 
-    @Column(nullable = false)
+    @Nationalized
+    @Column(nullable = false, columnDefinition = "NVARCHAR(255)")
     private String title;
 
-    @Column(nullable = false, length = 1000)
+    @Nationalized
+    @Column(nullable = false, length = 1000, columnDefinition = "NVARCHAR(1000)")
     private String content;
 
     @Enumerated(EnumType.STRING)

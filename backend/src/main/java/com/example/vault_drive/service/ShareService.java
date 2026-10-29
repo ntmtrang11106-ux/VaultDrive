@@ -24,11 +24,11 @@ public class ShareService {
     private final AccessControlService accessControlService;
 
     public ShareService(FileShareRepository fileShareRepository,
-                        FileItemRepository fileItemRepository,
-                        FolderRepository folderRepository,
-                        UserRepository userRepository,
-                        NotificationRepository notificationRepository,
-                        AccessControlService accessControlService) {
+            FileItemRepository fileItemRepository,
+            FolderRepository folderRepository,
+            UserRepository userRepository,
+            NotificationRepository notificationRepository,
+            AccessControlService accessControlService) {
         this.fileShareRepository = fileShareRepository;
         this.fileItemRepository = fileItemRepository;
         this.folderRepository = folderRepository;
@@ -47,7 +47,8 @@ public class ShareService {
         }
 
         User recipient = userRepository.findByEmail(request.getRecipientEmail())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với email: " + request.getRecipientEmail()));
+                .orElseThrow(() -> new RuntimeException(
+                        "Không tìm thấy người dùng với email: " + request.getRecipientEmail()));
 
         if (recipient.getId().equals(currentUser.getId())) {
             throw new RuntimeException("Bạn không thể chia sẻ dữ liệu với chính mình!");
@@ -92,7 +93,8 @@ public class ShareService {
             itemName = folderItem.getName();
         }
 
-        // Check if existing share record exists (including previously revoked ones to UPDATE instead of INSERT)
+        // Check if existing share record exists (including previously revoked ones to
+        // UPDATE instead of INSERT)
         FileShare share;
         if (hasFile) {
             Optional<FileShare> existing = fileShareRepository.findByFileAndSharedTo(fileItem, recipient);
@@ -123,16 +125,17 @@ public class ShareService {
         FileShare savedShare = fileShareRepository.save(share);
 
         // Requirement 6: Create notification for recipient
-        String senderDisplayName = currentUser.getFullName() != null && !currentUser.getFullName().isBlank() ? currentUser.getFullName() : currentUser.getEmail();
-        String title = hasFolder ? "New shared folder" : "New shared file";
-        String content = senderDisplayName + " shared " + itemName + " with you";
+        String senderDisplayName = currentUser.getFullName() != null && !currentUser.getFullName().isBlank()
+                ? currentUser.getFullName()
+                : currentUser.getEmail();
+        String title = hasFolder ? "Thư mục chia sẻ mới" : "Tệp chia sẻ mới";
+        String content = senderDisplayName + " đã chia sẻ " + itemName + " với bạn";
         Notification notification = new Notification(
                 recipient,
                 currentUser,
                 title,
                 content,
-                Notification.Type.SHARE_FILE
-        );
+                Notification.Type.SHARE_FILE);
         notificationRepository.save(notification);
 
         return new ShareResponse(savedShare);
@@ -169,7 +172,8 @@ public class ShareService {
         FileShare share = fileShareRepository.findByIdAndIsDeletedFalse(shareId)
                 .orElseThrow(() -> new RuntimeException("Bản ghi chia sẻ không tồn tại!"));
 
-        boolean isOwner = share.getFile() != null ? accessControlService.canManageSharing(currentUser, share.getFile()) : accessControlService.canManageSharing(currentUser, share.getFolder());
+        boolean isOwner = share.getFile() != null ? accessControlService.canManageSharing(currentUser, share.getFile())
+                : accessControlService.canManageSharing(currentUser, share.getFolder());
 
         if (!isOwner) {
             throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chia sẻ!");
@@ -191,7 +195,8 @@ public class ShareService {
         FileShare share = fileShareRepository.findByIdAndIsDeletedFalse(shareId)
                 .orElseThrow(() -> new RuntimeException("Bản ghi chia sẻ không tồn tại!"));
 
-        boolean isOwner = share.getFile() != null ? accessControlService.canManageSharing(currentUser, share.getFile()) : accessControlService.canManageSharing(currentUser, share.getFolder());
+        boolean isOwner = share.getFile() != null ? accessControlService.canManageSharing(currentUser, share.getFile())
+                : accessControlService.canManageSharing(currentUser, share.getFolder());
 
         if (!isOwner) {
             throw new RuntimeException("Chỉ chủ sở hữu (Owner) mới có quyền thu hồi chia sẻ này!");
@@ -208,10 +213,12 @@ public class ShareService {
         return shares.stream()
                 .filter(s -> {
                     if (s.getFile() != null) {
-                        return !Boolean.TRUE.equals(s.getFile().getIsTrashed()) && !Boolean.TRUE.equals(s.getFile().getIsDeleted());
+                        return !Boolean.TRUE.equals(s.getFile().getIsTrashed())
+                                && !Boolean.TRUE.equals(s.getFile().getIsDeleted());
                     }
                     if (s.getFolder() != null) {
-                        return !Boolean.TRUE.equals(s.getFolder().getIsTrashed()) && !Boolean.TRUE.equals(s.getFolder().getIsDeleted());
+                        return !Boolean.TRUE.equals(s.getFolder().getIsTrashed())
+                                && !Boolean.TRUE.equals(s.getFolder().getIsDeleted());
                     }
                     return false;
                 })

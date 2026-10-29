@@ -1,5 +1,6 @@
 package com.example.vault_drive.dto;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,7 +11,8 @@ public class UploadInitRequest {
     private String fileName;
 
     @NotNull(message = "Total size in bytes is required")
-    @Min(value = 1, message = "Total size must be greater than 0")
+    @Min(value = 0, message = "Total size must be greater than or equal to 0")
+    @Max(value = 4294967296L, message = "Kích thước tệp không được vượt quá 4GB")
     private Long totalSizeBytes;
 
     @NotNull(message = "Total chunks is required")

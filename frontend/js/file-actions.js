@@ -95,6 +95,22 @@ window.formatSmartDate = formatSmartDate;
 
 async function downloadItem(id, type, name) {
   if (!id) return;
+  const token = typeof checkAuth === "function" ? checkAuth() : localStorage.getItem("jwt_token");
+  const baseUrl = typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "http://localhost:8080/api";
+
+  // Stream directly via browser native download manager to avoid loading up to 4GB into browser RAM
+  if (token) {
+    const endpointPath = type === 'folder' ? `/folders/${id}/download` : `/files/${id}/download`;
+    const downloadUrl = `${baseUrl}${endpointPath}?token=${encodeURIComponent(token)}`;
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    if (name) a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
+  }
+
   const endpoint = type === 'folder' ? `/folders/${id}/download` : `/files/${id}/download`;
   try {
     const response = await fetchWithAuth(endpoint);
@@ -377,12 +393,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof clearShareError === "function") clearShareError();
     const emailInput = document.getElementById("shareEmailInput");
     if (emailInput) emailInput.value = "";
-    
+
     // Khóa vùng nhập nếu người dùng chỉ có quyền VIEWER
     const shareRoleSelect = document.getElementById("shareRoleSelect");
     const addShareUserBtn = document.getElementById("addShareUserBtn");
     const isViewer = window.currentTargetPermission === "VIEWER" || window.currentTargetPermission === "VIEW";
-    
+
     if (emailInput) {
       emailInput.disabled = isViewer;
       emailInput.placeholder = isViewer ? "Bạn không có quyền chia sẻ" : "Thêm người bằng email...";
@@ -679,7 +695,7 @@ function renderFolders(folders, viewType = "home") {
 
     const folderCard = document.createElement("div");
     folderCard.className = "folder-card";
-    
+
     // Lưu ID thư mục để xử lý sự kiện click sau này (Hỗ trợ cả object shared)
     const folderId = folder.folderId || folder.id;
     folderCard.dataset.id = folderId;
@@ -810,7 +826,7 @@ function renderFiles(files, viewType = "home") {
   files.forEach((file) => {
     const fileCard = document.createElement("div");
     fileCard.className = "file-card";
-    
+
     // Lưu ID tệp tin để xử lý sự kiện (Hỗ trợ object shared)
     const fileId = file.fileId || file.id;
     fileCard.dataset.id = fileId;
@@ -1131,9 +1147,17 @@ function setupDragAndDrop() {
           } else if (entry.isDirectory) {
             detectedFolder = true;
             const dirReader = entry.createReader();
-            const entries = await new Promise((resolve) => {
-              dirReader.readEntries((res) => resolve(res));
-            });
+            const readAllEntries = async () => {
+              const allEntries = [];
+              const readBatch = () => new Promise((resolve) => dirReader.readEntries((res) => resolve(res || [])));
+              let batch = await readBatch();
+              while (batch && batch.length > 0) {
+                allEntries.push(...batch);
+                batch = await readBatch();
+              }
+              return allEntries;
+            };
+            const entries = await readAllEntries();
             for (const child of entries) {
               await processEntry(child, path + entry.name + "/");
             }
@@ -1239,9 +1263,31 @@ function setupDragAndDrop() {
   }
   window.processUploadedFileToFolder = processUploadedFileToFolder;
 
+  const MAX_ALLOWED_FILE_SIZE = 4 * 1024 * 1024 * 1024; // 4GB
+
+  function getOptimalChunkSize(fileSize) {
+    if (fileSize <= 50 * 1024 * 1024) {
+      return 5 * 1024 * 1024; // 5MB cho tệp nhỏ
+    } else {
+      return 10 * 1024 * 1024; // 10MB cho tệp lớn đến 4GB để tối ưu throughput và số lượng request
+    }
+  }
+
   function handleFiles(files) {
+    console.log("👉 Đã chọn file thành công:", files);
     if (files.length > 0) {
-      console.log(`Bắt đầu xử lý tải lên ${files.length} mục.`);
+      const validFiles = [];
+      Array.from(files).forEach((file) => {
+        if (file.size > MAX_ALLOWED_FILE_SIZE) {
+          alert(`Tệp "${file.name}" (${formatSize(file.size)}) vượt quá giới hạn tối đa cho phép là 4GB! Vui lòng chọn tệp nhỏ hơn.`);
+        } else {
+          validFiles.push(file);
+        }
+      });
+
+      if (validFiles.length === 0) return;
+
+      console.log(`Bắt đầu xử lý tải lên ${validFiles.length} mục hợp lệ.`);
 
       if (!window.uploadGlobalState) {
         window.uploadGlobalState = {
@@ -1255,7 +1301,7 @@ function setupDragAndDrop() {
       const folderGroupsMap = new Map();
       const standaloneFiles = [];
 
-      Array.from(files).forEach((file) => {
+      validFiles.forEach((file) => {
         const relPath = file.relativePath || file.webkitRelativePath || "";
         if (relPath && relPath.includes("/")) {
           const topFolderName = relPath.split("/")[0].trim();
@@ -1296,18 +1342,58 @@ function setupDragAndDrop() {
   }
 
   /**
+   * parseIndicesArrayOrString - Tiện ích chuyển đổi dải chunk từ backend sang Set<number>
+   * Hỗ trợ cả định dạng Array [0, 1, 2] và String "0-3,5"
+   */
+  function parseIndicesArrayOrString(data) {
+    const result = new Set();
+    if (!data) return result;
+    if (Array.isArray(data)) {
+      data.forEach((x) => {
+        const num = Number(x);
+        if (!isNaN(num)) result.add(num);
+      });
+      return result;
+    }
+    if (typeof data === "string") {
+      const parts = data.split(",");
+      for (let part of parts) {
+        part = part.trim();
+        if (!part) continue;
+        const dashIdx = part.indexOf("-");
+        if (dashIdx > 0) {
+          const s = parseInt(part.substring(0, dashIdx), 10);
+          const e = parseInt(part.substring(dashIdx + 1), 10);
+          if (!isNaN(s) && !isNaN(e)) {
+            for (let i = s; i <= e; i++) result.add(i);
+          }
+        } else {
+          const n = parseInt(part, 10);
+          if (!isNaN(n)) result.add(n);
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
    * uploadFolderWithProgress(group) - Upload một nhóm file (trong cùng thư mục)
    * Hiển thị 1 card UI cho cả nhóm, tải tối đa 3 file song song (MAX_CONCURRENT_FILES)
    * Hỗ trợ: Tạm dừng, Hủy, Retry từng file, cập nhật tiến trình theo thời gian thực
    * @param {object} group - { folderName, files: [], totalSize }
    */
   async function uploadFolderWithProgress(group) {
-    // Lấy JWT token để xác thực API
+    // Lấy JWT token để xác thực API (hỗ trợ cả 2 key token và jwt_token)
     const token =
-      typeof checkAuth === "function"
-        ? checkAuth()                                // Ưu tiên dùng hàm checkAuth của dashboard.js
-        : localStorage.getItem("jwt_token");         // Fallback đọc thẳng từ localStorage
-    if (!token) return;
+      (typeof checkAuth === "function" ? checkAuth() : null) ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("jwt_token");
+
+    if (!token) {
+      console.error("❌ Không tìm thấy Token hợp lệ để upload folder!");
+      alert("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+      return;
+    }
 
     const listSection = document.querySelector(".upload-list-section"); // Container danh sách upload
     if (!listSection) return;
@@ -1421,10 +1507,17 @@ function setupDragAndDrop() {
 
         if (queue.length === 0 && activeFiles === 0) {
           if (!isCancelled) {
-            percentEl.textContent = "Hoàn thành";
-            percentEl.style.color = "#16a34a";
-            barEl.style.backgroundColor = "#16a34a";
-            metaEl.innerHTML = `${completedFilesCount} / ${group.files.length} tệp &middot; ${formatSize(group.totalSize)} &middot; <span style="color:#16a34a">Xong</span>`;
+            if (failedFilesCount > 0) {
+              percentEl.textContent = `Lỗi (${failedFilesCount} tệp)`;
+              percentEl.style.color = "#ef4444";
+              barEl.style.backgroundColor = "#ef4444";
+              metaEl.innerHTML = `${completedFilesCount}/${group.files.length} tệp &middot; <span style="color:#ef4444">${failedFilesCount} tệp lỗi</span>`;
+            } else {
+              percentEl.textContent = "Hoàn thành";
+              percentEl.style.color = "#16a34a";
+              barEl.style.backgroundColor = "#16a34a";
+              metaEl.innerHTML = `${completedFilesCount} / ${group.files.length} tệp &middot; ${formatSize(group.totalSize)} &middot; <span style="color:#16a34a">Xong</span>`;
+            }
             pauseBtn.style.display = "none";
 
             if (window.uploadGlobalState) {
@@ -1487,32 +1580,33 @@ function setupDragAndDrop() {
   }
 
   /**
-   * uploadSingleFileInFolder() - Upload 1 file đơn (thuộc nhóm folder) theo giao thức Chunked Upload:
-   *   1. POST /uploads/init → lấy sessionId
-   *   2. Chia file thành chunks 5MB
-   *   3. POST /uploads/{sessionId}/chunk (từng chunk một, hỗ trợ pause/cancel)
-   *   4. POST /uploads/{sessionId}/complete → server ghép lại
-   * @returns {boolean} true nếu upload thành công, false nếu lỗi
+   * uploadSingleFileInFolder() - Upload 1 file đơn (thuộc nhóm folder) theo giao thức Chunked Upload
+   * Hỗ trợ tệp lớn đến 4GB, tự động retry chunk và báo cáo tiến trình
    */
   async function uploadSingleFileInFolder(
     file,               // File object
     baseUrl,            // URL gốc API
     token,              // JWT token
-    fileUploadedBytesMap, // Map lưu bytes đã tải của từng file (để cập nhật UI folder)
+    fileUploadedBytesMap, // Map lưu bytes đã tải của từng file
     onProgress,         // Callback cập nhật UI tiến trình folder
-    getIsPaused,        // Hàm trả về trạng thái tạm dừng (closure)
-    getIsCancelled      // Hàm trả về trạng thái hủy (closure)
+    getIsPaused,        // Hàm trả về trạng thái tạm dừng
+    getIsCancelled      // Hàm trả về trạng thái hủy
   ) {
     try {
-      // Xác định ID thư mục đích (backend sẽ tạo folder nếu chưa có)
+      if (file.size > MAX_ALLOWED_FILE_SIZE) {
+        console.error("Tệp vượt quá 4GB:", file.name);
+        return false;
+      }
+
+      // Xác định ID thư mục đích
       const relPath = file.relativePath || file.webkitRelativePath;
       let targetFolderId = window.currentFolderId || null;
       if (relPath && relPath.includes("/")) {
-        targetFolderId = await getOrCreateFolderIdOnBackend(relPath); // Tạo/lấy folder ID trên backend
+        targetFolderId = await getOrCreateFolderIdOnBackend(relPath);
       }
 
-      const CHUNK_SIZE = 5 * 1024 * 1024; // Mỗi chunk = 5MB
-      const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE)); // Số lượng chunk cần tải
+      const CHUNK_SIZE = getOptimalChunkSize(file.size);
+      const totalChunks = file.size === 0 ? 1 : Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
 
       const initResponse = await fetch(`${baseUrl}/uploads/init`, {
         method: "POST",
@@ -1529,6 +1623,11 @@ function setupDragAndDrop() {
       });
 
       if (!initResponse.ok) {
+        if (initResponse.status === 401 || initResponse.status === 403) {
+          localStorage.removeItem("jwt_token");
+          localStorage.removeItem("token");
+          window.location.href = "login.html";
+        }
         console.error("Không thể khởi tạo phiên tải lên cho:", file.name);
         return false;
       }
@@ -1536,74 +1635,127 @@ function setupDragAndDrop() {
       const initData = await initResponse.json();
       const sessionId = initData.sessionId;
 
-      let uploadedChunks = 0;
-      fileUploadedBytesMap.set(file, 0);
+      const uploadedChunkIndices = parseIndicesArrayOrString(initData.uploadedChunkIndices);
 
-      if (file.size === 0) {
-        const formData = new FormData();
-        formData.append("file", new Blob([]), file.name);
-        formData.append("chunkIndex", 0);
-
-        await fetch(`${baseUrl}/uploads/${sessionId}/chunk`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-
-        fileUploadedBytesMap.set(file, 0);
+      let initialUploaded = 0;
+      uploadedChunkIndices.forEach((idx) => {
+        const s = idx * CHUNK_SIZE;
+        const e = file.size === 0 ? 0 : Math.min(s + CHUNK_SIZE, file.size);
+        initialUploaded += (e - s);
+      });
+      fileUploadedBytesMap.set(file, initialUploaded);
+      if (initialUploaded > 0) {
+        if (window.uploadGlobalState) {
+          window.uploadGlobalState.uploadedSize += initialUploaded;
+          if (typeof window.updateMinimizedUploadUI === "function") {
+            window.updateMinimizedUploadUI();
+          }
+        }
         onProgress();
-      } else {
-        for (let i = 0; i < totalChunks; i++) {
+      }
+
+      const MAX_CHUNK_RETRIES = 5;
+
+      for (let i = 0; i < totalChunks; i++) {
+        if (uploadedChunkIndices.has(i)) {
+          continue; // Khôi phục từ phiên trước, bỏ qua
+        }
+        if (getIsCancelled()) return false;
+
+        while (getIsPaused()) {
+          await new Promise((r) => setTimeout(r, 400));
+          if (getIsCancelled()) return false;
+        }
+
+        const start = i * CHUNK_SIZE;
+        const end = file.size === 0 ? 0 : Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.size === 0 ? new Blob([], { type: "application/octet-stream" }) : file.slice(start, end);
+
+        let success = false;
+        let lastError = null;
+
+        for (let attempt = 0; attempt <= MAX_CHUNK_RETRIES; attempt++) {
           if (getIsCancelled()) return false;
 
-          while (getIsPaused()) {
-            await new Promise((r) => setTimeout(r, 400));
-            if (getIsCancelled()) return false;
-          }
+          try {
+            const formData = new FormData();
+            formData.append("file", chunk, `chunk_${i}.part`);
+            formData.append("chunkIndex", i);
 
-          const start = i * CHUNK_SIZE;
-          const end = Math.min(start + CHUNK_SIZE, file.size);
-          const chunk = file.slice(start, end);
+            const response = await fetch(`${baseUrl}/uploads/${sessionId}/chunk`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            });
 
-          const formData = new FormData();
-          formData.append("file", chunk, file.name);
-          formData.append("chunkIndex", i);
-
-          const response = await fetch(`${baseUrl}/uploads/${sessionId}/chunk`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData,
-          });
-
-          if (!response.ok) {
-            console.error(`Lỗi upload chunk ${i} của file ${file.name}`);
-            return false;
-          }
-
-          uploadedChunks++;
-          const currentUploaded = Math.min(uploadedChunks * CHUNK_SIZE, file.size);
-          const prevUploaded = fileUploadedBytesMap.get(file) || 0;
-          const delta = currentUploaded - prevUploaded;
-
-          fileUploadedBytesMap.set(file, currentUploaded);
-
-          if (window.uploadGlobalState) {
-            window.uploadGlobalState.uploadedSize += delta;
-            if (typeof window.updateMinimizedUploadUI === "function") {
-              window.updateMinimizedUploadUI();
+            if (response.ok) {
+              success = true;
+              break;
+            } else {
+              if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem("jwt_token");
+                localStorage.removeItem("token");
+                window.location.href = "login.html";
+                return false;
+              }
+              lastError = new Error(`HTTP ${response.status}`);
             }
+          } catch (err) {
+            lastError = err;
           }
 
-          onProgress();
+          if (attempt < MAX_CHUNK_RETRIES) {
+            await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, Math.min(attempt, 3))));
+          }
+        }
+
+        if (!success) {
+          console.error(`Lỗi tải chunk ${i} của file ${file.name}:`, lastError);
+          return false;
+        }
+
+        uploadedChunkIndices.add(i);
+
+        let currentUploaded = 0;
+        uploadedChunkIndices.forEach((idx) => {
+          const s = idx * CHUNK_SIZE;
+          const e = file.size === 0 ? 0 : Math.min(s + CHUNK_SIZE, file.size);
+          currentUploaded += (e - s);
+        });
+        const prevUploaded = fileUploadedBytesMap.get(file) || 0;
+        const delta = currentUploaded - prevUploaded;
+        fileUploadedBytesMap.set(file, currentUploaded);
+
+        if (window.uploadGlobalState) {
+          window.uploadGlobalState.uploadedSize += delta;
+          if (typeof window.updateMinimizedUploadUI === "function") {
+            window.updateMinimizedUploadUI();
+          }
+        }
+
+        onProgress();
+      }
+
+      let completeSuccess = false;
+      for (let completeAttempt = 1; completeAttempt <= 3; completeAttempt++) {
+        try {
+          const completeRes = await fetch(`${baseUrl}/uploads/${sessionId}/complete`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (completeRes.ok) {
+            completeSuccess = true;
+            break;
+          }
+        } catch (cErr) {
+          console.warn(`Thử ghép file ${file.name} lần ${completeAttempt} lỗi:`, cErr);
+        }
+        if (completeAttempt < 3) {
+          await new Promise((r) => setTimeout(r, 1500 * completeAttempt));
         }
       }
 
-      const completeRes = await fetch(`${baseUrl}/uploads/${sessionId}/complete`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!completeRes.ok) {
+      if (!completeSuccess) {
         console.error("Lỗi complete cho file:", file.name);
         return false;
       }
@@ -1615,6 +1767,26 @@ function setupDragAndDrop() {
     }
   }
 
+  const MAX_ACTIVE_STANDALONE_UPLOADS = 2;
+  let currentActiveStandaloneUploads = 0;
+  const standaloneUploadQueue = [];
+
+  function acquireStandaloneUploadSlot() {
+    if (currentActiveStandaloneUploads < MAX_ACTIVE_STANDALONE_UPLOADS) {
+      currentActiveStandaloneUploads++;
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => standaloneUploadQueue.push(resolve));
+  }
+
+  function releaseStandaloneUploadSlot() {
+    currentActiveStandaloneUploads = Math.max(0, currentActiveStandaloneUploads - 1);
+    if (standaloneUploadQueue.length > 0) {
+      currentActiveStandaloneUploads++;
+      const nextResolve = standaloneUploadQueue.shift();
+      nextResolve();
+    }
+  }
 
   async function uploadFileWithProgress(file) {
     const token =
@@ -1623,17 +1795,13 @@ function setupDragAndDrop() {
         : localStorage.getItem("jwt_token");
     if (!token) return;
 
-    // --- KHỞI TẠO GIAO DIỆN UI CHO FILE ĐANG TẢI ---
+    if (file.size > MAX_ALLOWED_FILE_SIZE) {
+      alert(`Tệp "${file.name}" (${formatSize(file.size)}) vượt quá giới hạn tối đa cho phép là 4GB!`);
+      return;
+    }
+
     const listSection = document.querySelector(".upload-list-section");
     if (!listSection) return;
-
-    const formatSize = (bytes) => {
-      if (!bytes) return "0 B";
-      const k = 1024;
-      const sizes = ["B", "KB", "MB", "GB", "TB"];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-    };
 
     const template = document.getElementById("upload-item-template");
     let itemCard;
@@ -1661,9 +1829,8 @@ function setupDragAndDrop() {
       }
 
       itemCard.querySelector(".item-meta").innerHTML =
-        `0 B / ${formatSize(file.size)} &middot; <span class="text-blue thread-count">Chờ...</span>`;
+        `0 B / ${formatSize(file.size)} &middot; <span class="text-blue thread-count">Đang chờ lượt...</span>`;
       listSection.appendChild(itemCard);
-      // Lấy reference lại vì lúc clone Node chưa nằm trên DOM
       itemCard = listSection.lastElementChild;
     } else {
       console.error("Không tìm thấy template HTML!");
@@ -1673,32 +1840,138 @@ function setupDragAndDrop() {
     const percentEl = itemCard.querySelector(".item-percent");
     const barEl = itemCard.querySelector(".progress-bar");
     const metaEl = itemCard.querySelector(".item-meta");
+    let retryBtn = itemCard.querySelector(".retry-btn");
+    if (!retryBtn) {
+      const actionsContainer = itemCard.querySelector(".item-actions");
+      if (actionsContainer) {
+        retryBtn = document.createElement("button");
+        retryBtn.className = "retry-btn";
+        retryBtn.title = "Thử lại";
+        retryBtn.style.display = "none";
+        retryBtn.style.color = "#0284c7";
+        retryBtn.innerHTML = '<i class="ph-bold ph-arrow-clockwise"></i>';
+        actionsContainer.insertBefore(retryBtn, actionsContainer.firstChild);
+      }
+    }
     const pauseBtn = itemCard.querySelector(".pause-btn");
     const cancelBtn = itemCard.querySelector(".cancel-btn");
 
-    // --- LOGIC TẢI LÊN ---
     const baseUrl =
       typeof API_BASE_URL !== "undefined"
         ? API_BASE_URL
         : "http://localhost:8080/api";
-    const CHUNK_SIZE = 5 * 1024 * 1024;
-    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-    const maxConcurrent = 3;
-    const fileIdentifier = `${file.name}-${file.size}-${file.lastModified}`;
+    const CHUNK_SIZE = getOptimalChunkSize(file.size);
+    const totalChunks = file.size === 0 ? 1 : Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+    const maxConcurrent = 2; // 2 luồng tải chunk song song cho mỗi tệp
 
-    let uploadedChunks = 0;
     let hasError = false;
     let isPaused = false;
     let isCancelled = false;
     let activeThreadsCount = 0;
+    let retryingCount = 0;
+    let isCompleting = false;
     let sessionId = null;
+    let slotAcquired = false;
+
+    async function ensureSlotAcquired() {
+      if (!slotAcquired) {
+        await acquireStandaloneUploadSlot();
+        slotAcquired = true;
+      }
+    }
+
+    function ensureSlotReleased() {
+      if (slotAcquired) {
+        slotAcquired = false;
+        releaseStandaloneUploadSlot();
+      }
+    }
 
     const chunksToUpload = Array.from({ length: totalChunks }, (_, i) => i);
+    const uploadedIndices = new Set();
+    const failedChunks = new Set();
+    const chunkRetryCount = new Map();
+    const MAX_CHUNK_RETRIES = 5;
+
+    let prevUploadedBytes = 0;
+
+    function updateProgressUI(statusText, isError = false) {
+      if (isCancelled) return;
+      try {
+        let uploadedBytes = 0;
+        uploadedIndices.forEach((idx) => {
+          const s = idx * CHUNK_SIZE;
+          const e = file.size === 0 ? 0 : Math.min(s + CHUNK_SIZE, file.size);
+          uploadedBytes += (e - s);
+        });
+
+        const percentComplete = file.size === 0 ? 100 : Math.min(100, Math.round((uploadedBytes / file.size) * 100));
+        percentEl.textContent = `${percentComplete}%`;
+        barEl.style.width = `${percentComplete}%`;
+
+        if (!isError) {
+          percentEl.style.color = "";
+          barEl.style.backgroundColor = "";
+          const defaultMsg = activeThreadsCount > 0 ? `${activeThreadsCount} luồng` : `Đang tải...`;
+          metaEl.innerHTML = `${formatSize(uploadedBytes)} / ${formatSize(file.size)} &middot; <span class="text-blue">${statusText || defaultMsg}</span>`;
+        }
+
+        const delta = uploadedBytes - prevUploadedBytes;
+        if (delta > 0) {
+          prevUploadedBytes = uploadedBytes;
+          if (window.uploadGlobalState) {
+            window.uploadGlobalState.uploadedSize += delta;
+            if (typeof window.updateMinimizedUploadUI === "function") {
+              window.updateMinimizedUploadUI();
+            }
+          }
+        }
+      } catch (uiErr) {
+        console.warn("Lỗi updateProgressUI:", uiErr);
+      }
+    }
+
+    // Xử lý nút Thử lại (Retry)
+    if (retryBtn) {
+      retryBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        if (isCancelled) return;
+
+        retryBtn.style.display = "none";
+        if (pauseBtn) pauseBtn.style.display = "inline-flex";
+        hasError = false;
+
+        await ensureSlotAcquired();
+
+        if (!sessionId) {
+          updateProgressUI("Đang kết nối lại máy chủ...");
+          await runInitAndStart();
+          return;
+        }
+
+        if (uploadedIndices.size === totalChunks) {
+          updateProgressUI("Đang thử lại ghép tệp...");
+          await finalizeUpload();
+          return;
+        }
+
+        if (failedChunks.size > 0) {
+          failedChunks.forEach((idx) => {
+            chunksToUpload.push(idx);
+            chunkRetryCount.set(idx, 0);
+          });
+          failedChunks.clear();
+        }
+
+        updateProgressUI("Đang tiếp tục tải các phần còn lại...");
+        await startWorkers();
+      });
+    }
 
     // Xử lý nút Tạm dừng
     pauseBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      if (isCancelled || uploadedChunks === totalChunks || !sessionId) return;
+      if (isCancelled || uploadedIndices.size === totalChunks || !sessionId) return;
       isPaused = !isPaused;
 
       const icon = pauseBtn.querySelector("i");
@@ -1710,11 +1983,12 @@ function setupDragAndDrop() {
         barEl.classList.remove("bg-blue");
         barEl.classList.add("bg-warning");
 
-        // Gọi API Pause
         try {
-          await fetch(`${baseUrl}/uploads/${sessionId}/pause`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-        } catch (e) { }
-
+          await fetch(`${baseUrl}/uploads/${sessionId}/pause`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } catch (_) { }
       } else {
         icon.classList.remove("ph-play-circle");
         icon.classList.add("ph-pause-circle");
@@ -1723,18 +1997,27 @@ function setupDragAndDrop() {
         barEl.classList.remove("bg-warning");
         barEl.classList.add("bg-blue");
 
-        // Gọi API Resume
         try {
-          await fetch(`${baseUrl}/uploads/${sessionId}/resume`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-        } catch (e) { }
+          const res = await fetch(`${baseUrl}/uploads/${sessionId}/resume`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.remainingChunks && Array.isArray(data.remainingChunks)) {
+              chunksToUpload.length = 0;
+              data.remainingChunks.forEach((idx) => {
+                if (!uploadedIndices.has(idx)) {
+                  chunksToUpload.push(idx);
+                }
+              });
+            }
+          }
+        } catch (_) { }
 
-        // Kích hoạt lại luồng
-        const threadsToStart = Math.min(
-          maxConcurrent - activeThreadsCount,
-          chunksToUpload.length,
-        );
-        for (let i = 0; i < threadsToStart; i++) {
-          uploadNextChunk();
+        isPaused = false;
+        if (activeThreadsCount === 0) {
+          startWorkers();
         }
       }
     });
@@ -1744,150 +2027,311 @@ function setupDragAndDrop() {
       e.preventDefault();
       isCancelled = true;
       hasError = true;
-      itemCard.remove(); // Xóa khỏi giao diện
+      ensureSlotReleased();
+      itemCard.remove();
 
       if (sessionId) {
         try {
-          await fetch(`${baseUrl}/uploads/${sessionId}/cancel`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-        } catch (e) { }
+          await fetch(`${baseUrl}/uploads/${sessionId}/cancel`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } catch (_) { }
       }
     });
 
-    async function uploadNextChunk() {
-      if (hasError || isPaused || isCancelled || chunksToUpload.length === 0 || !sessionId)
-        return;
-
-      activeThreadsCount++;
-      const chunkIndex = chunksToUpload.shift();
+    async function uploadSingleChunk(chunkIndex) {
       const start = chunkIndex * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunk = file.slice(start, end);
+      const end = file.size === 0 ? 0 : Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.size === 0 ? new Blob([], { type: "application/octet-stream" }) : file.slice(start, end);
 
       const formData = new FormData();
-      formData.append("file", chunk, file.name);
+      formData.append("file", chunk, `chunk_${chunkIndex}.part`);
       formData.append("chunkIndex", chunkIndex);
 
+      const response = await fetch(`${baseUrl}/uploads/${sessionId}/chunk`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("jwt_token");
+          localStorage.removeItem("token");
+          window.location.href = "login.html";
+        }
+        let errorMsg = `Lỗi tải chunk ${chunkIndex + 1} (HTTP ${response.status})`;
+        try {
+          const errData = await response.json();
+          if (errData && errData.message) errorMsg = errData.message;
+        } catch (_) { }
+        throw new Error(errorMsg);
+      }
+
+      return await response.json();
+    }
+
+    async function runWorker() {
+      while (!hasError && !isCancelled) {
+        if (isPaused) {
+          await new Promise((r) => setTimeout(r, 300));
+          continue;
+        }
+
+        if (uploadedIndices.size === totalChunks) {
+          break;
+        }
+
+        if (chunksToUpload.length === 0) {
+          if (activeThreadsCount > 0 || retryingCount > 0) {
+            await new Promise((r) => setTimeout(r, 150));
+            continue;
+          }
+          break;
+        }
+
+        const chunkIndex = chunksToUpload.shift();
+        if (chunkIndex === undefined) {
+          continue;
+        }
+        activeThreadsCount++;
+        failedChunks.delete(chunkIndex);
+
+        try {
+          await uploadSingleChunk(chunkIndex);
+          if (isCancelled) return;
+
+          uploadedIndices.add(chunkIndex);
+          updateProgressUI();
+        } catch (err) {
+          if (isCancelled) return;
+
+          const retries = chunkRetryCount.get(chunkIndex) || 0;
+          if (retries < MAX_CHUNK_RETRIES) {
+            chunkRetryCount.set(chunkIndex, retries + 1);
+            console.warn(`Thử lại chunk ${chunkIndex + 1}/${totalChunks} (lần ${retries + 1}/${MAX_CHUNK_RETRIES}) do:`, err.message);
+            retryingCount++;
+            setTimeout(() => {
+              retryingCount--;
+              if (!hasError && !isCancelled) {
+                chunksToUpload.unshift(chunkIndex);
+              }
+            }, 1000 * Math.pow(2, Math.min(retries, 3)));
+          } else {
+            console.error(`Chunk ${chunkIndex + 1} tạm thời thất bại sau ${MAX_CHUNK_RETRIES} lần thử lại:`, err);
+            // CÔ LẬP LỖI: Không gán hasError = true để các worker khác vẫn tiếp tục tải nốt các phần khác!
+            failedChunks.add(chunkIndex);
+          }
+        } finally {
+          activeThreadsCount--;
+        }
+      }
+    }
+
+    async function finalizeUpload() {
+      percentEl.textContent = "Đang xử lý...";
+      percentEl.style.color = "#0284c7";
+      barEl.style.backgroundColor = "#0284c7";
+      metaEl.innerHTML = `${formatSize(file.size)} / ${formatSize(file.size)} &middot; <span class="text-blue">Máy chủ đang ghép tệp...</span>`;
+      if (retryBtn) retryBtn.style.display = "none";
+      if (pauseBtn) pauseBtn.style.display = "none";
+
       try {
-        const response = await fetch(`${baseUrl}/uploads/${sessionId}/chunk`, {
+        const completeRes = await fetch(`${baseUrl}/uploads/${sessionId}/complete`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
+          headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (!response.ok) throw new Error(`Lỗi upload phần ${chunkIndex + 1}`);
+        if (!completeRes.ok) {
+          let msg = "Lỗi khi ghép tệp trên máy chủ";
+          try {
+            const errJson = await completeRes.json();
+            if (errJson && errJson.message) msg = errJson.message;
+          } catch (_) { }
+          throw new Error(msg);
+        }
 
-        activeThreadsCount--;
-        if (isCancelled) return;
+        percentEl.textContent = "Hoàn thành";
+        percentEl.style.color = "#16a34a";
+        barEl.style.backgroundColor = "#16a34a";
+        metaEl.innerHTML = `${formatSize(file.size)} / ${formatSize(file.size)} &middot; <span style="color:#16a34a">Xong</span>`;
 
-        uploadedChunks++;
+        if (pauseBtn) pauseBtn.style.display = "none";
+        if (retryBtn) retryBtn.style.display = "none";
 
-        // Cập nhật global state
-        const chunkSizeUploaded = chunk.size;
+        ensureSlotReleased();
+
         if (window.uploadGlobalState) {
-          window.uploadGlobalState.uploadedSize += chunkSizeUploaded;
+          window.uploadGlobalState.completedFiles++;
           if (typeof window.updateMinimizedUploadUI === "function") {
             window.updateMinimizedUploadUI();
           }
         }
 
-        const percentComplete = Math.round(
-          (uploadedChunks / totalChunks) * 100,
-        );
-
-        // Cập nhật UI
-        percentEl.textContent = `${percentComplete}%`;
-        barEl.style.width = `${percentComplete}%`;
-        const uploadedSize = Math.min(uploadedChunks * CHUNK_SIZE, file.size);
-        metaEl.innerHTML = `${formatSize(uploadedSize)} / ${formatSize(file.size)} &middot; <span class="text-blue">${activeThreadsCount} luồng</span>`;
-
-        // Kiểm tra hoàn thành
-        if (uploadedChunks === totalChunks) {
-          try {
-            await fetch(`${baseUrl}/uploads/${sessionId}/complete`, {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token}` }
-            });
-          } catch (e) {
-            console.error("Lỗi khi complete file", e);
-          }
-
-          percentEl.textContent = "Hoàn thành";
-          percentEl.style.color = "#16a34a"; // Xanh lá
-          barEl.style.backgroundColor = "#16a34a";
-          metaEl.innerHTML = `${formatSize(file.size)} / ${formatSize(file.size)} &middot; <span style="color:#16a34a">Xong</span>`;
-
-          pauseBtn.style.display = "none"; // Ẩn nút pause
-
-          if (window.uploadGlobalState) {
-            window.uploadGlobalState.completedFiles++;
-            if (typeof window.updateMinimizedUploadUI === "function") {
-              window.updateMinimizedUploadUI();
-            }
-          }
-
-          if (typeof loadDashboardData === "function") {
-            loadDashboardData(window.currentViewType || "home");
-          }
-          if (typeof window.renderStorageInfo === "function") {
-            window.renderStorageInfo();
-          }
-          if (typeof fetchNotifications === "function") {
-            fetchNotifications();
-          }
-        } else {
-          // Tải chunk tiếp theo
-          uploadNextChunk();
+        if (typeof loadDashboardData === "function") {
+          loadDashboardData(window.currentViewType || "home");
+        }
+        if (typeof window.renderStorageInfo === "function") {
+          window.renderStorageInfo();
+        }
+        if (typeof fetchNotifications === "function") {
+          fetchNotifications();
         }
       } catch (err) {
-        activeThreadsCount--;
-        if (!isCancelled) {
-          console.error(err);
-          hasError = true;
-          percentEl.textContent = "Lỗi tải lên";
-          percentEl.style.color = "#ef4444";
-          barEl.style.backgroundColor = "#ef4444";
+        console.error("Lỗi finalizeUpload:", err);
+        ensureSlotReleased();
+        isCompleting = false;
+        hasError = true;
+        percentEl.textContent = "Lỗi ghép tệp";
+        percentEl.style.color = "#ef4444";
+        barEl.style.backgroundColor = "#ef4444";
+        metaEl.innerHTML = `<span style="color:#ef4444">${err.message || "Lỗi khi ghép tệp"}</span> &middot; <a href="javascript:void(0)" class="text-blue" style="text-decoration:underline;cursor:pointer;">Thử lại</a>`;
+        if (retryBtn) retryBtn.style.display = "inline-flex";
+
+        const retryLink = metaEl.querySelector("a");
+        if (retryLink) {
+          retryLink.onclick = async (e) => {
+            e.preventDefault();
+            await ensureSlotAcquired();
+            finalizeUpload();
+          };
         }
       }
     }
 
-    try {
-      let targetFolderId = window.currentFolderId || null;
-      const relPath = file.relativePath || file.webkitRelativePath;
-      if (relPath && relPath.includes("/")) {
-        targetFolderId = await getOrCreateFolderIdOnBackend(relPath);
+    async function startWorkers() {
+      if (retryBtn) retryBtn.style.display = "none";
+      if (pauseBtn) pauseBtn.style.display = "inline-flex";
+      hasError = false;
+
+      const concurrency = Math.min(maxConcurrent, Math.max(1, chunksToUpload.length));
+      const workerPromises = [];
+      for (let i = 0; i < concurrency; i++) {
+        workerPromises.push(runWorker());
+      }
+      await Promise.all(workerPromises);
+
+      if (isCancelled) return;
+
+      if (failedChunks.size > 0) {
+        hasError = true;
+        ensureSlotReleased();
+        percentEl.textContent = "Chờ thử lại";
+        percentEl.style.color = "#f59e0b";
+        barEl.style.backgroundColor = "#f59e0b";
+        metaEl.innerHTML = `${formatSize(prevUploadedBytes)} / ${formatSize(file.size)} &middot; <span style="color:#f59e0b">${failedChunks.size} phần bị gián đoạn mạng. Nhấn nút để thử lại.</span>`;
+        if (retryBtn) retryBtn.style.display = "inline-flex";
+        if (pauseBtn) pauseBtn.style.display = "none";
+        return;
       }
 
-      // Init Upload
-      const initResponse = await fetch(`${baseUrl}/uploads/init`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          totalSizeBytes: file.size,
-          totalChunks: totalChunks,
-          targetFolderId: targetFolderId
-        })
-      });
-
-      if (!initResponse.ok) throw new Error("Không thể khởi tạo phiên tải lên");
-      const initData = await initResponse.json();
-      sessionId = initData.sessionId;
-
-      // Bắt đầu tải lên
-      const initialThreads = Math.min(maxConcurrent, totalChunks);
-      for (let i = 0; i < initialThreads; i++) {
-        uploadNextChunk();
+      if (uploadedIndices.size === totalChunks && !isCompleting) {
+        isCompleting = true;
+        await finalizeUpload();
       }
-    } catch (e) {
-      hasError = true;
-      percentEl.textContent = "Lỗi khởi tạo";
-      percentEl.style.color = "#ef4444";
-      barEl.style.backgroundColor = "#ef4444";
-      console.error(e);
     }
+
+    // Chờ slot tải lên để tránh tràn kết nối đồng thời
+    await ensureSlotAcquired();
+
+    if (isCancelled) {
+      ensureSlotReleased();
+      return;
+    }
+
+    async function runInitAndStart() {
+      try {
+        metaEl.innerHTML = `0 B / ${formatSize(file.size)} &middot; <span class="text-blue thread-count">Khởi tạo...</span>`;
+        if (retryBtn) retryBtn.style.display = "none";
+
+        let targetFolderId = window.currentFolderId || null;
+        const relPath = file.relativePath || file.webkitRelativePath;
+        if (relPath && relPath.includes("/")) {
+          targetFolderId = await getOrCreateFolderIdOnBackend(relPath);
+        }
+
+        // Init Upload với retry tự động
+        let initData = null;
+        const MAX_INIT_RETRIES = 3;
+        for (let initAttempt = 1; initAttempt <= MAX_INIT_RETRIES; initAttempt++) {
+          try {
+            const initResponse = await fetch(`${baseUrl}/uploads/init`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                fileName: file.name,
+                totalSizeBytes: file.size,
+                totalChunks: totalChunks,
+                targetFolderId: targetFolderId
+              })
+            });
+
+            if (initResponse.ok) {
+              initData = await initResponse.json();
+              break;
+            } else {
+              if (initResponse.status === 401 || initResponse.status === 403) {
+                localStorage.removeItem("jwt_token");
+                localStorage.removeItem("token");
+                window.location.href = "login.html";
+                return;
+              }
+              let msg = `HTTP ${initResponse.status}`;
+              try {
+                const errJson = await initResponse.json();
+                if (errJson && errJson.message) msg = errJson.message;
+              } catch (_) { }
+              if (initAttempt === MAX_INIT_RETRIES) throw new Error(msg);
+            }
+          } catch (initErr) {
+            if (initAttempt === MAX_INIT_RETRIES) throw initErr;
+            await new Promise((r) => setTimeout(r, 1000 * initAttempt));
+          }
+        }
+
+        if (!initData || !initData.sessionId) {
+          throw new Error("Không thể khởi tạo phiên tải lên");
+        }
+
+        sessionId = initData.sessionId;
+
+        // Khôi phục các chunk đã tồn tại trên máy chủ từ trước (Resume session)
+        const serverIndices = parseIndicesArrayOrString(initData.uploadedChunkIndices);
+        if (serverIndices.size > 0) {
+          serverIndices.forEach((idx) => uploadedIndices.add(idx));
+          const remaining = chunksToUpload.filter((idx) => !uploadedIndices.has(idx));
+          chunksToUpload.length = 0;
+          chunksToUpload.push(...remaining);
+          updateProgressUI(`Khôi phục ${uploadedIndices.size}/${totalChunks} phần...`);
+        }
+
+        await startWorkers();
+      } catch (e) {
+        hasError = true;
+        ensureSlotReleased();
+        percentEl.textContent = "Lỗi kết nối";
+        percentEl.style.color = "#ef4444";
+        barEl.style.backgroundColor = "#ef4444";
+        metaEl.innerHTML = `<span style="color:#ef4444">${e.message || "Lỗi khởi tạo"}</span> &middot; <a href="javascript:void(0)" class="text-blue" style="text-decoration:underline;cursor:pointer;">Thử lại</a>`;
+        if (retryBtn) retryBtn.style.display = "inline-flex";
+        if (pauseBtn) pauseBtn.style.display = "none";
+        const retryLink = metaEl.querySelector("a");
+        if (retryLink) {
+          retryLink.onclick = async (ev) => {
+            ev.preventDefault();
+            await ensureSlotAcquired();
+            runInitAndStart();
+          };
+        }
+        console.error(e);
+      }
+    }
+
+    await runInitAndStart();
   }
 }
 
@@ -2475,13 +2919,13 @@ async function loadDashboardData(viewType = "home") {
       } else {
         let folders = data.subfolders || data.folders || [];
         let files = data.files || [];
-        
+
         // Nếu đang ở "Tệp của tôi", lọc bỏ những file được người khác chia sẻ (permission khác OWNER)
         if (viewType === "home") {
           folders = folders.filter(f => !f.permission || f.permission === "OWNER");
           files = files.filter(f => !f.permission || f.permission === "OWNER");
         }
-        
+
         renderFolders(folders);
         renderFiles(files);
       }
@@ -2557,7 +3001,7 @@ function renderTrashItems(folders, files) {
     const date = parseLocalDate(dateString);
     if (!date) return String(dateString);
     const now = new Date();
-    
+
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const timeString = `${hours}:${minutes}`;
@@ -2566,7 +3010,7 @@ function renderTrashItems(folders, files) {
     if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
       return `Hôm nay, ${timeString}`;
     }
-    
+
     // Kiểm tra xem có phải hôm qua không
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
@@ -2581,7 +3025,7 @@ function renderTrashItems(folders, files) {
 
   // Render Folders
   folders.forEach(folder => {
-    const daysLeft = calculateDaysLeft(folder.updatedAt); 
+    const daysLeft = calculateDaysLeft(folder.updatedAt);
     const isUrgent = daysLeft <= 15 ? 'urgent' : '';
     const formattedDate = formatTrashDate(folder.updatedAt);
     const user = folder.userEmail ? folder.userEmail.split('@')[0] : 'Tôi';
@@ -2609,7 +3053,7 @@ function renderTrashItems(folders, files) {
 
   // Render Files
   files.forEach(file => {
-    const daysLeft = calculateDaysLeft(file.updatedAt); 
+    const daysLeft = calculateDaysLeft(file.updatedAt);
     const isUrgent = daysLeft <= 15 ? 'urgent' : '';
     const size = typeof formatSizeGlobal === "function" ? formatSizeGlobal(file.sizeBytes) : file.sizeBytes;
     const fileName = file.fileName || "Tệp không tên";
@@ -2640,11 +3084,11 @@ function renderTrashItems(folders, files) {
   trashList.innerHTML = html;
 }
 
-window.toggleTrashSelection = function(el) {
+window.toggleTrashSelection = function (el) {
   el.classList.toggle('selected');
 };
 
-window.restoreTrashItem = async function(id, type) {
+window.restoreTrashItem = async function (id, type) {
   try {
     const endpoint = type === 'folder' ? `/folders/${id}/restore` : `/files/${id}/restore`;
     const response = await fetchWithAuth(endpoint, { method: "PATCH" });
@@ -2659,7 +3103,7 @@ window.restoreTrashItem = async function(id, type) {
   }
 };
 
-window.permanentDeleteTrashItem = async function(id, type) {
+window.permanentDeleteTrashItem = async function (id, type) {
   if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Thao tác không thể hoàn tác!")) return;
   try {
     const endpoint = type === 'folder' ? `/folders/${id}/permanent` : `/files/${id}/permanent`;
