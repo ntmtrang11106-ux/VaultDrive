@@ -40,6 +40,74 @@ services:
     networks:
       - app-network
 
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver_init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+      for i in {1..30}; do
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver_db -U sa -P 'Seer#2210' -C -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'VaultDriveDB') CREATE DATABASE VaultDriveDB;\" && break ||
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver_db -U sa -P 'Seer#2210' -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'VaultDriveDB') CREATE DATABASE VaultDriveDB;\" && break;
+        sleep 2;
+      done"
+    networks:
+      - app-network
+
+  # 3. Node Exporter (Đo CPU & RAM hệ thống)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    networks:
+      - app-network
+
+  # 4. Prometheus (Thu thập dữ liệu từ Backend & Node Exporter)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - backend
+      - node-exporter
+    networks:
+      - app-network
+
+  # 5. Grafana (Hiển thị Dashboard & SOC)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  sqlserver-data:
+  prometheus-data:
+  grafana-data:
