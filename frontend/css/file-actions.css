@@ -792,14 +792,15 @@
 }
 
 /* ── Section Title ("THƯ MỤC", "TỆP TIN") ──
-   Chữ tiêu đề nhỏ, in hoa, màu xám xanh đặt trước mỗi nhóm */
+   12px – 13px, Semi-bold / Bold (600–700), Line-height 1.4 (18px), uppercase, letter-spacing: 0.5px, margin-bottom 12px-16px */
 .section-title {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.4;
   color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 /* --- XỬ LÝ BADGE & NÚT 3 CHẤM CHO THƯ MỤC (FOLDER CARD) & TỆP TIN TRÊN CÁC CHẾ ĐỘ ---
@@ -978,11 +979,11 @@
   display: none !important;
 }
 
-/* Thư mục luôn hiển thị tên và ngày theo dạng cột dọc (ngày ở dưới tên) trên mọi chế độ */
+/* Thư mục luôn hiển thị tên và ngày theo dạng cột dọc (ngày ở dưới tên), khoảng cách chuẩn 4px-6px */
 .folder-card .file-info-main {
   display: flex !important;
   flex-direction: column !important;
-  gap: 3px;
+  gap: 5px;
   width: 100%;
 }
 
@@ -990,7 +991,7 @@
   margin-top: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
   width: 100%;
 }
 
@@ -2415,6 +2416,7 @@ body.preview-standalone-page .preview-code-body {
 }
 
 @media (max-width: 768px) {
+
   html.preview-only-mode .preview-modal-overlay,
   body.preview-standalone-page .preview-modal-overlay {
     padding: 0 !important;

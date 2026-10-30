@@ -53,48 +53,42 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-weight: 700;
-  font-size: 1.1rem;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
   color: var(--text-main);
 }
 
-/* Hộp vuông chứa SVG logo (nền xanh primary) */
+/* Hộp vuông chứa SVG logo (nền xanh primary), bo góc 10px */
 .logo-icon {
   width: 40px;
   height: 40px;
   background-color: var(--primary-color);
-  /* Nền xanh */
   color: white;
-  border-radius: var(--radius-md);
-  /* Bo góc 8px */
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
 }
 
-/* Cột chứa tên brand và slogan */
+/* Cột chứa tên brand và slogan: 18px-20px Bold, line-height 1.2 (24px) */
 .logo-text {
   display: flex;
   flex-direction: column;
   margin: 0;
   padding: 0;
-  font-size: inherit;
-  /* kế thừa cha */
-  font-weight: inherit;
 }
 
 .logo-text span.brand {
-  font-size: 18px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .logo-text span.sub {
   font-size: 11px;
   color: var(--primary-color);
   font-weight: 600;
-  /* letter-spacing: 0.5px; */
-  /* Dãn ký tự nhẹ để dễ đọc */
+  letter-spacing: 0.5px;
 }
 
 /* ================================================================
@@ -106,23 +100,23 @@
   margin-bottom: 0;
 }
 
-/* Style chính của nút */
+/* Style chính của nút: 14px – 15px, Semi-bold (600), Line-height 1.4, padding 11px 16px */
 .btn-upload-main {
   background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: var(--radius-lg);
-  padding: 12px 16px;
-  font-size: 15px;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 14.5px;
   font-weight: 600;
+  line-height: 1.4;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  margin-bottom: 24px;
-  transition: background-color 0.2s;
-  /* Animate màu nền khi hover */
+  margin-bottom: 20px;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
   width: 100%;
 }
 
@@ -140,30 +134,32 @@
 
 /* ================================================================
    5. NAVIGATION MENU - Menu điều hướng chính
+   Gap giữa các mục menu: 4px – 8px
 ================================================================ */
 
 /* Danh sách nav (ul) */
 .nav-menu {
   list-style: none;
-  /* Bỏ dấu chấm đầu dòng mặc định của <ul> */
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-/* Từng mục nav (li) */
+/* Từng mục nav (li): Chiều cao 40px – 44px, Padding trên/dưới 10px, trái/phải 12px–16px, Cỡ chữ 14px – 15px, Medium (500), Line-height 1.4 */
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
+  height: 42px;
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: 8px;
   cursor: pointer;
   color: var(--text-main);
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 500;
+  line-height: 1.4;
   gap: 12px;
   transition: all 0.2s;
-  /* Animate tất cả property (màu, nền, ...) */
 }
 
 /* Icon trong nav item - màu xám khi không active */
@@ -359,7 +355,7 @@
    9. TOP HEADER - Thanh header trên cùng của Main Content
 ================================================================ */
 .top-header {
-  height: 72px;
+  height: 68px;
   background-color: var(--sidebar-bg);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -370,9 +366,11 @@
 
 /* ================================================================
    10. BREADCRUMBS - Đường dẫn thư mục hiện tại
+   Tiêu đề trang: 16px – 18px, Semi-bold (600), Line-height: 1.4 (24px)
 ================================================================ */
 .breadcrumbs {
-  font-size: 15px;
+  font-size: 17px;
+  line-height: 1.4;
   color: var(--text-muted);
   font-weight: 500;
   display: flex;
@@ -383,7 +381,9 @@
 .breadcrumbs a.breadcrumb-link {
   color: #64748b;
   text-decoration: none;
+  font-size: 17px;
   font-weight: 500;
+  line-height: 1.4;
   margin-right: 4px;
   transition: all 0.2s ease;
 }
@@ -398,7 +398,9 @@
 /* Mục hiện tại (cuối breadcrumb): chữ đậm màu đen */
 .breadcrumbs span.current {
   color: var(--text-main, #0f172a);
+  font-size: 17px;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 /* ================================================================
@@ -411,21 +413,22 @@
 }
 
 /* ================================================================
-   12. SEARCH BAR - Thanh tìm kiếm
+   12. SEARCH BAR - Thanh tìm kiếm: Cỡ chữ 14px, chiều cao 40px
 ================================================================ */
 .search-bar {
   display: flex;
   align-items: center;
   background-color: var(--bg-color);
   border-radius: 20px;
-  padding: 10px 18px;
+  padding: 8px 16px;
+  height: 40px;
   width: 300px;
 }
 
 /* Icon kính lúp */
 .search-bar i {
   color: var(--text-muted);
-  font-size: 20px;
+  font-size: 18px;
   margin-right: 8px;
 }
 

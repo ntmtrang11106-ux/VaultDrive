@@ -67,9 +67,9 @@ window.renderTrashItems = function(folders, files) {
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const timeString = `${hours}:${minutes}`;
 
-    // Kiểm tra xem có phải hôm nay không
+    // Kiểm tra xem có phải hôm nay không (chỉ hiện giờ để vừa khít 1 dòng, không bị tràn thành ...)
     if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
-      return `Hôm nay, ${timeString}`;
+      return timeString;
     }
     
     // Kiểm tra xem có phải hôm qua không
@@ -134,7 +134,15 @@ window.renderTrashItems = function(folders, files) {
         iconBox.className = `trash-icon-box ${colorClass}`;
         iconBox.innerHTML = `<i class="ph ${iconClass}"></i>`;
       }
-      clone.querySelector('.trash-item-name').textContent = fileName;
+      const trashNameEl = clone.querySelector('.trash-item-name');
+      if (trashNameEl) {
+        if (typeof window.renderFileNameHTML === "function") {
+          trashNameEl.innerHTML = window.renderFileNameHTML(fileName);
+        } else {
+          trashNameEl.textContent = fileName;
+        }
+        trashNameEl.title = fileName;
+      }
       clone.querySelector('.trash-item-meta').innerHTML = `Xóa lúc ${formattedDate} &middot; bởi ${user} &middot; ${size}`;
       
       const daysLeftEl = clone.querySelector('.days-left');
@@ -149,8 +157,13 @@ window.renderTrashItems = function(folders, files) {
   });
 }
 
-window.toggleTrashSelection = function(el) {
+window.toggleTrashSelection = function(el, e) {
+  if (e && e.stopPropagation) e.stopPropagation();
   el.classList.toggle('selected');
+  const card = el.closest('.trash-item');
+  if (card) {
+    card.classList.toggle('selected', el.classList.contains('selected'));
+  }
 };
 
 window.restoreTrashItem = async function(id, type) {

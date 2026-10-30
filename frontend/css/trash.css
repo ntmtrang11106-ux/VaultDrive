@@ -68,11 +68,14 @@
 }
 
 .trash-item-info {
-  flex: 1;
+  flex: 1 1 280px;
   min-width: 0;
+  max-width: 500px;
 }
 
 .trash-item-name {
+  display: flex;
+  align-items: baseline;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-main);
@@ -80,6 +83,24 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Phần tên chính: Tự cắt và thêm dấu ... nếu quá dài */
+.trash-item-name .name-stem,
+.trash-file-name .name-stem {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  flex-shrink: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Phần đuôi (.docx, .txt...): Luôn hiển thị đầy đủ */
+.trash-item-name .name-ext,
+.trash-file-name .name-ext {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 
 .trash-item-meta {
@@ -95,20 +116,31 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .days-left {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 500;
+  line-height: 1.25;
   background-color: #f1f5f9;
-  color: #64748b;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin: 0 auto; /* Đặt ở chính giữa khoảng trống giữa Info và Nút bấm trong chế độ List */
+  transition: all 0.2s ease;
 }
 
 .days-left.urgent {
   background-color: #fef2f2;
   color: #ef4444;
+  border-color: #fecaca;
 }
 
 .btn-restore {
@@ -221,200 +253,302 @@
 }
 
 /* ================= TRASH GRID VIEW ================= */
-.content-scroll:not(.list-view) .trash-list {
+.content-scroll:not(.list-view) .trash-list,
+.trash-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+  /* Khớp chuẩn lưới trang Tệp của tôi: minmax 220px, gap 20px */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
   gap: 20px !important;
+  align-items: stretch !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
   overflow: visible !important;
+  width: 100% !important;
 }
 
-.content-scroll:not(.list-view) .trash-item {
+.content-scroll:not(.list-view) .trash-item,
+.trash-card {
   display: flex !important;
   flex-direction: column !important;
-  align-items: center !important;
+  align-items: stretch !important;
   background: var(--card-bg, #ffffff) !important;
-  border: 1px solid var(--border-color, #e2e8f0) !important;
-  border-radius: var(--radius-lg, 16px) !important;
-  padding: 12px 14px 14px 14px !important;
-  gap: 6px !important;
-  width: 100% !important;
+  border: 1px solid var(--border-color, #E2E8F0) !important;
+  border-radius: 12px !important;
+  padding: 12px !important; /* Bo góc và padding chuẩn 12px khớp 100% Tệp của tôi */
+  width: 100% !important; /* Bắt buộc để 100% theo cột Grid, KHÔNG set width cố định */
   box-sizing: border-box !important;
   position: relative !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: default !important;
 }
 
-.content-scroll:not(.list-view) .trash-item:hover {
+.content-scroll:not(.list-view) .trash-item:hover,
+.trash-card:hover {
   box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.08)) !important;
   border-color: #cbd5e1 !important;
   transform: translateY(-3px) !important;
 }
 
-.content-scroll:not(.list-view) .trash-checkbox {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  z-index: 5;
+.content-scroll:not(.list-view) .trash-item.selected,
+.trash-card.selected {
+  border-color: var(--primary-color, #0D59F2) !important;
+  background-color: #f8faff !important;
 }
 
+/* 1. Ô tích Checkbox nằm ở GÓC PHẢI TRÊN của khung màu Thumbnail (thay thế nhãn Xem) */
+.content-scroll:not(.list-view) .trash-checkbox {
+  position: absolute !important;
+  top: 22px !important;
+  right: 22px !important;
+  left: auto !important;
+  z-index: 10 !important;
+  width: 20px !important;
+  height: 20px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 4px !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.content-scroll:not(.list-view) .trash-checkbox:hover {
+  border-color: var(--primary-color, #0D59F2) !important;
+  background-color: #ffffff !important;
+}
+
+.content-scroll:not(.list-view) .trash-checkbox.selected {
+  background-color: var(--primary-color, #0D59F2) !important;
+  border-color: var(--primary-color, #0D59F2) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-size: 80% !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* 1 (tiếp). Khung màu Thumbnail: Đồng bộ 100% kích thước với .file-icon-box bên Dashboard (Cao 140px, không viền border) */
 .content-scroll:not(.list-view) .trash-icon-box {
-  width: 100%;
-  height: 125px;
-  border-radius: 12px;
-  background-color: #f8fafc;
-  border: 1px solid #edf2f7;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 38px;
-  margin-top: 28px;
-  margin-bottom: 2px;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
+  order: 1 !important;
+  width: 100% !important;
+  height: 140px !important; /* Chuẩn 100% của Dashboard là 140px */
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 46px !important; /* Icon to rõ ràng cân đối */
+  margin-top: 0 !important;
+  margin-bottom: 12px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+  border: none !important; /* Bỏ viền để không bị co cụm, rộng rãi thoáng mắt như Dashboard */
 }
 
 .content-scroll:not(.list-view) .trash-icon-box i {
   background-color: transparent !important;
-  font-size: 38px;
-  color: inherit;
-  transition: transform 0.2s ease;
+  font-size: 46px !important;
+  color: inherit !important;
+  transition: transform 0.2s ease !important;
 }
 
 .content-scroll:not(.list-view) .trash-item:hover .trash-icon-box i {
-  transform: scale(1.08);
+  transform: scale(1.08) !important;
 }
 
 /* Màu nền khung icon thùng rác đồng bộ 100% với màu sắc bên Dashboard */
 .trash-icon-box.file-pdf {
   background-color: #fef2f2 !important;
   color: #ef4444 !important;
-  border-color: rgba(239, 68, 68, 0.15) !important;
 }
 
 .trash-icon-box.file-img {
   background-color: #faf5ff !important;
   color: #9333ea !important;
-  border-color: rgba(147, 51, 234, 0.15) !important;
 }
 
 .trash-icon-box.file-doc {
   background-color: #eff6ff !important;
   color: #2563eb !important;
-  border-color: rgba(37, 99, 235, 0.15) !important;
 }
 
 .trash-icon-box.file-txt {
   background-color: #f8fafc !important;
   color: #475569 !important;
-  border-color: rgba(71, 85, 105, 0.15) !important;
 }
 
 .trash-icon-box.file-xls {
   background-color: #f0fdf4 !important;
   color: #16a34a !important;
-  border-color: rgba(22, 163, 74, 0.15) !important;
 }
 
 .trash-icon-box.file-ppt {
   background-color: #fff7ed !important;
   color: #ea580c !important;
-  border-color: rgba(234, 88, 12, 0.15) !important;
 }
 
 .trash-icon-box.file-vid,
 .trash-icon-box.file-mp4 {
   background-color: #fffbeb !important;
   color: #f59e0b !important;
-  border-color: rgba(245, 158, 11, 0.15) !important;
 }
 
 .trash-icon-box.file-audio {
   background-color: #fdf2f8 !important;
   color: #db2777 !important;
-  border-color: rgba(219, 39, 119, 0.15) !important;
 }
 
 .trash-icon-box.file-zip {
   background-color: #fef3c7 !important;
   color: #d97706 !important;
-  border-color: rgba(217, 119, 6, 0.15) !important;
 }
 
 .trash-icon-box.file-code {
   background-color: #eef2ff !important;
   color: #4f46e5 !important;
-  border-color: rgba(79, 70, 229, 0.15) !important;
 }
 
 .trash-icon-box.file-md {
   background-color: #f0fdfa !important;
   color: #0d9488 !important;
-  border-color: rgba(13, 148, 136, 0.15) !important;
 }
 
 .trash-icon-box.blue {
   background-color: #eff6ff !important;
   color: #3b82f6 !important;
-  border-color: rgba(59, 130, 246, 0.15) !important;
 }
 
+/* 2. Bố cục phần thông tin bên dưới: Dòng 1 (Tên tệp) & Dòng 2 (Thông tin phụ) căn trái */
 .content-scroll:not(.list-view) .trash-item-info {
-  width: 100%;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  order: 2 !important;
+  width: 100% !important;
+  text-align: left !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  flex: 0 0 auto !important; /* Gỡ bỏ flex: 1 kế thừa từ list-view */
+  margin-bottom: 0 !important;
 }
 
-.content-scroll:not(.list-view) .trash-item-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 100%;
+/* Dòng 1: Tên tệp (chữ đậm, cỡ chữ chuẩn 14px, căn trái) */
+.content-scroll:not(.list-view) .trash-item-name,
+.trash-file-name {
+  display: flex !important;
+  align-items: baseline !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--text-main, #0f172a) !important;
+  text-align: left !important;
+  margin-bottom: 4px !important; /* Khoảng cách xuống dòng thông tin phụ */
+  width: 100% !important;
+  line-height: 1.35 !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
 }
 
+/* Dòng 2: Thông tin phụ (màu xám, cỡ chữ 12px, căn trái) */
 .content-scroll:not(.list-view) .trash-item-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.35;
-  margin-top: 1px;
+  font-size: 12px !important;
+  color: #64748b !important;
+  text-align: left !important;
+  line-height: 1.35 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
+/* Dòng 3: Chữ còn ... ngày nằm ngay DƯỚI dòng ngày xóa */
 .content-scroll:not(.list-view) .days-left {
-  width: 100%;
-  text-align: center;
-  margin-top: 2px;
-  margin-bottom: 2px;
-  padding: 4px 10px;
-  font-size: 11.5px;
-  border-radius: 20px;
-  display: block;
-  box-sizing: border-box;
+  order: 3 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  margin-top: 5px !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 2.5px 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  border-radius: 999px !important;
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0 !important;
+  pointer-events: none !important;
 }
 
+.content-scroll:not(.list-view) .days-left.urgent {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+/* 3. Khu vực chân Card (thay thế vị trí avatar): Đường kẻ ngang phân cách mỏng + 2 nút nằm ngang chia đều flex: 1 */
 .content-scroll:not(.list-view) .trash-actions {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 8px;
-  margin-top: 4px;
+  order: 4 !important;
+  position: static !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-top: 1px solid #f1f5f9 !important; /* Đường kẻ ngang phân cách mỏng */
+  padding-top: 10px !important;
+  margin-top: 10px !important;
 }
 
+.content-scroll:not(.list-view) .trash-actions::before {
+  display: none !important;
+}
+
+/* 2 nút bấm chức năng: Khôi phục (xanh dương nhạt) và Xóa (đỏ nhạt), chia đều chiều rộng flex: 1 */
 .content-scroll:not(.list-view) .btn-restore,
 .content-scroll:not(.list-view) .btn-delete {
-  padding: 6px 14px;
-  font-size: 12px;
-  border-radius: 6px;
+  flex: 1 1 0 !important;
+  width: 50% !important;
+  height: 32px !important;
+  padding: 0 8px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+/* Nút Khôi phục (màu xanh dương nhạt) */
+.content-scroll:not(.list-view) .btn-restore {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  border: 1px solid rgba(37, 99, 235, 0.15) !important;
+}
+
+.content-scroll:not(.list-view) .btn-restore:hover {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+/* Nút Xóa (màu đỏ nhạt) */
+.content-scroll:not(.list-view) .btn-delete {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.15) !important;
+}
+
+.content-scroll:not(.list-view) .btn-delete:hover {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
 }

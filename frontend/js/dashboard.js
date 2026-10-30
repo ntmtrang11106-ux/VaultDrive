@@ -155,6 +155,9 @@ function setupTabNavigation() {
       // Reset lịch sử điều hướng thư mục về gốc
       window.folderPathTrail = [{ id: null, name: rootTitle }];
 
+      // Cập nhật tiêu đề tab trình duyệt
+      document.title = `${rootTitle} - VaultDrive`;
+
       // --- Bước 4: Cập nhật Breadcrumb UI ---
       if (typeof updateBreadcrumbUI === 'function') {
         updateBreadcrumbUI(); // Nếu hàm này đã được định nghĩa (trong file-actions.js)
@@ -223,6 +226,14 @@ function setupViewToggle() {
       const gridFiles = document.querySelector('.grid-files');
       if (gridFiles) gridFiles.classList.remove('list-view');
 
+      // Cập nhật tên tệp tin dạng Grid View (cắt thông minh bảo toàn đuôi file)
+      document.querySelectorAll('.file-name').forEach((nameEl) => {
+        const fullName = nameEl.dataset.fullName || nameEl.title;
+        if (fullName && typeof window.formatMiddleTruncate === 'function') {
+          nameEl.textContent = window.formatMiddleTruncate(fullName, 26);
+        }
+      });
+
       // Nếu đang ở tab "Được chia sẻ" → render lại theo format Grid
       if (window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
         renderSharedView();
@@ -239,6 +250,14 @@ function setupViewToggle() {
       if (contentScroll) contentScroll.classList.add('list-view');
       const gridFiles = document.querySelector('.grid-files');
       if (gridFiles) gridFiles.classList.add('list-view');
+
+      // Cập nhật tên tệp tin dạng List View (chiều ngang rộng hơn nên cho phép hiển thị dài hơn)
+      document.querySelectorAll('.file-name').forEach((nameEl) => {
+        const fullName = nameEl.dataset.fullName || nameEl.title;
+        if (fullName && typeof window.formatMiddleTruncate === 'function') {
+          nameEl.textContent = window.formatMiddleTruncate(fullName, 65);
+        }
+      });
 
       // Nếu đang ở tab "Được chia sẻ" → render lại theo format List
       if (window.currentViewType === 'shared' && typeof renderSharedView === 'function') {

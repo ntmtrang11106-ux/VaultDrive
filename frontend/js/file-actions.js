@@ -170,6 +170,26 @@ window.downloadItem = downloadItem;
 let currentPreviewBlobUrl = null;
 let currentPreviewZoom = 1;
 let currentPreviewRotation = 0;
+let previousDocumentTitle = null;
+
+function getDefaultDocumentTitle() {
+  const viewType = window.currentViewType || "home";
+  const rootName = viewType === "shared" ? "Được chia sẻ" :
+    viewType === "trash" ? "Thùng rác" :
+      viewType === "settings" ? "Cài đặt" :
+        viewType === "recent" ? "Gần đây" : "Tệp của tôi";
+  return `${rootName} - VaultDrive`;
+}
+
+function restoreDocumentTitle() {
+  if (previousDocumentTitle && !previousDocumentTitle.includes("undefined")) {
+    document.title = previousDocumentTitle;
+  } else {
+    document.title = getDefaultDocumentTitle();
+  }
+  previousDocumentTitle = null;
+}
+
 
 function escapeHtml(str) {
   if (!str) return "";
@@ -258,6 +278,67 @@ function getFileCategoryAndIcon(fileName) {
 }
 window.getFileCategoryAndIcon = getFileCategoryAndIcon;
 
+/**
+ * Tự động cắt ở giữa tên tệp tin và bảo toàn phần mở rộng (Google Drive / macOS style)
+ * Ví dụ: "model CalendarManagementSystem.docx" -> "model CalendarMana....docx"
+ *        "CalendarManagementSystem.docx" -> "CalendarManagement....docx"
+ *
+ * @param {string} fileName - Tên tệp tin gốc đầy đủ
+ * @param {number} maxLen - Chiều dài tối đa trước khi thực hiện cắt (mặc định 26 cho Grid card)
+ * @returns {string} Tên file đã được cắt bảo toàn đuôi
+ */
+function formatMiddleTruncate(fileName, maxLen = 26) {
+  if (!fileName || typeof fileName !== "string") return fileName || "";
+  if (fileName.length <= maxLen) return fileName;
+
+  const lastDot = fileName.lastIndexOf(".");
+  // Không có dấu chấm, hoặc file ẩn không có tên trước dấu chấm (.gitignore, .env)
+  if (lastDot <= 0 || lastDot === fileName.length - 1) {
+    const half = Math.floor((maxLen - 3) / 2);
+    return fileName.slice(0, half) + "..." + fileName.slice(-half);
+  }
+
+  const ext = fileName.slice(lastDot); // e.g. ".docx"
+  const baseName = fileName.slice(0, lastDot);
+
+  // Nếu đuôi file quá dài bất thường (> 10 ký tự) hoặc chứa khoảng trắng
+  if (ext.length > 10 || /\s/.test(ext)) {
+    const half = Math.floor((maxLen - 3) / 2);
+    return fileName.slice(0, half) + "..." + fileName.slice(-half);
+  }
+
+  // Số ký tự tối đa cho phần thân tên tệp sau khi trừ đuôi và 3 ký tự "..."
+  const remain = maxLen - ext.length - 3;
+  if (remain <= 3) {
+    return baseName.slice(0, 3) + "..." + ext;
+  }
+
+  return baseName.slice(0, remain) + "..." + ext;
+}
+window.formatMiddleTruncate = formatMiddleTruncate;
+
+/**
+ * renderFileNameHTML(fullName) - Tách tên và đuôi file thành 2 thẻ span (Flexbox Middle Truncation)
+ * Phần thân tên (name-stem) tự cắt bằng ellipsis khi hết chỗ, còn phần đuôi (name-ext) luôn được bảo toàn
+ */
+function renderFileNameHTML(fullName) {
+  if (!fullName || typeof fullName !== "string") return fullName || "";
+  const lastDotIndex = fullName.lastIndexOf('.');
+  if (lastDotIndex <= 0 || lastDotIndex === fullName.length - 1) {
+    return `<span class="name-stem">${escapeHtml(fullName)}</span>`;
+  }
+
+  const namePart = fullName.substring(0, lastDotIndex);
+  const extPart = fullName.substring(lastDotIndex);
+
+  if (extPart.length > 10 || /\s/.test(extPart)) {
+    return `<span class="name-stem">${escapeHtml(fullName)}</span>`;
+  }
+
+  return `<span class="name-stem">${escapeHtml(namePart)}</span><span class="name-ext">${escapeHtml(extPart)}</span>`;
+}
+window.renderFileNameHTML = renderFileNameHTML;
+
 function closeFilePreview() {
   const params = new URLSearchParams(window.location.search);
   const isPreviewOnly = !!(params.get("token") || params.get("shareToken") || params.get("fileId") || params.get("previewFileId")) ||
@@ -302,6 +383,9 @@ function closeFilePreview() {
   if (bodyEl) {
     bodyEl.innerHTML = "";
   }
+  // Khôi phục lại document.title về tiêu đề trang trước đó (mặc định: "Tệp của tôi - VaultDrive")
+  restoreDocumentTitle();
+
   // Xóa param ?token= hoặc ?fileId= trên thanh địa chỉ URL nếu có
   if (window.location.search) {
     const cleanUrl = window.location.pathname;
@@ -790,6 +874,11 @@ async function openFilePreview(fileId, fileData = null) {
     return;
   }
 
+  // Lưu lại tiêu đề trang trước khi đổi sang tên file
+  if (!previousDocumentTitle) {
+    previousDocumentTitle = document.title || getDefaultDocumentTitle();
+  }
+
   // Cập nhật Header
   if (fileNameEl) {
     fileNameEl.textContent = fileName;
@@ -1034,6 +1123,11 @@ async function openPublicFilePreview(token) {
       if (parts.length === 0) return `.${(extStr || "").toUpperCase()}`;
       return parts.join(" · ");
     };
+
+    // Lưu lại tiêu đề trang trước khi đổi sang tên file
+    if (!previousDocumentTitle) {
+      previousDocumentTitle = document.title || getDefaultDocumentTitle();
+    }
 
     // Cập nhật Header
     if (fileNameEl) {
@@ -2539,11 +2633,15 @@ function renderFiles(files, viewType = "home") {
       if (iconEl) iconEl.className = `ph ${iconClass}`;
     }
 
-    // Tên tệp tin (gán qua textContent chống XSS)
+    // Tên tệp tin (gán qua textContent chống XSS, cắt thông minh bảo toàn đuôi file)
     const nameEl = fileCard.querySelector(".file-name");
     if (nameEl) {
-      nameEl.textContent = displayFileName;
+      const isListView = document.querySelector(".content-scroll")?.classList.contains("list-view") ||
+        document.getElementById("gridFiles")?.classList.contains("list-view");
+      const maxLen = isListView ? 65 : 26;
+      nameEl.textContent = formatMiddleTruncate(displayFileName, maxLen);
       nameEl.title = displayFileName;
+      nameEl.dataset.fullName = displayFileName;
     }
 
     // Ngày sửa và kích thước
@@ -3563,22 +3661,41 @@ window.updateMinimizedUploadUI = function () {
     return;
   }
 
-  minTitle.textContent = `Đang tải ${window.uploadGlobalState.totalFiles} ${noun}`;
-  minSubtitle.innerHTML = `${window.uploadGlobalState.completedFiles} hoàn thành &middot; Nhấn để xem`;
-  if (modalSubtitle) modalSubtitle.innerHTML = `${window.uploadGlobalState.totalFiles} đang tải &middot; ${window.uploadGlobalState.completedFiles} hoàn thành`;
-
   let percent = 0;
   if (window.uploadGlobalState.totalSize > 0) {
     percent = Math.round((window.uploadGlobalState.uploadedSize / window.uploadGlobalState.totalSize) * 100);
   }
-
-  // Đảm bảo không vượt quá 100%
   percent = Math.min(percent, 100);
 
-  minProgressText.textContent = `${percent}%`;
+  const isAllCompleted = window.uploadGlobalState.totalFiles > 0 &&
+    (window.uploadGlobalState.completedFiles >= window.uploadGlobalState.totalFiles || percent === 100);
+
+  const completedCount = isAllCompleted && window.uploadGlobalState.completedFiles === 0
+    ? window.uploadGlobalState.totalFiles
+    : Math.max(window.uploadGlobalState.completedFiles, isAllCompleted ? window.uploadGlobalState.totalFiles : 0);
+
+  if (isAllCompleted) {
+    minTitle.textContent = `Đã tải lên ${completedCount} ${noun}`;
+    minSubtitle.innerHTML = `${completedCount} hoàn thành &middot; Nhấn để xem`;
+    if (modalSubtitle) modalSubtitle.textContent = `Đã tải lên ${completedCount} ${noun}`;
+  } else {
+    minTitle.textContent = `Đang tải ${window.uploadGlobalState.totalFiles} ${noun}`;
+    minSubtitle.innerHTML = `${window.uploadGlobalState.completedFiles} hoàn thành &middot; Nhấn để xem`;
+    if (modalSubtitle) modalSubtitle.innerHTML = `${window.uploadGlobalState.totalFiles} đang tải &middot; ${window.uploadGlobalState.completedFiles} hoàn thành`;
+  }
+
   const minProgressRing = document.getElementById("minProgressRing") || document.querySelector(".upload-minimized .progress-ring");
   if (minProgressRing) {
     minProgressRing.style.setProperty("--progress", `${percent}%`);
+  }
+
+  if (isAllCompleted || percent === 100) {
+    // Khi đạt 100% hoàn tất: Đổi chữ 100% thành icon dấu tích xanh lá (#10B981)
+    minProgressText.innerHTML = '<i class="ph-bold ph-check" style="color: #10b981; font-size: 15px;"></i>';
+    if (minProgressRing) minProgressRing.classList.add("completed");
+  } else {
+    minProgressText.textContent = `${percent}%`;
+    if (minProgressRing) minProgressRing.classList.remove("completed");
   }
 };
 
@@ -4021,6 +4138,17 @@ async function loadDashboardData(viewType = "home") {
     window.folderPathTrail = [{ id: null, name: rootName }];
   }
 
+  // Cập nhật document.title nếu không ở chế độ xem trước file
+  const previewOverlay = document.getElementById("previewModalOverlay");
+  const isPreviewOpen = previewOverlay && previewOverlay.style.display === "flex";
+  if (!isPreviewOpen && !document.documentElement.classList.contains("preview-only-mode")) {
+    const rootName = viewType === "shared" ? "Được chia sẻ" :
+      viewType === "trash" ? "Thùng rác" :
+        viewType === "settings" ? "Cài đặt" :
+          viewType === "recent" ? "Gần đây" : "Tệp của tôi";
+    document.title = `${rootName} - VaultDrive`;
+  }
+
   updateBreadcrumbUI();
 
   // Reset UI elements when switching away from shared view
@@ -4172,9 +4300,9 @@ function renderTrashItems(folders, files) {
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const timeString = `${hours}:${minutes}`;
 
-    // Kiểm tra xem có phải hôm nay không
+    // Kiểm tra xem có phải hôm nay không (chỉ hiện giờ để vừa khít 1 dòng, không bị tràn thành ...)
     if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
-      return `Hôm nay, ${timeString}`;
+      return timeString;
     }
 
     // Kiểm tra xem có phải hôm qua không
@@ -4198,7 +4326,7 @@ function renderTrashItems(folders, files) {
 
     html += `
       <div class="trash-item">
-        <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+        <div class="trash-checkbox" onclick="toggleTrashSelection(this, event)"></div>
         <div class="trash-icon-box blue">
           <i class="ph-fill ph-folder"></i>
         </div>
@@ -4208,8 +4336,8 @@ function renderTrashItems(folders, files) {
             Xóa lúc ${formattedDate} &middot; bởi ${user}
           </div>
         </div>
+        <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
         <div class="trash-actions">
-          <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
           <button class="btn-restore" onclick="restoreTrashItem(${folder.id}, 'folder')">Khôi phục</button>
           <button class="btn-delete" onclick="permanentDeleteTrashItem(${folder.id}, 'folder')">Xóa</button>
         </div>
@@ -4229,18 +4357,18 @@ function renderTrashItems(folders, files) {
 
     html += `
       <div class="trash-item">
-        <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+        <div class="trash-checkbox" onclick="toggleTrashSelection(this, event)"></div>
         <div class="trash-icon-box ${colorClass}">
           <i class="ph ${iconClass}"></i>
         </div>
         <div class="trash-item-info">
-          <div class="trash-item-name">${fileName}</div>
+          <div class="trash-item-name" title="${escapeHtml(fileName)}">${renderFileNameHTML(fileName)}</div>
           <div class="trash-item-meta">
             Xóa lúc ${formattedDate} &middot; bởi ${user} &middot; ${size}
           </div>
         </div>
+        <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
         <div class="trash-actions">
-          <span class="days-left ${isUrgent}">Còn ~${daysLeft} ngày</span>
           <button class="btn-restore" onclick="restoreTrashItem(${file.id}, 'file')">Khôi phục</button>
           <button class="btn-delete" onclick="permanentDeleteTrashItem(${file.id}, 'file')">Xóa</button>
         </div>
@@ -4251,8 +4379,13 @@ function renderTrashItems(folders, files) {
   trashList.innerHTML = html;
 }
 
-window.toggleTrashSelection = function (el) {
+window.toggleTrashSelection = function (el, e) {
+  if (e && e.stopPropagation) e.stopPropagation();
   el.classList.toggle('selected');
+  const card = el.closest('.trash-item');
+  if (card) {
+    card.classList.toggle('selected', el.classList.contains('selected'));
+  }
 };
 
 window.restoreTrashItem = async function (id, type) {

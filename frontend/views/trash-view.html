@@ -7,7 +7,7 @@
 <!-- Template cho thư mục trong thùng rác -->
 <template id="trash-folder-template">
   <div class="trash-item">
-    <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+    <div class="trash-checkbox" onclick="toggleTrashSelection(this, event)"></div>
     <div class="trash-icon-box blue">
       <i class="ph-fill ph-folder"></i>
     </div>
@@ -15,8 +15,8 @@
       <div class="trash-item-name"></div>
       <div class="trash-item-meta"></div>
     </div>
+    <span class="days-left"></span>
     <div class="trash-actions">
-      <span class="days-left"></span>
       <button class="btn-restore">Khôi phục</button>
       <button class="btn-delete">Xóa</button>
     </div>
@@ -26,7 +26,7 @@
 <!-- Template cho file trong thùng rác -->
 <template id="trash-file-template">
   <div class="trash-item">
-    <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+    <div class="trash-checkbox" onclick="toggleTrashSelection(this, event)"></div>
     <div class="trash-icon-box">
       <!-- Icon sẽ được JS chèn vào -->
     </div>
@@ -34,8 +34,8 @@
       <div class="trash-item-name"></div>
       <div class="trash-item-meta"></div>
     </div>
+    <span class="days-left"></span>
     <div class="trash-actions">
-      <span class="days-left"></span>
       <button class="btn-restore">Khôi phục</button>
       <button class="btn-delete">Xóa</button>
     </div>

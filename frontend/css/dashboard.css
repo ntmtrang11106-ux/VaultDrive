@@ -27,7 +27,7 @@
   /* === Bo tròn góc (Border Radius) - 3 kích cỡ === */
   --radius-md: 8px;
   /* Bo vừa (buttons, inputs) */
-  --radius-lg: 12px;
+  --radius-lg: 14px;
   /* Bo lớn (cards, dropdowns) */
   --radius-xl: 16px;
   /* Bo rất lớn (modals, upload status pill) */
@@ -53,6 +53,8 @@
 ============================================ */
 body {
   font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.5;
   background-color: var(--bg-color);
   color: var(--text-main);
   display: flex;
@@ -63,7 +65,7 @@ body {
 
 /* ================================================================
    4. CONTENT AREA - Khu vực nội dung bên phải Sidebar
-================================================================ */
+=============================================================== */
 
 /* Wrapper bao ngoài .content-scroll, flex:1 → chiếm hết khoảng còn lại */
 #content-area {
@@ -74,11 +76,11 @@ body {
   overflow: hidden;
 }
 
-/* Vùng cho phép cuộn nội dung dọc bên trong content-area */
+/* Vùng cho phép cuộn nội dung dọc bên trong content-area (Padding chuẩn 24px – 32px) */
 .content-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 32px;
+  padding: 28px 32px;
 }
 
 
@@ -188,30 +190,33 @@ body {
    SECTION TITLE - Tiêu đề các phần (THƯ MỤC, TỆP TIN)
 ================================================================ */
 .section-title {
-  font-size: inherit;
-  font-weight: inherit;
-  margin: 0;
-  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
 }
 
 /* ================================================================
    FILE & FOLDER CARDS (GRID & LIST VIEW)
 ================================================================ */
 /* ── 1. Grid Folder Cards ──
-   Lưới tự động điều chỉnh số cột theo chiều rộng màn hình:*/
+   Lưới tự động điều chỉnh số cột theo chuẩn 8pt Grid: minmax 220px, gap 20px, khoảng cách tới tệp 36px */
 .grid-folders {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 20px;
-  margin-bottom: 40px;
+  margin-bottom: 36px;
 }
 
-/* Thẻ thư mục dạng khối chữ nhật, bo góc, có đổ bóng và hiệu ứng nổi khi hover */
+/* Thẻ thư mục dạng khối chữ nhật, bo góc 12px-16px, padding 12px */
 .folder-card {
   position: relative;
   background-color: var(--card-bg);
   border-radius: var(--radius-lg);
-  padding: 12px 12px 16px 12px;
+  padding: 12px 12px 14px 12px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -232,11 +237,11 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Khung vuông bo góc bao quanh icon của thư mục (Hình 1: icon ở giữa khung) */
+/* Khung vuông bo góc 8px-10px bao quanh icon của thư mục, margin-bottom 12px */
 .folder-icon-box {
   width: 100%;
   height: 85px;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -316,43 +321,54 @@ body {
   color: #10b981;
 }
 
-/* Tiêu đề thư mục (Tự động cắt thành dấu 3 chấm nếu text quá dài) */
+/* Tiêu đề thư mục: Tự động xuống dòng khi dài hơn chiều ngang card (tối đa 2 dòng), ngắt từ thông minh */
 .folder-name {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
+  line-height: 1.4;
   margin-bottom: 4px;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
-/* Thông tin phụ của tệp (ngày/size) trên màn hình nhỏ */
+/* Thông tin phụ của tệp (ngày/size): 12px – 13px, Regular (400), Line-height 1.4, màu #64748b */
 .file-meta-mobile {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #64748b;
+  margin-top: 0;
 }
 
-/* Thông tin phụ của thư mục (số lượng tệp, ngày cập nhật) */
+/* Thông tin phụ của thư mục (số lượng tệp, ngày cập nhật): 12px – 13px */
 .folder-meta {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #64748b;
 }
 
 /* ── 2. Grid File Cards ──
-   Tương tự grid-folders nhưng file card rộng hơn một chút (240px) */
+   Chuẩn 8pt Grid: minmax 220px, gap 20px */
 .grid-files {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 20px;
 }
 
-/* Thẻ tệp tin, bo góc, có đổ bóng và hiệu ứng nổi khi hover */
+/* Thẻ tệp tin: bo góc 12px-16px, padding tổng 12px */
 .file-card {
   position: relative;
   background-color: var(--card-bg);
   border-radius: var(--radius-lg);
-  padding: 14px 14px 16px 14px;
+  padding: 12px 12px 14px 12px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -373,16 +389,16 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Khung bo góc chứa icon tệp tin ở giữa khung (Hình 2 & 3) */
+/* Khung bo góc chứa icon tệp tin ở giữa khung: bo góc 8px-10px, khoảng cách xuống tên tệp 12px */
 .file-icon-box {
   width: 100%;
-  height: 145px;
-  border-radius: 12px;
+  height: 140px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 42px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
@@ -456,23 +472,29 @@ body {
   color: #64748b;
 }
 
-/* Tên file, tối đa hiển thị 2 dòng, tự động cắt nếu dài hơn */
+/* Tên file: Tự động xuống dòng khi dài hơn chiều ngang card (tối đa 2 dòng), ngắt từ thông minh */
 .file-name {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
-/* Dòng mô tả ngày tháng, kích thước nằm ở dưới cùng thẻ */
+/* Dòng mô tả ngày tháng, kích thước nằm ở dưới cùng thẻ: 12px – 13px, Regular (400), Line-height 1.4 */
 .file-meta {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #64748b;
   margin-top: auto;
 }
 
@@ -559,12 +581,12 @@ body {
   flex: 1;
 }
 
-/* Huy hiệu (Badge) mô tả trạng thái chia sẻ */
+/* Huy hiệu (Badge) mô tả trạng thái chia sẻ: 11px – 12px, Medium (500), Line-height 1-1.2, padding 4px 8px, bo tròn 999px */
 .shared-badge {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 20px;
+  padding: 4px 8px;
+  border-radius: 999px;
   background-color: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
