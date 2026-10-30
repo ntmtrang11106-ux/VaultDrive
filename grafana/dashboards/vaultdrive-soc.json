@@ -4,7 +4,7 @@
   "metadata": {
     "name": "vaultdrive-soc-main",
     "namespace": "default",
-    "uid": "71ad1105-54a3-429a-9f32-a1cd8850c489",
+    "uid": "prometheus",
     "resourceVersion": "1793267651568000",
     "generation": 8,
     "creationTimestamp": "2026-10-28T02:26:13Z",
