@@ -1,6 +1,7 @@
 package com.example.vault_drive.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.Nationalized;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,12 +15,15 @@ public class SecurityLog {
     @Column(nullable = false, length = 64)
     private String ip;
 
+    @Nationalized
     @Column(nullable = false, length = 64)
     private String type;
 
+    @Nationalized
     @Column(nullable = false, length = 128)
     private String action;
 
+    @Nationalized
     @Column(nullable = false, length = 64)
     private String severity;
 
