@@ -1,7 +1,9 @@
 services:
+  # 1. Cơ sở dữ liệu SQL Server (Đã gắn ổ cứng lưu trữ vĩnh viễn)
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver_db
+    restart: unless-stopped
     ports:
       - "14333:1433"
     environment:
@@ -9,6 +11,8 @@ services:
       - MSSQL_SA_PASSWORD=Seer#2210
       - MSSQL_PID=Developer
       - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      - sqlserver-data:/var/opt/mssql
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433'"]
       interval: 5s
@@ -18,28 +22,7 @@ services:
     networks:
       - app-network
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: springboot_app
-    ports:
-      - "8080:8080"
-    environment:
-      - TZ=Asia/Ho_Chi_Minh
-      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver_db:1433;databaseName=VaultDriveDB;encrypt=false;trustServerCertificate=true
-      - SPRING_DATASOURCE_USERNAME=sa
-      - SPRING_DATASOURCE_PASSWORD=Seer#2210
-      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.SQLServerDialect
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-    volumes:
-      - ./uploads:/app/uploads
-    depends_on:
-      sqlserver:
-        condition: service_healthy
-    networks:
-      - app-network
-
+  # 2. Khởi tạo Database VaultDriveDB tự động
   db-init:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver_init
@@ -56,7 +39,33 @@ services:
     networks:
       - app-network
 
-  # 3. Node Exporter (Đo CPU & RAM hệ thống)
+  # 3. Spring Boot Backend (Đợi db-init tạo xong DB mới khởi chạy)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: springboot_app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sqlserver_db:1433;databaseName=VaultDriveDB;encrypt=false;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=Seer#2210
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.SQLServerDialect
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - app-network
+
+  # 4. Node Exporter (Đo CPU & RAM hệ thống)
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
@@ -66,7 +75,7 @@ services:
     networks:
       - app-network
 
-  # 4. Prometheus (Thu thập dữ liệu từ Backend & Node Exporter)
+  # 5. Prometheus (Thu thập dữ liệu từ Backend & Node Exporter)
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -85,7 +94,7 @@ services:
     networks:
       - app-network
 
-  # 5. Grafana (Hiển thị Dashboard & SOC)
+  # 6. Grafana (Hiển thị Dashboard & SOC - Hỗ trợ cả cổng 3000 lẫn đường dẫn /soc/)
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -96,10 +105,30 @@ services:
       - TZ=Asia/Ho_Chi_Minh
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/soc/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
+    networks:
+      - app-network
+
+  # 7. Nginx Reverse Proxy (Cổng giao tiếp 80 duy nhất khi lên Azure)
+  nginx:
+    image: nginx:alpine
+    container_name: vaultdrive_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - grafana
     networks:
       - app-network
 
