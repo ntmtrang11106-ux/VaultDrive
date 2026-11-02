@@ -310,6 +310,45 @@ Tài liệu này tổng hợp toàn bộ các API hiện có trong hệ thống 
 * **Query Params:** `fileName` (String), `totalChunks` (int)
 * **Response `200 OK`:** `"Merge task submitted successfully and processing in background"`
 
+### 4.7 Tìm kiếm Tệp tin & Thư mục
+* **Endpoint:** `GET /api/files/search`
+* **Auth:** `Bearer Token`
+* **Query Params:** `q` (String - Từ khóa tìm kiếm theo tên)
+* **Response `200 OK`:** `SearchResponse`
+  ```json
+  {
+    "folders": [
+      {
+        "id": 10,
+        "name": "Tài liệu học tập",
+        "parentId": null,
+        "userId": 1,
+        "userEmail": "user@example.com",
+        "createdAt": "2026-02-10T14:30:00",
+        "updatedAt": "2026-02-10T14:30:00",
+        "isShared": false,
+        "permission": "OWNER"
+      }
+    ],
+    "files": [
+      {
+        "id": 101,
+        "fileName": "baocao.pdf",
+        "fileType": "application/pdf",
+        "sizeBytes": 2048576,
+        "filePath": "uploads/101_baocao.pdf",
+        "folderId": null,
+        "userId": 1,
+        "userEmail": "user@example.com",
+        "createdAt": "2026-02-11T09:00:00",
+        "updatedAt": "2026-02-11T09:00:00",
+        "isShared": false,
+        "permission": "OWNER"
+      }
+    ]
+  }
+  ```
+
 ---
 
 ## 📤 5. Resumable Chunk Upload (`/api/uploads`)

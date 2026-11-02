@@ -16,4 +16,5 @@ public interface FileItemRepository extends JpaRepository<FileItem, Long> {
     List<FileItem> findByUserAndIsTrashedTrueAndIsDeletedFalse(User user);
     Optional<FileItem> findByIdAndIsDeletedFalse(Long id);
     List<FileItem> findByFolderIdAndIsDeletedFalse(Long folderId);
+    List<FileItem> findByUserAndFileNameContainingIgnoreCaseAndIsTrashedFalseAndIsDeletedFalse(User user, String fileName);
 }

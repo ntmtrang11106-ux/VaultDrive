@@ -3,6 +3,7 @@ package com.example.vault_drive.controller;
 import com.example.vault_drive.dto.FileItemResponse;
 import com.example.vault_drive.dto.MoveRequest;
 import com.example.vault_drive.dto.RenameRequest;
+import com.example.vault_drive.dto.SearchResponse;
 import com.example.vault_drive.entity.FileItem;
 import com.example.vault_drive.entity.User;
 import com.example.vault_drive.service.AccessControlService;
@@ -32,6 +33,13 @@ public class FileController {
     public FileController(FileService fileService, AccessControlService accessControlService) {
         this.fileService = fileService;
         this.accessControlService = accessControlService;
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<SearchResponse> search(
+            @RequestParam(value = "q", required = false, defaultValue = "") String query) {
+        User currentUser = accessControlService.getCurrentUser();
+        return ResponseEntity.ok(fileService.search(currentUser, query));
     }
 
     @GetMapping("/{id}/preview")

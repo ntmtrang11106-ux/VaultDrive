@@ -209,6 +209,86 @@ function initLayoutEvents() {
   
   renderUserInfo();
 
+  // --- CHỨC NĂNG TÌM KIẾM FILE & FOLDER (Search Bar) ---
+  const searchInput = document.getElementById("searchInput") || document.querySelector(".search-bar input");
+  if (searchInput) {
+    let searchDebounceTimer = null;
+
+    searchInput.addEventListener("input", function (e) {
+      clearTimeout(searchDebounceTimer);
+      const query = e.target.value.trim();
+
+      searchDebounceTimer = setTimeout(async () => {
+        if (!query) {
+          window.isSearching = false;
+          window.lastSearchResults = null;
+          if (typeof loadDashboardData === "function") {
+            loadDashboardData(window.currentViewType || "home");
+          }
+          return;
+        }
+
+        try {
+          window.isSearching = true;
+          const res = await fetchWithAuth(`/files/search?q=${encodeURIComponent(query)}`);
+          if (res && res.ok) {
+            const data = await res.json();
+            const folders = data.folders || [];
+            const files = data.files || [];
+            window.lastSearchResults = { folders, files };
+
+            // Ẩn các view đặc thù nếu đang mở
+            const trashContainer = document.getElementById("trash-view-container");
+            if (trashContainer) trashContainer.style.display = "none";
+            const settingsContainer = document.getElementById("settings-view-container");
+            if (settingsContainer) settingsContainer.style.display = "none";
+
+            const contentScroll = document.querySelector(".content-scroll");
+            if (contentScroll) {
+              const heroBanner = contentScroll.querySelector(".shared-hero-banner");
+              if (heroBanner) heroBanner.style.display = "none";
+
+              const sharedTitles = contentScroll.querySelectorAll(".shared-folder-title, .shared-file-title");
+              sharedTitles.forEach(t => t.remove());
+
+              const sectionTitles = contentScroll.querySelectorAll(".section-title");
+              sectionTitles.forEach(t => t.style.display = "block");
+
+              const gridFolders = contentScroll.querySelector(".grid-folders");
+              if (gridFolders) gridFolders.style.display = "grid";
+
+              const gridFiles = contentScroll.querySelector(".grid-files");
+              if (gridFiles) gridFiles.style.display = "";
+            }
+
+            // Cập nhật Breadcrumb thông báo kết quả tìm kiếm
+            const breadcrumbContainer = document.getElementById("breadcrumb-container");
+            if (breadcrumbContainer) {
+              breadcrumbContainer.innerHTML = `<span class="current">Kết quả tìm kiếm cho: "${query}"</span>`;
+            }
+
+            // Render kết quả tìm kiếm
+            if (typeof renderFolders === "function") renderFolders(folders);
+            if (typeof renderFiles === "function") renderFiles(files);
+          }
+        } catch (err) {
+          console.error("Lỗi khi tìm kiếm:", err);
+        }
+      }, 300);
+    });
+
+    searchInput.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        searchInput.value = "";
+        window.isSearching = false;
+        window.lastSearchResults = null;
+        if (typeof loadDashboardData === "function") {
+          loadDashboardData(window.currentViewType || "home");
+        }
+      }
+    });
+  }
+
   // Nếu dashboard.js đã load xong và có hàm initDashboardUI, gọi luôn
   // (Trường hợp layout.js chạy xong TRƯỚC khi dashboard.js xong thì không cần)
   if (typeof window.initDashboardUI === 'function') {

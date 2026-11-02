@@ -139,6 +139,12 @@ function setupTabNavigation() {
       // VD: <li data-view="home"> → viewType = 'home'
       const viewType = item.dataset.view; // 'home' | 'shared' | 'trash' | 'settings'
 
+      // Reset ô tìm kiếm nếu đang search
+      const searchInput = document.getElementById("searchInput") || document.querySelector(".search-bar input");
+      if (searchInput) searchInput.value = "";
+      window.isSearching = false;
+      window.lastSearchResults = null;
+
       // Reset navigation về root (hủy trạng thái đang ở thư mục con)
       window.currentFolderId = null; // Không còn đang ở trong thư mục nào
 
@@ -219,8 +225,8 @@ function setupViewToggle() {
       const gridFiles = document.querySelector('.grid-files');
       if (gridFiles) gridFiles.classList.remove('list-view');
 
-      // Nếu đang ở tab "Được chia sẻ" → render lại theo format Grid
-      if (window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
+      // Nếu đang ở tab "Được chia sẻ" và KHÔNG trong trạng thái tìm kiếm → render lại theo format Grid
+      if (!window.isSearching && window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
         renderSharedView();
       }
     });
@@ -236,8 +242,8 @@ function setupViewToggle() {
       const gridFiles = document.querySelector('.grid-files');
       if (gridFiles) gridFiles.classList.add('list-view');
 
-      // Nếu đang ở tab "Được chia sẻ" → render lại theo format List
-      if (window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
+      // Nếu đang ở tab "Được chia sẻ" và KHÔNG trong trạng thái tìm kiếm → render lại theo format List
+      if (!window.isSearching && window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
         renderSharedView();
       }
     });
@@ -328,6 +334,3 @@ window.formatSizeGlobal = function(bytes) {
   // Chia bytes cho 1024^i và làm tròn 1 chữ số thập phân
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 }
-
-
-
