@@ -29,6 +29,11 @@ const API_BASE_URL = "http://localhost:8080/api";
 function checkAuth() {
   const token = localStorage.getItem("jwt_token"); // Đọc token đã lưu
   if (!token) {
+    // Nếu trong URL có token hoặc fileId để xem trước thì cho phép xem mà không bị chuyển hướng sang login
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("token") || urlParams.get("shareToken") || urlParams.get("fileId") || urlParams.get("previewFileId") || document.documentElement.classList.contains("preview-only-mode")) {
+      return null;
+    }
     // Token không tồn tại → user chưa đăng nhập hoặc đã đăng xuất
     window.location.href = "login.html"; // Chuyển về trang login
     return null;
@@ -37,7 +42,6 @@ function checkAuth() {
 }
 
 // Gọi ngay khi file được tải → bảo vệ trang dashboard
-// Nếu chưa đăng nhập, trang sẽ redirect về login ngay lập tức (trước khi render nội dung)
 checkAuth();
 
 
@@ -157,6 +161,9 @@ function setupTabNavigation() {
       // Reset lịch sử điều hướng thư mục về gốc
       window.folderPathTrail = [{ id: null, name: rootTitle }];
 
+      // Cập nhật tiêu đề tab trình duyệt
+      document.title = `${rootTitle} - VaultDrive`;
+
       // --- Bước 4: Cập nhật Breadcrumb UI ---
       if (typeof updateBreadcrumbUI === 'function') {
         updateBreadcrumbUI(); // Nếu hàm này đã được định nghĩa (trong file-actions.js)
@@ -225,8 +232,17 @@ function setupViewToggle() {
       const gridFiles = document.querySelector('.grid-files');
       if (gridFiles) gridFiles.classList.remove('list-view');
 
+      // Cập nhật tên tệp tin dạng Grid View (cắt thông minh bảo toàn đuôi file)
+      document.querySelectorAll('.file-name').forEach((nameEl) => {
+        const fullName = nameEl.dataset.fullName || nameEl.title;
+        if (fullName && typeof window.formatMiddleTruncate === 'function') {
+          nameEl.textContent = window.formatMiddleTruncate(fullName, 26);
+        }
+      });
+
       // Nếu đang ở tab "Được chia sẻ" và KHÔNG trong trạng thái tìm kiếm → render lại theo format Grid
       if (!window.isSearching && window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
+        renderSharedView();
         renderSharedView();
       }
     });
@@ -242,8 +258,17 @@ function setupViewToggle() {
       const gridFiles = document.querySelector('.grid-files');
       if (gridFiles) gridFiles.classList.add('list-view');
 
+      // Cập nhật tên tệp tin dạng List View (chiều ngang rộng hơn nên cho phép hiển thị dài hơn)
+      document.querySelectorAll('.file-name').forEach((nameEl) => {
+        const fullName = nameEl.dataset.fullName || nameEl.title;
+        if (fullName && typeof window.formatMiddleTruncate === 'function') {
+          nameEl.textContent = window.formatMiddleTruncate(fullName, 65);
+        }
+      });
+
       // Nếu đang ở tab "Được chia sẻ" và KHÔNG trong trạng thái tìm kiếm → render lại theo format List
       if (!window.isSearching && window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
+        renderSharedView();
         renderSharedView();
       }
     });
@@ -268,7 +293,14 @@ function setupViewToggle() {
  *   6. Lấy số lượng file được chia sẻ (hiện lên badge)
  *   7. Hiển thị thông tin user
  */
-window.initDashboardUI = function() {
+window.initDashboardUI = function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPreviewOnly = !!(urlParams.get("token") || urlParams.get("shareToken") || urlParams.get("fileId") || urlParams.get("previewFileId")) ||
+    document.documentElement.classList.contains("preview-only-mode");
+  if (isPreviewOnly) {
+    return;
+  }
+
   setupTabNavigation(); // 1a. Gắn sự kiện cho các tab
   setupViewToggle();    // 1b. Gắn sự kiện cho nút Grid/List
 
@@ -321,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * @param {number} bytes - Dung lượng tính bằng byte
  * @returns {string}      - Chuỗi định dạng đọc được
  */
-window.formatSizeGlobal = function(bytes) {
+window.formatSizeGlobal = function (bytes) {
   if (!bytes) return "0 B"; // Trả về "0 B" nếu bytes là null/undefined/0
 
   const k = 1024;                               // 1 KB = 1024 B

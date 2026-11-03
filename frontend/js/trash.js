@@ -5,16 +5,22 @@
 // -------------------------------------------------------------
 
 function getFileIconForTrash(fileName) {
-  if (!fileName) return '<i class="ph ph-file file-doc"></i>';
+  if (!fileName) return '<i class="ph ph-file file-default"></i>';
+  if (typeof getFileCategoryAndIcon === "function") {
+    const { iconClass, colorClass } = getFileCategoryAndIcon(fileName);
+    return `<i class="ph ${iconClass} ${colorClass}"></i>`;
+  }
   const ext = fileName.split('.').pop().toLowerCase();
   switch (ext) {
     case 'pdf': return '<i class="ph ph-file-pdf file-pdf"></i>';
-    case 'png': case 'jpg': case 'jpeg': case 'gif': return '<i class="ph ph-image file-img"></i>';
-    case 'doc': case 'docx': return '<i class="ph ph-file-text file-doc"></i>';
+    case 'png': case 'jpg': case 'jpeg': case 'gif': return '<i class="ph ph-file-image file-img"></i>';
+    case 'doc': case 'docx': return '<i class="ph ph-file-doc file-doc"></i>';
+    case 'txt': return '<i class="ph ph-file-txt file-txt"></i>';
     case 'xls': case 'xlsx': return '<i class="ph ph-file-xls file-xls"></i>';
-    case 'mp4': case 'mov': case 'avi': return '<i class="ph ph-file-video file-mp4"></i>';
+    case 'ppt': case 'pptx': return '<i class="ph ph-file-ppt file-ppt"></i>';
+    case 'mp4': case 'mov': case 'avi': return '<i class="ph ph-file-video file-vid"></i>';
     case 'zip': case 'rar': case '7z': return '<i class="ph ph-file-zip file-zip"></i>';
-    default: return '<i class="ph ph-file file-doc"></i>';
+    default: return '<i class="ph ph-file file-default"></i>';
   }
 }
 
@@ -36,7 +42,7 @@ window.renderTrashItems = function(folders, files) {
   }
 
   trashHeader.style.display = "block";
-  trashList.style.display = "block";
+  trashList.style.display = "";
   emptyState.style.display = "none";
 
   trashHeader.innerHTML = `${totalItems} mục &middot; Tự động xóa sau 30 ngày`;
@@ -61,9 +67,9 @@ window.renderTrashItems = function(folders, files) {
     const minutes = date.getMinutes().toString().padStart(2, '0');
     const timeString = `${hours}:${minutes}`;
 
-    // Kiểm tra xem có phải hôm nay không
+    // Kiểm tra xem có phải hôm nay không (chỉ hiện giờ để vừa khít 1 dòng, không bị tràn thành ...)
     if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
-      return `Hôm nay, ${timeString}`;
+      return timeString;
     }
     
     // Kiểm tra xem có phải hôm qua không
@@ -90,6 +96,11 @@ window.renderTrashItems = function(folders, files) {
 
     if (folderTemplate) {
       const clone = folderTemplate.content.cloneNode(true);
+      const iconBox = clone.querySelector('.trash-icon-box');
+      if (iconBox) {
+        iconBox.className = 'trash-icon-box blue';
+        iconBox.innerHTML = '<i class="ph-fill ph-folder"></i>';
+      }
       clone.querySelector('.trash-item-name').textContent = folder.name;
       clone.querySelector('.trash-item-meta').innerHTML = `Xóa lúc ${formattedDate} &middot; bởi ${user}`;
       
@@ -112,11 +123,26 @@ window.renderTrashItems = function(folders, files) {
     const fileName = file.fileName || file.originalName || "Tệp không tên";
     const formattedDate = formatTrashDate(file.updatedAt);
     const user = file.userEmail ? file.userEmail.split('@')[0] : 'Tôi';
+    const { iconClass, colorClass } = (typeof getFileCategoryAndIcon === "function") 
+      ? getFileCategoryAndIcon(fileName) 
+      : { iconClass: "ph-file", colorClass: "file-default" };
 
     if (fileTemplate) {
       const clone = fileTemplate.content.cloneNode(true);
-      clone.querySelector('.trash-icon-box').innerHTML = getFileIconForTrash(fileName);
-      clone.querySelector('.trash-item-name').textContent = fileName;
+      const iconBox = clone.querySelector('.trash-icon-box');
+      if (iconBox) {
+        iconBox.className = `trash-icon-box ${colorClass}`;
+        iconBox.innerHTML = `<i class="ph ${iconClass}"></i>`;
+      }
+      const trashNameEl = clone.querySelector('.trash-item-name');
+      if (trashNameEl) {
+        if (typeof window.renderFileNameHTML === "function") {
+          trashNameEl.innerHTML = window.renderFileNameHTML(fileName);
+        } else {
+          trashNameEl.textContent = fileName;
+        }
+        trashNameEl.title = fileName;
+      }
       clone.querySelector('.trash-item-meta').innerHTML = `Xóa lúc ${formattedDate} &middot; bởi ${user} &middot; ${size}`;
       
       const daysLeftEl = clone.querySelector('.days-left');
@@ -131,8 +157,13 @@ window.renderTrashItems = function(folders, files) {
   });
 }
 
-window.toggleTrashSelection = function(el) {
+window.toggleTrashSelection = function(el, e) {
+  if (e && e.stopPropagation) e.stopPropagation();
   el.classList.toggle('selected');
+  const card = el.closest('.trash-item');
+  if (card) {
+    card.classList.toggle('selected', el.classList.contains('selected'));
+  }
 };
 
 window.restoreTrashItem = async function(id, type) {

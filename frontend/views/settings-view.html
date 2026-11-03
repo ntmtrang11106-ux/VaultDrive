@@ -1,5 +1,5 @@
 <div class="settings-container">
-  
+
   <!-- Profile Header -->
   <div class="settings-header-card">
     <div class="settings-profile-info">
@@ -10,7 +10,6 @@
         <div class="plan-info">Gói Cá nhân &middot; 100 GB</div>
       </div>
     </div>
-    <button class="btn-outline">Đổi ảnh</button>
   </div>
 
   <!-- Tabs -->
@@ -23,14 +22,15 @@
   <div class="settings-content-card" id="settings-content-profile">
     <div class="settings-content-header">
       <h3>Thông tin cá nhân</h3>
-      <button class="btn-edit" id="btnEditProfile" onclick="toggleEditProfile()"><i class="ph ph-pencil-simple"></i> Chỉnh sửa</button>
+      <button class="btn-edit" id="btnEditProfile" onclick="toggleEditProfile()"><i class="ph ph-pencil-simple"></i>
+        Chỉnh sửa</button>
     </div>
 
     <div class="settings-form-group">
       <label>Họ và tên</label>
       <input type="text" class="settings-form-control" id="inputFullName" disabled />
     </div>
-    
+
     <div class="settings-form-group">
       <label>Email <span class="verified-badge">Đã xác minh</span></label>
       <input type="email" class="settings-form-control" id="inputEmail" disabled />
@@ -64,32 +64,38 @@
     <div class="settings-content-header">
       <div>
         <h3>Đổi mật khẩu</h3>
-        <p>Mật khẩu mới phải có ít nhất 8 ký tự.</p>
+        <p>Mật khẩu mới phải từ 8 ký tự, bắt đầu bằng chữ hoa, có số và ký tự đặc biệt.</p>
       </div>
     </div>
 
     <div class="settings-form-group">
       <label>Mật khẩu hiện tại</label>
       <div class="password-input-wrapper">
-        <input type="password" class="settings-form-control" id="inputCurrentPassword" placeholder="Nhập mật khẩu hiện tại" />
+        <input type="password" class="settings-form-control" id="inputCurrentPassword"
+          placeholder="Nhập mật khẩu hiện tại" />
         <i class="ph ph-eye password-toggle" onclick="togglePasswordVisibility('inputCurrentPassword', this)"></i>
       </div>
+      <label class="field-error" id="inputCurrentPasswordError"></label>
     </div>
 
     <div class="settings-form-group">
       <label>Mật khẩu mới</label>
       <div class="password-input-wrapper">
-        <input type="password" class="settings-form-control" id="inputNewPassword" placeholder="Ít nhất 8 ký tự" />
+        <input type="password" class="settings-form-control" id="inputNewPassword"
+          placeholder="Từ 8 ký tự, chữ hoa đầu, có số & ký tự đặc biệt" />
         <i class="ph ph-eye password-toggle" onclick="togglePasswordVisibility('inputNewPassword', this)"></i>
       </div>
+      <label class="field-error" id="inputNewPasswordError"></label>
     </div>
 
     <div class="settings-form-group">
       <label>Xác nhận mật khẩu mới</label>
       <div class="password-input-wrapper">
-        <input type="password" class="settings-form-control" id="inputConfirmPassword" placeholder="Nhập lại mật khẩu mới" />
+        <input type="password" class="settings-form-control" id="inputConfirmPassword"
+          placeholder="Nhập lại mật khẩu mới" />
         <i class="ph ph-eye password-toggle" onclick="togglePasswordVisibility('inputConfirmPassword', this)"></i>
       </div>
+      <label class="field-error" id="inputConfirmPasswordError"></label>
     </div>
 
     <button class="btn-submit" onclick="savePassword()">Cập nhật mật khẩu</button>

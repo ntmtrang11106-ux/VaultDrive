@@ -10,6 +10,8 @@
     />
     <!-- Nhúng file CSS để định dạng giao diện -->
     <link rel="stylesheet" href="css/auth.css" />
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
   </head>
 
   <body>
@@ -62,13 +64,16 @@
             <a href="forgot-password.html" class="forgot-link"
               >Quên mật khẩu?</a
             >
-            <input
-              type="password"
-              id="password"
-              name="password"
-              required
-              placeholder="Nhập mật khẩu của bạn"
-            />
+            <div class="password-input-wrapper">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                placeholder="Nhập mật khẩu của bạn"
+              />
+              <i class="ph ph-eye password-toggle" onclick="togglePasswordVisibility('password', this)"></i>
+            </div>
             <span class="field-error" id="passwordError"></span>
           </div>
 

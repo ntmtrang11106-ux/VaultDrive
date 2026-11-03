@@ -126,7 +126,7 @@ function initLayoutEvents() {
   }
 
   // --- VẼ THANH TIẾN TRÌNH BỘ NHỚ TRONG LAYOUT.JS ---
-  window.renderStorageInfo = async function() {
+  window.renderStorageInfo = async function () {
     const storageValue = document.querySelector('.storage-value');
     const progressFill = document.querySelector('.progress-fill');
     const storageRemaining = document.querySelector('.storage-remaining');
@@ -206,7 +206,7 @@ function initLayoutEvents() {
     userEmailEl.textContent = email;
     userAvatarEl.textContent = fullName.substring(0, 2).toUpperCase();
   }
-  
+
   renderUserInfo();
 
   // --- CHỨC NĂNG TÌM KIẾM FILE & FOLDER (Search Bar) ---
@@ -298,44 +298,50 @@ function initLayoutEvents() {
 
 
 // ================================================================
-// TẢI VÀ CHÈN LAYOUT HTML VÀO TRANG
+// TẢI VÀ CHÈN LAYOUT HTML VÀO TRANG (Bỏ qua nếu đang mở xem trước riêng biệt)
 // ================================================================
-fetch('layout.html') // GET file layout.html từ cùng thư mục
-  .then(response => {
-    // Kiểm tra HTTP status (200 OK, 404 Not Found, ...)
-    if (!response.ok) throw new Error('Không thể tải file layout.html');
-    return response.text(); // Chuyển response body thành chuỗi HTML
-  })
-  .then(html => {
-    // 1. Tạo một container ảo (không hiển thị) để parse HTML tải về
-    //    Dùng div ảo thay vì DOMParser để dễ dàng querySelector
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html; // Trình duyệt parse HTML string → DOM nodes
+const layoutUrlParams = new URLSearchParams(window.location.search);
+const isPreviewLayoutMode = !!(layoutUrlParams.get("token") || layoutUrlParams.get("shareToken") || layoutUrlParams.get("fileId") || layoutUrlParams.get("previewFileId")) ||
+  document.documentElement.classList.contains("preview-only-mode");
 
-    // 2. Tìm các phần tử cần thiết bên trong file layout.html đã parse
-    const sidebarElement = tempDiv.querySelector('.sidebar');     // <aside class="sidebar">
-    const headerElement = tempDiv.querySelector('.top-header');  // <header class="top-header">
+if (!isPreviewLayoutMode) {
+  fetch('layout.html') // GET file layout.html từ cùng thư mục
+    .then(response => {
+      // Kiểm tra HTTP status (200 OK, 404 Not Found, ...)
+      if (!response.ok) throw new Error('Không thể tải file layout.html');
+      return response.text(); // Chuyển response body thành chuỗi HTML
+    })
+    .then(html => {
+      // 1. Tạo một container ảo (không hiển thị) để parse HTML tải về
+      //    Dùng div ảo thay vì DOMParser để dễ dàng querySelector
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html; // Trình duyệt parse HTML string → DOM nodes
 
-    // 3. Tìm các placeholder đang chờ trên trang (dashboard.html)
-    const sidebarContainer = document.getElementById('sidebar-container'); // <div id="sidebar-container">
-    const headerContainer = document.getElementById('header-container');   // <div id="header-container">
+      // 2. Tìm các phần tử cần thiết bên trong file layout.html đã parse
+      const sidebarElement = tempDiv.querySelector('.sidebar');     // <aside class="sidebar">
+      const headerElement = tempDiv.querySelector('.top-header');  // <header class="top-header">
 
-    // 4. Lắp ráp: Thay thế placeholder bằng phần tử thật từ layout.html
-    //    replaceWith() → thay toàn bộ node placeholder bằng sidebar/header thật
-    if (sidebarContainer && sidebarElement) {
-      sidebarContainer.replaceWith(sidebarElement);
-    }
+      // 3. Tìm các placeholder đang chờ trên trang (dashboard.html)
+      const sidebarContainer = document.getElementById('sidebar-container'); // <div id="sidebar-container">
+      const headerContainer = document.getElementById('header-container');   // <div id="header-container">
 
-    if (headerContainer && headerElement) {
-      headerContainer.replaceWith(headerElement);
-    }
+      // 4. Lắp ráp: Thay thế placeholder bằng phần tử thật từ layout.html
+      //    replaceWith() → thay toàn bộ node placeholder bằng sidebar/header thật
+      if (sidebarContainer && sidebarElement) {
+        sidebarContainer.replaceWith(sidebarElement);
+      }
 
-    // 5. Sau khi DOM đã có Sidebar & Header thật, khởi tạo các sự kiện tương tác
-    initLayoutEvents();
-  })
-  .catch(err => {
-    console.error("Lỗi tải layout:", err);
-  });
+      if (headerContainer && headerElement) {
+        headerContainer.replaceWith(headerElement);
+      }
+
+      // 5. Sau khi DOM đã có Sidebar & Header thật, khởi tạo các sự kiện tương tác
+      initLayoutEvents();
+    })
+    .catch(err => {
+      console.error("Lỗi tải layout:", err);
+    });
+}
 
 
 // ================================================================
@@ -433,9 +439,10 @@ window.fetchNotifications = async function () {
     }
 
     // Điền text
-    itemNode.querySelector('.notif-title').innerHTML = notif.title || 'Thông báo';
-    itemNode.querySelector('.notif-desc').textContent = notif.message || '';
-    itemNode.querySelector('.notif-time').textContent = notif.createdAt || 'Vừa xong';
+    itemNode.querySelector('.notif-title').textContent = notif.title || 'Thông báo';
+    itemNode.querySelector('.notif-desc').textContent = notif.content || notif.message || '';
+    const formatTimeFn = window.formatSmartDate || (typeof formatSmartDate === 'function' ? formatSmartDate : null);
+    itemNode.querySelector('.notif-time').textContent = formatTimeFn ? formatTimeFn(notif.createdAt) : (notif.createdAt || 'Vừa xong');
 
     // Xử lý sự kiện click từng thông báo để đánh dấu đã đọc
     itemNode.addEventListener('click', async (e) => {
@@ -553,7 +560,7 @@ window.fetchNotifications = async function () {
  * Lấy số lượng file/folder người khác chia sẻ cho mình
  * và hiển thị lên badge của tab "Được chia sẻ" trong Sidebar
  */
-window.fetchSharedCountBadge = async function() {
+window.fetchSharedCountBadge = async function () {
   try {
     const response = await fetchWithAuth("/shares/shared-with-me");
     if (response && response.ok) {
@@ -561,14 +568,14 @@ window.fetchSharedCountBadge = async function() {
 
       let items = [];
       if (Array.isArray(sharedList)) {
-        items = sharedList; 
+        items = sharedList;
       } else if (sharedList && typeof sharedList === "object") {
         const f1 = sharedList.folders || sharedList.subfolders || [];
         const f2 = sharedList.files || [];
-        items = [...f1, ...f2]; 
+        items = [...f1, ...f2];
       }
 
-      const totalItems = items.length; 
+      const totalItems = items.length;
 
       // Tìm badge trong Sidebar
       const sidebarBadge = document.querySelector('.nav-item[data-view="shared"] .badge');

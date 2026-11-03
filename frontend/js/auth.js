@@ -1,6 +1,25 @@
 // Cấu hình đường dẫn gốc đến Backend API của phần đăng nhập/đăng ký
 const API_BASE_URL = "http://localhost:8080/api/auth";
 
+// Hàm bật/tắt hiển thị mật khẩu (Icon con mắt)
+function togglePasswordVisibility(inputId, iconEl) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === "password") {
+    input.type = "text";
+    if (iconEl) {
+      iconEl.classList.remove("ph-eye");
+      iconEl.classList.add("ph-eye-slash");
+    }
+  } else {
+    input.type = "password";
+    if (iconEl) {
+      iconEl.classList.remove("ph-eye-slash");
+      iconEl.classList.add("ph-eye");
+    }
+  }
+}
+
 // Sự kiện DOMContentLoaded đảm bảo toàn bộ HTML đã được tải xong mới chạy Javascript
 document.addEventListener("DOMContentLoaded", () => {
   // ==========================================
