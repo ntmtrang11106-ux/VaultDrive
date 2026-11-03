@@ -22,6 +22,9 @@ public class UploadController {
         this.accessControlService = accessControlService;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.example.vault_drive.config.UploadMetricsService uploadMetricsService;
+
     @PostMapping("/init")
     public ResponseEntity<UploadSessionResponse> initUpload(@Valid @RequestBody UploadInitRequest request) {
         User user = accessControlService.getCurrentUser();
@@ -34,6 +37,7 @@ public class UploadController {
             @RequestParam("chunkIndex") int chunkIndex,
             @RequestParam("file") MultipartFile chunk) {
         User user = accessControlService.getCurrentUser();
+        uploadMetricsService.recordChunkUpload(chunk.getSize(), true, true);
         return ResponseEntity.ok(uploadService.uploadChunk(user, sessionId, chunkIndex, chunk));
     }
 

@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # 1. Lấy chỉ số CPU & RAM từ Node Exporter
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # 2. Lấy chỉ số HTTP, Latency, Upload & Bảo mật từ Spring Boot
+  - job_name: 'spring_backend'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['backend:8080']

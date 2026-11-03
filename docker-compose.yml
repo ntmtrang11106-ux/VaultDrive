@@ -1,7 +1,9 @@
 services:
+  # 1. Cơ sở dữ liệu SQL Server (Đã gắn ổ cứng lưu trữ vĩnh viễn)
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sqlserver_db
+    restart: unless-stopped
     ports:
       - "14333:1433"
     environment:
@@ -9,6 +11,8 @@ services:
       - MSSQL_SA_PASSWORD=Seer#2210
       - MSSQL_PID=Developer
       - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      - sqlserver-data:/var/opt/mssql
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/1433'"]
       interval: 5s
@@ -18,11 +22,30 @@ services:
     networks:
       - app-network
 
+  # 2. Khởi tạo Database VaultDriveDB tự động
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver_init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+      for i in {1..30}; do
+        /opt/mssql-tools18/bin/sqlcmd -S sqlserver_db -U sa -P 'Seer#2210' -C -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'VaultDriveDB') CREATE DATABASE VaultDriveDB;\" && break ||
+        /opt/mssql-tools/bin/sqlcmd -S sqlserver_db -U sa -P 'Seer#2210' -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'VaultDriveDB') CREATE DATABASE VaultDriveDB;\" && break;
+        sleep 2;
+      done"
+    networks:
+      - app-network
+
+  # 3. Spring Boot Backend (Đợi db-init tạo xong DB mới khởi chạy)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: springboot_app
+    restart: unless-stopped
     ports:
       - "8080:8080"
     environment:
@@ -42,9 +65,84 @@ services:
     depends_on:
       sqlserver:
         condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - app-network
+
+  # 4. Node Exporter (Đo CPU & RAM hệ thống)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    networks:
+      - app-network
+
+  # 5. Prometheus (Thu thập dữ liệu từ Backend & Node Exporter)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - backend
+      - node-exporter
+    networks:
+      - app-network
+
+  # 6. Grafana (Hiển thị Dashboard & SOC - Hỗ trợ cả cổng 3000 lẫn đường dẫn /soc/)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/soc/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
+  # 7. Nginx Reverse Proxy (Cổng giao tiếp 80 duy nhất khi lên Azure)
+  nginx:
+    image: nginx:alpine
+    container_name: vaultdrive_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+      - grafana
     networks:
       - app-network
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  sqlserver-data:
+  prometheus-data:
+  grafana-data:
