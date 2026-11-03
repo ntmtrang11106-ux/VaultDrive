@@ -1,0 +1,1004 @@
+/* ================= UPLOAD DROPDOWN MENU =================
+   Dropdown xuất hiện khi click nút "Tải lên" trong Sidebar,
+   cho phép chọn: Tải lên tệp | Tải lên thư mục
+*/
+.upload-dropdown-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.upload-dropdown-container.inline-dropdown {
+  width: auto;
+  margin-bottom: 0;
+  display: inline-block;
+}
+
+.upload-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  min-width: 200px;
+  background: white;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  padding: 6px;
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+.upload-dropdown-menu.show {
+  display: flex;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.upload-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.upload-dropdown-item i {
+  font-size: 18px;
+  color: var(--primary-color, #1a73e8);
+}
+
+.upload-dropdown-item:hover {
+  background-color: #f1f5f9;
+  color: var(--primary-color, #1a73e8);
+}
+
+.context-menu-item .menu-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.context-menu-item .menu-left i {
+  font-size: 18px;
+  color: #64748b;
+}
+
+/* Phím tắt hiển thị bên phải */
+.context-menu-shortcut {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Ký hiệu mũi tên cho submenu */
+.submenu-arrow {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* --- SUBMENU (Menu con) --- */
+.context-submenu {
+  position: absolute;
+  top: -8px;
+  left: 100%;
+  /* Đẩy ra bên phải */
+  background-color: white;
+  min-width: 240px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.2);
+  padding: 8px 0;
+  display: none;
+  /* Bị ẩn mặc định */
+  z-index: 10000;
+}
+
+/* Mở submenu khi hover vào item cha */
+.context-menu-item.has-submenu:hover .context-submenu {
+  display: block;
+}
+
+/* --- NÚT 3 CHẤM TRÊN FILE CARD --- */
+.more-options {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+  z-index: 2;
+  /* Để click được */
+}
+
+.more-options:hover,
+.more-options.active {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+
+/* --- CÁC MODAL (Đổi tên, Chia sẻ) --- */
+.action-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: none;
+  /* Mặc định ẩn */
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+.action-modal {
+  background-color: white;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+/* Tùy chỉnh modal chia sẻ to hơn */
+.action-modal.share-modal {
+  width: 500px;
+}
+
+.action-modal-header {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.action-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.action-modal-close {
+  cursor: pointer;
+  color: #64748b;
+  font-size: 20px;
+  transition: color 0.2s;
+}
+
+.action-modal-close:hover {
+  color: #1e293b;
+}
+
+.action-modal-body {
+  padding: 24px;
+}
+
+.action-modal-footer {
+  padding: 16px 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+}
+
+/* Các thành phần Form bên trong */
+.action-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.action-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.share-error-label {
+  color: #ef4444;
+  /* Màu đỏ */
+  font-size: 13px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.btn-secondary {
+  background-color: white;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: #f1f5f9;
+}
+
+/* Vùng nhập email chia sẻ */
+.share-input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.share-role-select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 6px 38px 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23f1f5f9'/%3E%3Cpolyline points='8 10 12 14 16 10' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.share-role-select:hover,
+.share-role-select:focus {
+  color: #0f172a;
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23e2e8f0'/%3E%3Cpolyline points='8 10 12 14 16 10' fill='none' stroke='%230f172a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Danh sách người đã chia sẻ */
+.shared-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shared-user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shared-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shared-user-avatar {
+  width: 32px;
+  height: 32px;
+  background-color: #0ea5e9;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.shared-user-details .su-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  display: block;
+}
+
+.shared-user-details .su-email {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ================= UPLOAD MODAL =================
+   Hộp thoại nổi góc dưới phải để quản lý tiến trình tải lên.
+*/
+.upload-modal {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 500px;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  overflow: hidden;
+  font-family: var(--font-family);
+  resize: both;
+  min-width: 350px;
+  min-height: 250px;
+  max-width: 95vw;
+  max-height: 95vh;
+}
+
+.upload-minimized {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: white;
+  border-radius: 40px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  padding: 12px 20px 12px 16px;
+  gap: 16px;
+  z-index: 100;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  /* var(--border-color) */
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+}
+
+.upload-minimized:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.upload-minimized .progress-ring {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--primary-color) var(--progress, 0%), #f1f5f9 0deg);
+}
+
+/* Tạo vòng tròn trắng bên trong để làm rỗng (donut chart) */
+.upload-minimized .progress-ring::before {
+  content: "";
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  background-color: white;
+  border-radius: 50%;
+}
+
+.upload-minimized .progress-text {
+  position: absolute;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.upload-minimized .minimized-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-minimized .minimized-title {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.upload-minimized .minimized-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.upload-minimized .minimized-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  color: var(--primary-color);
+  margin-left: 12px;
+  transition: background-color 0.2s;
+}
+
+.upload-minimized:hover .minimized-icon {
+  background-color: #e2e8f0;
+}
+
+.upload-modal-header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.upload-modal-header:active {
+  cursor: grabbing;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-info i {
+  font-size: 24px;
+}
+
+.header-info h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 2px 0;
+}
+
+.header-info p {
+  font-size: 12px;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.upload-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.dropzone {
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 16px 16px;
+  text-align: center;
+  background-color: #f8fafc;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.dropzone:hover,
+.dropzone.dragover {
+  background-color: #e0f2fe;
+  border-color: var(--primary-color);
+}
+
+.dropzone-icon {
+  width: 48px;
+  height: 48px;
+  background-color: white;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  font-size: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 12px;
+}
+
+.dropzone h4 {
+  font-size: 15px;
+  color: var(--primary-color);
+  margin: 0 0 4px 0;
+}
+
+.dropzone p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 16px 0;
+}
+
+.dropzone p a {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.dropzone-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.dropzone-tags .tag {
+  font-size: 11px;
+  color: #64748b;
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.section-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.upload-item-card {
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+}
+
+.upload-item-header {
+  display: flex;
+  padding: 16px;
+  gap: 16px;
+  background-color: #f8fafc;
+}
+
+.bg-blue-light {
+  background-color: #e0f2fe;
+  color: var(--primary-color);
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.upload-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-percent {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.item-actions button {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 20px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.item-actions button:hover {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+.item-meta {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.text-blue {
+  color: var(--primary-color);
+}
+
+.text-green {
+  color: #16a34a;
+}
+
+.progress-bar-container {
+  height: 4px;
+  background-color: #e2e8f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 2px;
+}
+
+
+
+.upload-modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+}
+
+.add-file-btn {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--primary-color);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.3s ease;
+}
+
+.add-file-btn:hover {
+  color: var(--primary-hover);
+  font-weight: 600;
+  /* Làm chữ đậm lên khi rê chuột */
+}
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-text:hover {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.btn-text.is-resume {
+  color: var(--primary-color) !important;
+}
+
+.btn-text.is-resume:hover {
+  color: var(--primary-hover) !important;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  box-shadow: 0 4px 12px var(--shadow-md);
+}
+
+.btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* --- TRẠNG THÁI TẠM DỪNG (PAUSED) --- */
+.text-warning {
+  color: #f59e0b !important;
+}
+
+.bg-warning {
+  background-color: #f59e0b !important;
+}
+
+/* ── Section Title ("THƯ MỤC", "TỆP TIN") ──
+   Chữ tiêu đề nhỏ, in hoa, màu xám xanh đặt trước mỗi nhóm */
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+/* --- XỬ LÝ BADGE & NÚT 3 CHẤM CHO THƯ MỤC (FOLDER CARD) TRÊN CẢ 2 CHẾ ĐỘ ---
+*/
+.folder-card {
+  position: relative;
+}
+
+.folder-card .grid-shared-badge {
+  display: block !important;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin-top: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+  opacity: 1;
+}
+
+.folder-card .more-options {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 3;
+}
+
+/* Khi hover vào thư mục: Ẩn chữ Riêng tư/Đã chia sẻ, Hiện nút 3 chấm */
+.folder-card:hover .grid-shared-badge {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.folder-card:hover .more-options {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.folder-shared {
+  display: none !important;
+}
+
+/* --- XỬ LÝ BADGE & NÚT 3 CHẤM CHO TỆP TIN (FILE CARD) --- */
+.grid-shared-badge {
+  display: none;
+}
+
+/* Ở dạng Ô vuông (Grid View) của Tệp tin */
+.content-scroll:not(.list-view) .file-card .grid-shared-badge {
+  display: block;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  margin-top: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+  opacity: 1;
+}
+
+.content-scroll:not(.list-view) .file-card .more-options {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 3;
+}
+
+.content-scroll:not(.list-view) .file-card:hover .more-options {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.content-scroll:not(.list-view) .file-card:hover .grid-shared-badge {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Ở dạng Bảng (List View) của Tệp tin: Ẩn badge góc của file-card */
+.content-scroll.list-view .file-card .grid-shared-badge {
+  display: none !important;
+}
+
+.grid-files:not(.list-view) .file-info-main {
+  margin-top: auto;
+}
+
+.list-header {
+  display: none;
+  align-items: center;
+  padding: 0 20px 8px 20px;
+  gap: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.list-view .list-header {
+  display: flex;
+}
+
+.list-header .col-name {
+  flex: 2;
+  padding-left: 48px;
+}
+
+.list-header .col-date {
+  flex: 1;
+}
+
+.list-header .col-size {
+  flex: 1;
+}
+
+.list-header .col-shared {
+  flex: 1;
+}
+
+.ctx-delete,
+.ctx-delete .ph-trash {
+  color: #ef4444;
+}
+
+.preview-modal-overlay {
+  z-index: 10000;
+}
+
+.preview-modal {
+  width: 80%;
+  max-width: 800px;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-modal-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.preview-modal-content {
+  text-align: center;
+  color: #64748b;
+}
+
+#previewModalIcon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.share-list-title {
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 12px;
+  margin-top: 24px;
+}
+
+.avatar-purple {
+  background-color: #8b5cf6;
+}
+
+.su-role-text {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.share-role-select-inline {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 6px 36px 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23f1f5f9'/%3E%3Cpolyline points='8 10 12 14 16 10' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.share-role-select-inline:hover,
+.share-role-select-inline:focus {
+  color: #0f172a;
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='%23e2e8f0'/%3E%3Cpolyline points='8 10 12 14 16 10' fill='none' stroke='%230f172a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.text-danger {
+  color: red;
+}
+
+.shared-badge.shared-received {
+  background-color: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+.copy-link-btn {
+  margin-right: auto;
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}

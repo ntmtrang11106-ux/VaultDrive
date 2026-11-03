@@ -1,0 +1,927 @@
+/* ================================================================
+   Mục đích: Style cho các thành phần dùng chung (Sidebar, Header)
+             được tải từ layout.html vào mọi trang.
+   Phụ thuộc: Cần dashboard.css được tải TRƯỚC (cung cấp các biến --var)
+================================================================ */
+
+/* ================================================================
+   1. SIDEBAR
+================================================================ */
+.sidebar {
+  width: 290px;
+  background-color: var(--sidebar-bg);
+  border-right: 1px solid var(--border-color);
+  /* Đường kẻ phải ngăn cách với content */
+  display: flex;
+  flex-direction: column;
+  /* Sắp xếp dọc: Logo → Nav → Bottom */
+  padding: 24px 20px;
+  /* flex-shrink: 0; */
+  /* Không co lại khi cửa sổ nhỏ */
+  z-index: 10;
+  /* Nổi trên content area (để resize hoạt động) */
+  position: relative;
+  /* Cần thiết cho resizer */
+}
+
+/* ================================================================
+   2. SIDEBAR RESIZER - Thanh kéo để resize Sidebar
+================================================================ */
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  /* Đặt chồng lên viền phải */
+  width: 5px;
+  /* Chiều rộng vùng có thể kéo */
+  height: 100%;
+  cursor: col-resize;
+  z-index: 20;
+  transition: all 0.2s ease;
+}
+
+.sidebar-resizer:hover,
+.sidebar-resizer.active {
+  background-color: var(--bg-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ================================================================
+   3. LOGO AREA - Khu vực logo & tên thương hiệu
+================================================================ */
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+  color: var(--text-main);
+}
+
+/* Hộp vuông chứa SVG logo (nền xanh primary) */
+.logo-icon {
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary-color);
+  /* Nền xanh */
+  color: white;
+  border-radius: var(--radius-md);
+  /* Bo góc 8px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* Cột chứa tên brand và slogan */
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  /* kế thừa cha */
+  font-weight: inherit;
+}
+
+.logo-text span.brand {
+  font-size: 18px;
+}
+
+.logo-text span.sub {
+  font-size: 11px;
+  color: var(--primary-color);
+  font-weight: 600;
+  /* letter-spacing: 0.5px; */
+  /* Dãn ký tự nhẹ để dễ đọc */
+}
+
+/* ================================================================
+   4. UPLOAD BUTTON - Nút "Tải lên"
+================================================================ */
+
+/* Bỏ margin-bottom khi nút nằm trong container dropdown */
+.upload-dropdown-container .btn-upload-main {
+  margin-bottom: 0;
+}
+
+/* Style chính của nút */
+.btn-upload-main {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: background-color 0.2s;
+  /* Animate màu nền khi hover */
+  width: 100%;
+}
+
+/* Hover: đổi sang màu xanh đậm + thêm bóng */
+.btn-upload-main:hover {
+  background-color: var(--primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+/* Active (đang giữ click): lún xuống 2px + bóng nhỏ lại → cảm giác nhấn thật */
+.btn-upload-main:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* ================================================================
+   5. NAVIGATION MENU - Menu điều hướng chính
+================================================================ */
+
+/* Danh sách nav (ul) */
+.nav-menu {
+  list-style: none;
+  /* Bỏ dấu chấm đầu dòng mặc định của <ul> */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Từng mục nav (li) */
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 500;
+  gap: 12px;
+  transition: all 0.2s;
+  /* Animate tất cả property (màu, nền, ...) */
+}
+
+/* Icon trong nav item - màu xám khi không active */
+.nav-item i {
+  font-size: 20px;
+  color: var(--text-muted);
+}
+
+/* Hover: nền xám nhạt */
+.nav-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* Tab đang được chọn: nền xanh nhạt + chữ/icon xanh primary */
+.nav-item.active {
+  background-color: #f0f5ff;
+  color: var(--primary-color);
+}
+
+/* Icon của tab active cũng đổi sang màu xanh */
+.nav-item.active i {
+  color: var(--primary-color);
+}
+
+/* Badge số lượng (VD: số file được chia sẻ) - nằm bên phải của nav item */
+.badge {
+  background-color: #e0e7ff;
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: auto;
+  /* Đẩy sang lề phải (Flexbox trick) */
+}
+
+/* ================================================================
+   6. SIDEBAR BOTTOM - Phần cuối Sidebar (Bộ nhớ + Hồ sơ)
+================================================================ */
+
+/* margin-top: auto → tự động đẩy xuống cuối sidebar (Flexbox) */
+.sidebar-bottom {
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+}
+
+/* ================================================================
+   6. STORAGE INFO - Thanh thông tin dung lượng bộ nhớ
+================================================================ */
+.storage-info {
+  margin-bottom: 20px;
+}
+
+/* Hàng header: Label bên trái, giá trị bên phải */
+.storage-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.storage-label {
+  font-weight: 500;
+}
+
+.storage-value {
+  color: var(--text-muted);
+  /* "38,4 / 100 GB" màu xám */
+}
+
+/* Thanh tiến trình bộ nhớ (container xám) */
+.storage-progress-bar {
+  height: 6px;
+  background-color: var(--border-color);
+  /* Màu xám nhạt (phần chưa dùng) */
+  border-radius: 3px;
+  overflow: hidden;
+  /* Cắt phần .progress-fill nếu vượt quá */
+  margin-bottom: 8px;
+}
+
+/* Phần đã dùng (màu xanh primary, width JS cập nhật theo %) */
+.progress-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  width: 38%;
+  /* Example value */
+  border-radius: 3px;
+}
+
+/* Dòng chữ "61,6 GB còn lại" */
+.storage-remaining {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ================================================================
+   7. USER PROFILE - Hồ sơ người dùng cuối sidebar
+================================================================ */
+
+/* Hàng chứa avatar + tên + email + caret  */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+/* Avatar tròn chứa 2 ký tự đầu tên người dùng */
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Cột chứa tên và email */
+.user-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Khai báo lại user-profile với position:relative để profile-dropdown bám vào */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+  position: relative;
+  /* Cần thiết để .profile-dropdown dùng position:absolute */
+}
+
+/* Đường kẻ phân cách */
+.sidebar-divider {
+  height: 1px;
+  background-color: var(--border-color, #e2e8f0);
+  margin: 16px 0 12px 0;
+}
+
+/* Nút đăng xuất trực tiếp */
+.logout-btn-direct {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.logout-btn-direct i {
+  font-size: 18px;
+}
+
+.logout-btn-direct:hover {
+  color: #ef4444;
+  background-color: #fef2f2;
+}
+
+/* ================================================================
+   8. MAIN CONTENT AREA - Khu vực nội dung bên phải Sidebar
+================================================================ */
+.main-content {
+  flex: 1;
+  /* Chiếm hết chiều rộng còn lại sau Sidebar */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Cho phép cuộn chỉ trong .content-scroll */
+}
+
+/* ================================================================
+   9. TOP HEADER - Thanh header trên cùng của Main Content
+================================================================ */
+.top-header {
+  height: 72px;
+  background-color: var(--sidebar-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+}
+
+/* ================================================================
+   10. BREADCRUMBS - Đường dẫn thư mục hiện tại
+================================================================ */
+.breadcrumbs {
+  font-size: 15px;
+  color: var(--text-muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+/* Link có thể click trong breadcrumb (các thư mục cha) */
+.breadcrumbs a.breadcrumb-link {
+  color: #64748b;
+  text-decoration: none;
+  font-weight: 500;
+  margin-right: 4px;
+  transition: all 0.2s ease;
+}
+
+/* Hover: chữ đậm hơn */
+.breadcrumbs a.breadcrumb-link:hover {
+  color: var(--text-main, #0f172a);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Mục hiện tại (cuối breadcrumb): chữ đậm màu đen */
+.breadcrumbs span.current {
+  color: var(--text-main, #0f172a);
+  font-weight: 600;
+}
+
+/* ================================================================
+   11. HEADER ACTIONS - Nhóm các nút bên phải Header
+================================================================ */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* ================================================================
+   12. SEARCH BAR - Thanh tìm kiếm
+================================================================ */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-color);
+  border-radius: 20px;
+  padding: 10px 18px;
+  width: 250px;
+}
+
+/* Icon kính lúp */
+.search-bar i {
+  color: var(--text-muted);
+  font-size: 20px;
+  margin-right: 8px;
+}
+
+/* Input text tìm kiếm */
+.search-bar input {
+  border: none;
+  background: transparent;
+  /* Trong suốt để nền của .search-bar hiện ra */
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  font-family: var(--font-family);
+}
+
+/* ================================================================
+   13. SORT DROPDOWN - Nút chọn kiểu sắp xếp
+================================================================ */
+.sort-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--bg-color);
+  border-radius: 20px;
+  font-size: 14px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+/* ================================================================
+   14. VIEW TOGGLE - Nút chuyển đổi Grid View / List View
+================================================================ */
+
+/* Container chứa 2 nút toggle */
+.view-toggle {
+  display: flex;
+  background-color: #f0f2f5;
+  border-radius: 24px;
+  padding: 4px;
+  gap: 2px;
+}
+
+/* Từng nút toggle (Grid hoặc List) */
+.view-btn {
+  border: none;
+  background: transparent;
+  width: 44px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #8f959e;
+  font-size: 20px;
+  /* Icon to hơn xíu */
+  transition: all 0.2s ease;
+}
+
+/* Nút đang active: nền trắng + màu xanh + bóng nhẹ (nổi lên) */
+.view-btn.active {
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Hiệu ứng khi đưa chuột vào (hover) đối với nút chưa được chọn */
+.view-btn:hover:not(.active) {
+  color: #333333;
+  background-color: #e4e6e9;
+}
+
+/* ================================================================
+   15. NOTIFICATIONS - Nút chuông thông báo
+================================================================ */
+.notifications {
+  position: relative;
+  /* Để .notification-dropdown bám vào */
+  width: 42px;
+  height: 42px;
+  background-color: var(--bg-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+}
+
+/* Hover khi chưa active: nền xám đậm hơn */
+.notifications:hover:not(.active) {
+  background-color: #e4e6e9;
+  color: #333333;
+}
+
+/* Khi dropdown đang mở (JS add class .active): nền trắng + xanh + bóng */
+.notifications.active {
+  background-color: white;
+  color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Badge số thông báo chưa đọc (góc trên phải chuông) */
+.notifications .indicator {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 20px;
+  height: 20px;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+}
+
+/* ================================================================
+   16. NOTIFICATION DROPDOWN - Bảng thông báo xổ xuống
+================================================================ */
+.notification-dropdown {
+  position: absolute;
+  top: 60px;
+  right: 0;
+  width: 380px;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: none;
+  flex-direction: column;
+  z-index: 100;
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+
+/* Hiển thị dropdown khi có class .show */
+.notification-dropdown.show {
+  display: flex;
+}
+
+/* Header của dropdown (Tiêu đề và nút đánh dấu đã đọc) */
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.notif-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #111;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Badge số lượng thông báo màu xanh */
+.notif-badge {
+  background-color: var(--primary-color, #1a73e8);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.notif-header a.mark-read {
+  font-size: 13px;
+  color: var(--primary-color, #1a73e8);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.notif-header a.mark-read:hover {
+  text-decoration: underline;
+}
+
+/* Danh sách thông báo (có thể cuộn) */
+.notif-list {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mỗi item thông báo */
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px 20px;
+  gap: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.notif-item:hover {
+  background-color: #f8fafc;
+}
+
+/* Dấu chấm xanh báo chưa đọc */
+.notif-item.unread .notif-title {
+  color: #111;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--primary-color, #1a73e8);
+  border-radius: 50%;
+  position: absolute;
+  right: 20px;
+  top: 24px;
+}
+
+/* Vùng chứa icon */
+.notif-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.notif-icon i {
+  font-size: 20px;
+}
+
+/* Màu nền icon theo loại */
+.bg-purple {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.bg-green {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.bg-yellow {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+/* Nội dung thông báo */
+.notif-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 24px; /* Chừa chỗ cho dấu chấm */
+}
+
+.notif-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.notif-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.notif-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Footer xem tất cả */
+.notif-footer {
+  padding: 16px;
+  text-align: center;
+  border-top: 1px solid var(--border-color, #e2e8f0);
+}
+
+.notif-footer a {
+  font-size: 14px;
+  color: var(--primary-color, #1a73e8);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.notif-footer a:hover {
+  text-decoration: underline;
+}
+
+/* ================= NOTIFICATION DROPDOWN ================= */
+/* Panel danh sách thông báo, mở ra dưới nút chuông (góc trên phải Header) */
+/* Dropdown ẩn mặc định (display:none), hiện khi JS thêm class .show */
+.notification-dropdown {
+  position: absolute; /* Bám vào .notifications (có position:relative) */
+  top: 48px;          /* Hiện bên dưới nút chuông (42px + 6px khoảng cách) */
+  right: -10px;       /* Lệch sang phải 10px cho cân đối */
+  width: 380px;
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  z-index: 100;       /* Nổi trên các phần tử thông thường */
+  display: none;      /* Ẩn mặc định */
+  flex-direction: column;
+  overflow: hidden;   /* Bo tròn góc cắt nội dung bên trong */
+  cursor: default;    /* Con trỏ bình thường khi di vào dropdown */
+}
+
+/* Khi JS add class .show → dropdown hiện ra (flexbox) */
+.notification-dropdown.show {
+  display: flex;
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.notif-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-badge {
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.mark-read {
+  font-size: 13px;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.notif-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notif-item {
+  display: flex;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f3f4f6;
+  gap: 16px;
+  align-items: flex-start;
+  position: relative;
+}
+
+.notif-item:hover {
+  background-color: #f9fafb;
+}
+
+.notif-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.bg-gray {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.bg-green {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.bg-yellow {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.notif-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-title {
+  font-size: 14px;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.notif-title strong {
+  font-weight: 600;
+}
+
+.notif-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  position: absolute;
+  right: 20px;
+  top: 24px;
+}
+
+.notif-item:not(.unread) .unread-dot {
+  display: none;
+}
+
+.notif-footer {
+  padding: 12px;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+}
+
+.notif-footer a {
+  font-size: 14px;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* ─── CONTEXT MENU (Menu chuột phải / nút 3 chấm) ─── */
+/* Hiện tại vị trí cố định (fixed), JS tính toán left/top sau khi click */
+.custom-context-menu {
+  position: fixed;  /* Cố định trên viewport, không bị scroll cuốn đi */
+  background-color: white;
+  min-width: 260px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.2);
+  padding: 8px 0;
+  z-index: 9999;    /* Nổi lên trên MỌI thứ khác (trừ modal z-index:99999) */
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  display: none;    /* Bị ẩn mặc định, JS set display:block khi cần */
+}
+
+/* Các nhóm mục (có đường kẻ phân cách) */
+.context-menu-group {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 4px 0;
+}
+
+.context-menu-group:last-child {
+  border-bottom: none;
+}
+
+/* Từng dòng item trong menu */
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #334155;
+  transition: background-color 0.1s ease;
+  position: relative;
+  /* Để submenu con có thể bám vào */
+}
+
+.context-menu-item:hover {
+  background-color: #f1f5f9;
+}
+

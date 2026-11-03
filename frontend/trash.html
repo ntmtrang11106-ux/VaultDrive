@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thùng rác - VaultDrive</title>
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/file-actions.css" />
+  <link rel="stylesheet" href="css/trash.css" />
+</head>
+
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.1325 20.176 10.2077 17.8596 10.0116C17.4326 6.64368 14.5683 4 11 4C7.13401 4 4 7.13401 4 11C4 11.2372 4.01174 11.4716 4.03454 11.7027C2.29063 12.1818 1 13.784 1 15.6667C1 17.8758 2.79086 19.6667 5 19.6667H17.5Z"
+            stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="brand">VaultDrive</span>
+        <span class="sub">LƯU TRỮ BẢO MẬT</span>
+      </div>
+    </div>
+
+    <ul class="nav-menu" id="main-nav-menu">
+      <li class="nav-item" onclick="window.location.href='dashboard.html'">
+        <i class="ph ph-folder-open"></i>
+        <span>Tệp của tôi</span>
+      </li>
+      <li class="nav-item">
+        <i class="ph ph-users"></i>
+        <span>Được chia sẻ</span>
+        <span class="badge">6</span>
+      </li>
+      <li class="nav-item active">
+        <i class="ph-fill ph-trash"></i>
+        <span>Thùng rác</span>
+      </li>
+      <li class="nav-item">
+        <i class="ph ph-gear"></i>
+        <span>Cài đặt</span>
+      </li>
+    </ul>
+
+    <div class="sidebar-bottom">
+      <div class="storage-info">
+        <div class="storage-header">
+          <span class="storage-label">Bộ nhớ</span>
+          <span class="storage-value">38,4 / 100 GB</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="storage-remaining">61,6 GB còn lại</div>
+      </div>
+
+      <div class="user-profile" id="userProfileBtn">
+        <div class="avatar" id="userAvatar">U</div>
+        <div class="user-details">
+          <span class="user-name" id="userName">Đang tải...</span>
+          <span class="user-email" id="userEmail">...</span>
+        </div>
+        <i class="ph ph-caret-up profile-caret"></i>
+      </div>
+    </div>
+  </aside>
+  <div class="sidebar-resizer" id="sidebar-resizer"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="top-header">
+      <div class="breadcrumbs">
+        <span class="current">Thùng rác</span>
+      </div>
+
+      <div class="header-actions">
+        <div class="search-bar">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" placeholder="Tìm kiếm trong thùng rác..." />
+        </div>
+        <div class="notifications">
+          <i class="ph ph-bell"></i>
+        </div>
+      </div>
+    </header>
+
+    <div class="content-scroll">
+      <div class="trash-header-info">
+        6 tệp &middot; Tự động xóa sau 30 ngày
+      </div>
+
+      <div class="trash-list">
+        <!-- Item 1 -->
+        <div class="trash-item">
+          <div class="trash-checkbox"></div>
+          <div class="trash-icon-box">
+            <i class="ph ph-file-pdf file-pdf"></i>
+          </div>
+          <div class="trash-item-info">
+            <div class="trash-item-name">Báo giá cũ 2025.pdf</div>
+            <div class="trash-item-meta">
+              Xóa lúc Hôm nay, 11:20 &middot; bởi Tôi &middot; 3,2 MB
+            </div>
+          </div>
+          <div class="trash-actions">
+            <span class="days-left">Còn 29 ngày</span>
+            <button class="btn-restore">Khôi phục</button>
+            <button class="btn-delete">Xóa</button>
+          </div>
+        </div>
+
+        <!-- Item 2 -->
+        <div class="trash-item">
+          <div class="trash-checkbox"></div>
+          <div class="trash-icon-box">
+            <i class="ph ph-image file-img"></i>
+          </div>
+          <div class="trash-item-info">
+            <div class="trash-item-name">Ảnh sự kiện tháng 7.png</div>
+            <div class="trash-item-meta">
+              Xóa lúc Hôm qua, 15:00 &middot; bởi Tôi &middot; 14,5 MB
+            </div>
+          </div>
+          <div class="trash-actions">
+            <span class="days-left">Còn 28 ngày</span>
+            <button class="btn-restore">Khôi phục</button>
+            <button class="btn-delete">Xóa</button>
+          </div>
+        </div>
+
+        <!-- Item 3 -->
+        <div class="trash-item">
+          <div class="trash-checkbox"></div>
+          <div class="trash-icon-box">
+            <i class="ph ph-file-text file-doc"></i>
+          </div>
+          <div class="trash-item-info">
+            <div class="trash-item-name">Draft hợp đồng v1.doc</div>
+            <div class="trash-item-meta">
+              Xóa lúc 14/08 &middot; bởi Lê Thị Phương &middot; 890 KB
+            </div>
+          </div>
+          <div class="trash-actions">
+            <span class="days-left">Còn 24 ngày</span>
+            <button class="btn-restore">Khôi phục</button>
+            <button class="btn-delete">Xóa</button>
+          </div>
+        </div>
+
+        <!-- Item 4 -->
+        <div class="trash-item">
+          <div class="trash-checkbox"></div>
+          <div class="trash-icon-box">
+            <i class="ph ph-file-xls file-xls"></i>
+          </div>
+          <div class="trash-item-info">
+            <div class="trash-item-name">Số liệu kiểm tra cũ.xlsx</div>
+            <div class="trash-item-meta">
+              Xóa lúc 10/08 &middot; bởi Tôi &middot; 2,7 MB
+            </div>
+          </div>
+          <div class="trash-actions">
+            <span class="days-left">Còn 20 ngày</span>
+            <button class="btn-restore">Khôi phục</button>
+            <button class="btn-delete">Xóa</button>
+          </div>
+        </div>
+
+        <!-- Item 5 -->
+        <div class="trash-item">
+          <div class="trash-checkbox"></div>
+          <div class="trash-icon-box">
+            <i class="ph ph-file-video file-mp4"></i>
+          </div>
+          <div class="trash-item-info">
+            <div class="trash-item-name">Clip quảng cáo beta.mp4</div>
+            <div class="trash-item-meta">
+              Xóa lúc 05/08 &middot; bởi Tôi &middot; 87 MB
+            </div>
+          </div>
+          <div class="trash-actions">
+            <span class="days-left urgent">Còn 15 ngày</span>
+            <button class="btn-restore">Khôi phục</button>
+            <button class="btn-delete">Xóa</button>
+          </div>
+        </div>
+
+        <!-- Item 6 -->
+        <div class="trash-item">
+          <div class="trash-checkbox"></div>
+          <div class="trash-icon-box">
+            <i class="ph ph-file-zip file-zip"></i>
+          </div>
+          <div class="trash-item-info">
+            <div class="trash-item-name">Log server tháng 7.zip</div>
+            <div class="trash-item-meta">
+              Xóa lúc 01/08 &middot; bởi Trần Đức Mạnh &middot; 210 MB
+            </div>
+          </div>
+          <div class="trash-actions">
+            <span class="days-left urgent">Còn 11 ngày</span>
+            <button class="btn-restore">Khôi phục</button>
+            <button class="btn-delete">Xóa</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trạng thái trống (Empty State) - Ẩn mặc định, hiển thị khi không có tệp -->
+      <div class="trash-empty-state" style="display: none;">
+        <i class="ph ph-trash"></i>
+        <h3>Thùng rác trống</h3>
+        <p>Các mục trong thùng rác sẽ bị xóa vĩnh viễn sau 30 ngày.</p>
+      </div>
+
+    </div>
+  </main>
+</body>
+
+</html>

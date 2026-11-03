@@ -1,0 +1,50 @@
+<!-- Thông tin tổng quan (VD: "6 tệp · Tự động xóa sau 30 ngày") - JS sẽ điền vào -->
+<div class="trash-header-info" id="trash-header-info">
+</div>
+<div class="trash-list" id="trash-list">
+</div>
+
+<!-- Template cho thư mục trong thùng rác -->
+<template id="trash-folder-template">
+  <div class="trash-item">
+    <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+    <div class="trash-icon-box">
+      <i class="ph ph-folder" style="color: #64748b;"></i>
+    </div>
+    <div class="trash-item-info">
+      <div class="trash-item-name"></div>
+      <div class="trash-item-meta"></div>
+    </div>
+    <div class="trash-actions">
+      <span class="days-left"></span>
+      <button class="btn-restore">Khôi phục</button>
+      <button class="btn-delete">Xóa</button>
+    </div>
+  </div>
+</template>
+
+<!-- Template cho file trong thùng rác -->
+<template id="trash-file-template">
+  <div class="trash-item">
+    <div class="trash-checkbox" onclick="toggleTrashSelection(this)"></div>
+    <div class="trash-icon-box">
+      <!-- Icon sẽ được JS chèn vào -->
+    </div>
+    <div class="trash-item-info">
+      <div class="trash-item-name"></div>
+      <div class="trash-item-meta"></div>
+    </div>
+    <div class="trash-actions">
+      <span class="days-left"></span>
+      <button class="btn-restore">Khôi phục</button>
+      <button class="btn-delete">Xóa</button>
+    </div>
+  </div>
+</template>
+
+<!-- Trạng thái rỗng: hiện khi thùng rác không có gì -->
+<div class="trash-empty-state" id="trash-empty-state" style="display: none;">
+  <i class="ph ph-trash"></i>
+  <h3>Thùng rác trống</h3>
+  <p>Các mục trong thùng rác sẽ bị xóa vĩnh viễn sau 30 ngày.</p>
+</div>

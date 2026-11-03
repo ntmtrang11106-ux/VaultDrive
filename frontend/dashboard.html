@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tệp của tôi - VaultDrive</title>
+
+  <!-- === THƯ VIỆN ICON === -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- === CÁC FILE CSS: Tải theo thứ tự ưu tiên từ chung → cụ thể === -->
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/file-actions.css" />
+  <link rel="stylesheet" href="css/trash.css" />
+  <link rel="stylesheet" href="css/settings.css" />
+</head>
+
+<body>
+  <!-- ================================================================
+        1.GIAO DIỆN CHÍNH CỦA DASHBOARD
+  ================================================================ -->
+  <!-- === 1.SIDEBAR: Placeholder - layout.js sẽ tải layout.html và chèn <aside> thật vào đây === -->
+  <div id="sidebar-container"></div>
+
+  <!-- === 2.KHU VỰC NỘI DUNG CHÍNH === -->
+  <main class="main-content">
+    <!-- 2.1 Header Placeholder - layout.js sẽ chèn <header> thật vào đây -->
+    <div id="header-container"></div>
+
+    <!-- 2.2 === KHU VỰC NỘI DUNG === -->
+    <section id="content-area">
+      <!-- Vùng cuộn nd chính -->
+      <div class="content-scroll">
+        <h2 class="section-title">THƯ MỤC</h2> <!-- Tiêu đề section "THƯ MỤC" -->
+        <div class="grid-folders"></div> <!-- Grid chứa các thẻ thư mục  -->
+        <h2 class="section-title">TỆP TIN</h2><!-- Tiêu đề section "TỆP TIN" -->
+        <div class="grid-files"><!-- Grid chứa các thẻ file  -->
+
+          <!-- Header dạng danh sách 3 sọc ngang (List View) -->
+          <div class="list-header">
+            <div class="col-name">TÊN</div>
+            <div class="col-date">NGÀY SỬA</div>
+            <div class="col-size">KÍCH THƯỚC</div>
+            <div class="col-shared">CHIA SẺ</div>
+          </div>
+        </div>
+
+        <!-- Ứng dụng 1 trang-SPA: Thay vì load HTML mới từ server, 
+         ta dùng cơ chế Lazy Loading để tải từng View vào đây khi click Menu -->
+        <!-- ─── VIEW: THÙNG RÁC ─── -->
+        <div id="trash-view-container" style="display: none"></div>
+        <!-- ─── VIEW: CÀI ĐẶT ─── -->
+        <div id="settings-view-container" style="display: none"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================================================================
+       UPLOAD MODAL - Hộp thoại nổi góc dưới phải để quản lý tải lên
+  ================================================================ -->
+  <!-- style="display:none": Mặc định ẩn, JS sẽ show khi người dùng chọn tải lên -->
+  <div class="upload-modal" id="uploadModal" style="display: none">
+
+    <!-- 1. Thanh tiêu đề modal-->
+    <div class="upload-modal-header">
+      <div class="header-info">
+        <i class="ph ph-upload-simple" id="modalHeaderIcon"></i>
+        <div>
+          <h3 id="uploadModalTitle">Tải lên tệp</h3>
+          <p id="modalUploadSubtitle">Chưa có tệp nào đang tải</p>
+        </div>
+      </div>
+      <button class="close-btn" id="closeUploadModal">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
+
+    <!-- 2. Thân modal: Khu vực thả file + danh sách tiến trình -->
+    <div class="upload-modal-body">
+      <!-- Khu vực kéo thả file -->
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">
+          <i class="ph ph-upload-simple" id="dropzoneIcon"></i>
+        </div>
+        <h4 id="dropzoneTitle">Kéo &amp; thả tệp vào đây</h4>
+        <p id="dropzoneSubtitle">
+          hoặc <a href="#" id="browseFileBtn">duyệt từ máy tính</a>
+        </p>
+        <!-- Input file ẩn (multiple: cho chọn nhiều file cùng lúc) -->
+        <input type="file" id="fileInput" multiple style="display: none" />
+        <!-- Input folder ẩn (webkitdirectory: cho chọn cả thư mục) -->
+        <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none" />
+      </div>
+      <!-- Khu vực hiển thị danh sách các file đang/chờ tải lên -->
+      <div class="upload-list-section">
+        <h5 class="section-subtitle" id="uploadListTitle">
+          DANH SÁCH TẢI LÊN
+        </h5>
+
+        <!-- Template HTML định nghĩa cấu trúc 1 item trong danh sách tải lên -->
+        <template id="upload-item-template">
+          <div class="upload-item-card" style="margin-bottom: 12px">
+            <div class="upload-item-header">
+              <div class="file-icon bg-blue-light">
+                <i class="ph-fill ph-file item-type-icon"></i>
+              </div>
+              <div class="upload-item-info">
+                <div class="item-title-row">
+                  <span class="item-name">Tên file mẫu</span>
+                  <span class="item-percent">0%</span>
+                  <!-- Nút tạm dừng và hủy tải lên -->
+                  <div class="item-actions">
+                    <button class="retry-btn" title="Thử lại" style="display: none; color: #0284c7;">
+                      <i class="ph-bold ph-arrow-clockwise"></i>
+                    </button>
+                    <button class="pause-btn" title="Tạm dừng/Tiếp tục">
+                      <i class="ph-fill ph-pause-circle"></i>
+                    </button>
+                    <button class="cancel-btn" title="Hủy tải lên">
+                      <i class="ph ph-x"></i>
+                    </button>
+                  </div>
+                </div>
+                <!-- Thông tin: dung lượng đã tải / tổng · trạng thái -->
+                <div class="item-meta">
+                  0 B / 0 B &middot;
+                  <span class="text-blue thread-count">Chờ...</span>
+                </div>
+                <!-- Thanh tiến trình tải lên (width tăng dần theo %) -->
+                <div class="progress-bar-container">
+                  <div class="progress-bar" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- 3. Footer modal: Nút thêm file, tạm dừng tất cả, thu nhỏ -->
+    <div class="upload-modal-footer">
+      <!-- Link thêm file/folder vào danh sách tải lên -->
+      <a href="#" class="add-file-btn" id="addFileBtn">
+        <i class="ph ph-plus"></i>
+        <span id="addFileBtnText">Thêm tệp</span>
+      </a>
+      <div class="footer-actions">
+        <button class="btn-text" id="pauseAllBtn">Tạm dừng tất cả</button>
+        <button class="btn-primary" id="minimizeBtn">Thu nhỏ</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===============================================================
+       UPLOAD MINIMIZED PILL - Dạng thu nhỏ của modal tải lên
+  ================================================================ -->
+  <div class="upload-minimized" id="uploadMinimized" style="display: none">
+    <!-- Vòng tròn tiến trình -->
+    <div class="progress-ring" id="minProgressRing" style="--progress: 0%">
+      <span class="progress-text">0%</span>
+    </div>
+
+    <!-- Thông tin tóm tắt bên cạnh vòng tròn -->
+    <div class="minimized-info">
+      <div class="minimized-title" id="minimizedTitle">
+        Không có tệp nào đang tải
+      </div>
+      <div class="minimized-subtitle" id="minimizedSubtitle">
+        0 hoàn thành &middot; Nhấn để xem
+      </div>
+    </div>
+
+    <!-- Icon mũi tên chỉ xuống gợi ý mở rộng -->
+    <div class="minimized-icon">
+      <i class="ph ph-caret-down"></i>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       CONTEXT MENU - Menu chuột phải / nút 3 chấm
+  ================================================================ -->
+  <!-- position: fixed - JS sẽ tính toán tọa độ left/top để hiển thị đúng vị trí -->
+  <div class="custom-context-menu" id="globalContextMenu">
+    <!-- 1: Tải xuống -->
+    <div class="context-menu-group">
+      <div class="context-menu-item" id="ctxDownload">
+        <div class="menu-left">
+          <i class="ph ph-download-simple"></i> Tải xuống
+        </div>
+      </div>
+    </div>
+
+    <!-- 2: Đổi tên & Chia sẻ -->
+    <div class="context-menu-group">
+      <div class="context-menu-item" id="ctxRename">
+        <div class="menu-left">
+          <i class="ph ph-pencil-simple"></i> Đổi tên
+        </div>
+      </div>
+
+      <!-- Item "Chia sẻ" có submenu bật ra bên phải khi hover -->
+      <div class="context-menu-item has-submenu" id="ctxShareWrap">
+        <div class="menu-left"><i class="ph ph-user-plus"></i> Chia sẻ</div>
+        <i class="ph ph-caret-right submenu-arrow"></i>
+        <!-- Submenu bật ra bên phải (CSS: display:none → display:block khi hover) -->
+        <div class="context-submenu">
+          <div class="context-menu-item" id="ctxShare">
+            <div class="menu-left">
+              <i class="ph ph-users"></i> Quản lý quyền truy cập
+            </div>
+          </div>
+          <!-- Sao chép đường link chia sẻ vào clipboard -->
+          <div class="context-menu-item" id="ctxCopyLink">
+            <div class="menu-left">
+              <i class="ph ph-link"></i> Sao chép đường liên kết
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3: Chuyển vào thùng rác -->
+    <div class="context-menu-group">
+      <div class="context-menu-item ctx-delete" id="ctxDelete">
+        <div class="menu-left">
+          <i class="ph ph-trash"></i> Chuyển vào thùng rác
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================================
+       RENAME MODAL - Hộp thoại đổi tên file/folder
+  ================================================================ -->
+  <!-- 1. action-modal-overlay: Lớp phủ tối toàn màn hình, JS sẽ set display:flex khi mở -->
+  <div class="action-modal-overlay" id="renameModalOverlay">
+    <div class="action-modal">
+      <div class="action-modal-header">
+        <h3>Đổi tên</h3>
+        <i class="ph ph-x action-modal-close" id="closeRenameModal"></i>
+      </div>
+
+      <!-- 2. Body: Ô nhập tên mới -->
+      <div class="action-modal-body">
+        <input type="text" id="renameInput" class="action-input" placeholder="Nhập tên mới..." />
+      </div>
+
+      <!-- 3. Footer: Nút Hủy + Nút xác nhận Đổi tên -->
+      <div class="action-modal-footer">
+        <button class="btn-secondary" id="cancelRenameBtn">Hủy</button>
+        <button class="btn-primary" id="confirmRenameBtn">Đổi tên</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       SHARE MODAL - Hộp thoại quản lý chia sẻ file/folder
+  ================================================================ -->
+  <div class="action-modal-overlay" id="shareModalOverlay">
+    <div class="action-modal share-modal">
+      <!-- 1. Header -->
+      <div class="action-modal-header">
+        <h3>Chia sẻ tệp</h3>
+        <i class="ph ph-x action-modal-close" id="closeShareModal"></i>
+      </div>
+
+      <!-- 2. Body: Form thêm người + Danh sách người đã có quyền -->
+      <div class="action-modal-body">
+        <div class="share-input-group">
+          <input type="email" id="shareEmailInput" class="action-input flex-1" placeholder="Thêm người bằng email..." />
+          <select id="shareRoleSelect" class="share-role-select">
+            <option value="VIEWER">Người xem</option>
+            <option value="EDITOR">Người chỉnh sửa</option>
+          </select>
+          <button class="btn-primary" id="addShareUserBtn">Thêm</button>
+        </div>
+
+        <!-- Thông báo lỗi (VD: email không tồn tại)-->
+        <div id="shareErrorMsg" class="share-error-label"></div>
+        <h4 class="share-list-title">Những người có quyền truy cập</h4>
+
+        <!-- Container danh sách người được chia sẻ sẽ render HTML vào đây -->
+        <div class="shared-users-list" id="sharedUsersListContainer"></div>
+      </div>
+
+      <!-- 3. Footer: Nút sao chép link + nút Xong -->
+      <div class="action-modal-footer">
+        <button class="btn-secondary copy-link-btn" id="copyLinkBtnModal">
+          <i class="ph ph-link"></i> Sao chép liên kết
+        </button>
+        <button class="btn-primary" id="doneShareBtn">Xong</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/layout.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/file-actions.js?v=2.2"></script>
+  <script src="js/trash.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+
+</html>
