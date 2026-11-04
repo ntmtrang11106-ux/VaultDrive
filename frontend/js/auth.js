@@ -77,8 +77,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Kiểm tra quyền (role) để chuyển hướng
         if (data.role === "ROLE_ADMIN") {
-          // Trang dành cho admin sẽ được code sau
-          window.location.href = "admin.html";
+          // Chuyển hướng trực tiếp sang Grafana Dashboard (thay link dưới bằng link trên trình duyệt của bạn)
+          window.location.href = "http://localhost:3000";
         } else {
           // Trang dành cho user
           window.location.href = "dashboard.html";
@@ -214,7 +214,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if (!loginResponse.ok) {
-          throw new Error("Đăng ký thành công nhưng đăng nhập tự động thất bại. Vui lòng thử đăng nhập thủ công.");
+          throw new Error(
+            "Đăng ký thành công nhưng đăng nhập tự động thất bại. Vui lòng thử đăng nhập thủ công.",
+          );
         }
 
         const data = await loginResponse.json();
