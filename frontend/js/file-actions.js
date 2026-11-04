@@ -2436,6 +2436,7 @@ function createSharedUserMetaNode(item) {
  * @param {string} viewType - Tab hiện tại: 'home' | 'shared' | 'trash'
  */
 function renderFolders(folders, viewType = "home") {
+  if (!window.isSearching && viewType !== window.currentViewType) return;
   const foldersContainer = document.querySelector(".grid-folders");
   if (!foldersContainer) return;
   foldersContainer.innerHTML = ""; // Xóa dữ liệu cũ
@@ -2562,6 +2563,7 @@ function renderFolders(folders, viewType = "home") {
  * @param {string} viewType - Tab hiện tại: 'home' | 'shared' | 'trash'
  */
 function renderFiles(files, viewType = "home") {
+  if (!window.isSearching && viewType !== window.currentViewType) return;
   const filesContainer = document.querySelector(".grid-files");
   if (!filesContainer) return;
 
@@ -3243,7 +3245,23 @@ function setupDragAndDrop() {
             if (typeof window.renderStorageInfo === "function") {
               window.renderStorageInfo();
             }
-            if (typeof fetchNotifications === "function") {
+            // Tạo 1 thông báo duy nhất cho toàn bộ thư mục (không tạo từng file lẻ)
+            if (completedFilesCount > 0 && typeof fetchWithAuth === "function") {
+              fetchWithAuth("/uploads/folder-complete", {
+                method: "POST",
+                body: JSON.stringify({
+                  folderName: group.folderName,
+                  fileCount: completedFilesCount
+                })
+              }).then(() => {
+                if (typeof fetchNotifications === "function") {
+                  fetchNotifications();
+                }
+              }).catch(err => {
+                console.warn("Lỗi tạo thông báo thư mục:", err);
+                if (typeof fetchNotifications === "function") fetchNotifications();
+              });
+            } else if (typeof fetchNotifications === "function") {
               fetchNotifications();
             }
           }
@@ -3328,7 +3346,8 @@ function setupDragAndDrop() {
           fileName: file.name,
           totalSizeBytes: file.size,
           totalChunks: totalChunks,
-          targetFolderId: targetFolderId
+          targetFolderId: targetFolderId,
+          isPartOfFolder: true
         })
       });
 
@@ -4463,6 +4482,7 @@ function formatSharerName(item) {
  * Đổ dữ liệu thực tế từ CSDDL / API backend (không vẽ bằng HTML hay dữ liệu giả mockData)
  */
 function renderSharedView(sharedList) {
+  if (window.currentViewType !== "shared") return;
   const contentScroll = document.querySelector(".content-scroll");
   if (!contentScroll) return;
 
@@ -4570,11 +4590,33 @@ function renderSharedView(sharedList) {
  * Hàm mẫu để gọi API lấy dữ liệu từ Backend
  * Gọi hàm này khi trang vừa load hoặc khi chuyển đổi giữa tab "Trang chủ" / "Tệp của tôi" / "Được chia sẻ"
  */
+// Biến toàn cục kiểm soát Race Condition và Hủy Request (AbortController)
+let currentDashboardLoadSeq = 0;
+let currentDashboardAbortController = null;
+
+/**
+ * loadDashboardData(viewType) - Gọi API lấy dữ liệu thực tế từ Backend
+ * Sử dụng Sequence Counter + AbortController để ngăn Race Condition khi chuyển tab nhanh.
+ */
 async function loadDashboardData(viewType = "home") {
+  // 1. Tăng sequence ID - chỉ request có sequence mới nhất mới được quyền cập nhật UI
+  const seq = ++currentDashboardLoadSeq;
+
+  // 2. Hủy HTTP request cũ đang chờ nếu có (AbortController)
+  if (currentDashboardAbortController) {
+    try {
+      currentDashboardAbortController.abort();
+    } catch (e) {}
+  }
+  currentDashboardAbortController = new AbortController();
+  const currentSignal = currentDashboardAbortController.signal;
+
   window.currentViewType = viewType; // Lưu trạng thái
   if (window.currentFolderId === undefined) {
     window.currentFolderId = null;
   }
+  const folderIdSnapshot = window.currentFolderId;
+
   if (!window.folderPathTrail) {
     const rootName = viewType === "shared" ? "Được chia sẻ" :
       viewType === "trash" ? "Thùng rác" :
@@ -4626,20 +4668,32 @@ async function loadDashboardData(viewType = "home") {
 
   if (viewType === "shared") {
     try {
-      const response = await fetchWithAuth("/shares/shared-with-me");
+      const response = await fetchWithAuth("/shares/shared-with-me", { signal: currentSignal });
+      if (seq !== currentDashboardLoadSeq || window.currentViewType !== "shared") {
+        return;
+      }
       if (response && response.ok) {
         const data = await response.json();
+        if (seq !== currentDashboardLoadSeq || window.currentViewType !== "shared") return;
         renderSharedView(data);
         return;
       }
+      if (response && response.status === 429) {
+        console.warn("Máy chủ đang giới hạn tốc độ (HTTP 429). Giữ nguyên dữ liệu hiện tại.");
+        return;
+      }
     } catch (err) {
+      if (err.name === "AbortError" || currentSignal.aborted) {
+        return;
+      }
+      if (seq !== currentDashboardLoadSeq || window.currentViewType !== "shared") return;
       console.warn("Lỗi khi lấy dữ liệu chia sẻ:", err.message);
     }
-    renderSharedView([]);
     return;
   }
 
   if (viewType === "settings") {
+    if (seq !== currentDashboardLoadSeq || window.currentViewType !== "settings") return;
     if (typeof renderSettingsView === "function") {
       renderSettingsView();
     }
@@ -4654,11 +4708,19 @@ async function loadDashboardData(viewType = "home") {
       endpoint = "/trash";
     }
 
-    // Gọi API lấy dữ liệu thực tế
-    const response = await fetchWithAuth(endpoint);
+    // Gọi API lấy dữ liệu thực tế kèm AbortSignal
+    const response = await fetchWithAuth(endpoint, { signal: currentSignal });
+
+    // Kiểm tra request cũ: nếu sequence không khớp hoặc tab/folder đã đổi thì hủy
+    if (seq !== currentDashboardLoadSeq || window.currentViewType !== viewType || window.currentFolderId !== folderIdSnapshot) {
+      return;
+    }
 
     if (response && response.ok) {
       const data = await response.json();
+      if (seq !== currentDashboardLoadSeq || window.currentViewType !== viewType || window.currentFolderId !== folderIdSnapshot) {
+        return;
+      }
       window.currentLoadedData = data;
       if (viewType === "trash") {
         renderTrashItems(data.folders || [], data.files || []);
@@ -4672,22 +4734,24 @@ async function loadDashboardData(viewType = "home") {
           files = files.filter(f => !f.permission || f.permission === "OWNER");
         }
 
-        renderFolders(folders);
-        renderFiles(files);
+        renderFolders(folders, viewType);
+        renderFiles(files, viewType);
       }
       return;
     }
-  } catch (error) {
-    console.warn("Lỗi khi lấy dữ liệu từ Backend API:", error.message);
-  }
 
-  // Nếu gặp lỗi API hoặc dữ liệu trống, render danh sách rỗng từ CSDDL (không nảy dữ liệu giả mockData)
-  // Nếu gặp lỗi API hoặc dữ liệu trống, render danh sách rỗng từ CSDDL (không nảy dữ liệu giả mockData)
-  if (viewType === "trash") {
-    renderTrashItems([], []);
-  } else {
-    renderFolders([]);
-    renderFiles([]);
+    if (response && response.status === 429) {
+      console.warn("Máy chủ đang giới hạn tốc độ (HTTP 429). Không ghi đè giao diện rỗng.");
+      return;
+    }
+  } catch (error) {
+    if (error.name === "AbortError" || currentSignal.aborted) {
+      return; // Request bị abort khi đổi tab, thoát ngay, TUYỆT ĐỐI không render danh sách rỗng!
+    }
+    if (seq !== currentDashboardLoadSeq || window.currentViewType !== viewType || window.currentFolderId !== folderIdSnapshot) {
+      return;
+    }
+    console.warn("Lỗi khi lấy dữ liệu từ Backend API:", error.message);
   }
 }
 
@@ -4701,6 +4765,7 @@ function getFileIconForTrash(fileName) {
 }
 
 function renderTrashItems(folders, files) {
+  if (window.currentViewType !== "trash") return;
   const container = document.getElementById("trash-view-container");
   const trashHeader = document.getElementById("trash-header-info");
   const trashList = document.getElementById("trash-list");
