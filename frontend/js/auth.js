@@ -77,8 +77,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Kiểm tra quyền (role) để chuyển hướng
         if (data.role === "ROLE_ADMIN") {
-          // Trang dành cho admin sẽ được code sau
-          window.location.href = "admin.html";
+          // Chuyển vào khung dashboard.html và mở thẳng tab SOC
+          window.location.href = "dashboard.html";
         } else {
           // Trang dành cho user
           window.location.href = "dashboard.html";

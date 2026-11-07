@@ -1,0 +1,237 @@
+/* ==========================================================================
+   SOC MONITORING VIEW - Thiết kế đồng bộ chuẩn Light UI của VaultDrive
+   ========================================================================== */
+
+.soc-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 28px;
+}
+
+/* 1. Thanh điều khiển gọn trên 1 hàng duy nhất */
+.soc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.soc-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.soc-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.soc-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.soc-status-dot {
+  width: 7px;
+  height: 7px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.soc-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Bộ chọn thời gian giống nút Last 5 minutes nhưng sắc nét */
+.soc-timepicker {
+  display: inline-flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  height: 36px;
+  overflow: hidden;
+}
+
+.soc-tp-btn {
+  border: none;
+  background: transparent;
+  height: 100%;
+  padding: 0 10px;
+  color: #475569;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: background 0.15s;
+}
+
+.soc-tp-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.soc-tp-select-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 100%;
+  border-left: 1px solid #cbd5e1;
+  border-right: 1px solid #cbd5e1;
+}
+
+.soc-tp-select-box select {
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  outline: none;
+}
+
+.soc-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.soc-refresh-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+/* 2. Lưới 4 Thẻ KPI cố định trên 1 hàng ngang (4 cột bằng nhau) */
+.soc-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.soc-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+  border-left: 4px solid transparent;
+}
+
+.soc-kpi-card.danger { border-left-color: #ef4444; }
+.soc-kpi-card.warning { border-left-color: #f59e0b; }
+.soc-kpi-card.primary { border-left-color: #2563eb; }
+.soc-kpi-card.success { border-left-color: #10b981; }
+
+.soc-kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.soc-kpi-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.soc-kpi-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.soc-kpi-num {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 6px 0 8px 0;
+}
+
+/* Các nhãn (Badges) nhỏ hiển thị chi tiết từng loại tấn công */
+.soc-tag-group {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.soc-mini-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.soc-kpi-desc {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 3. Khung nhúng Grafana sạch sẽ (Đã sửa lỗi Not Found và cắt bỏ thanh thừa) */
+.soc-grafana-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.soc-grafana-iframe {
+  width: 100%;
+  height: 880px;
+  border: none;
+  display: block;
+}
+
+@media (max-width: 1100px) {
+  .soc-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

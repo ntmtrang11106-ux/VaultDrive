@@ -41,9 +41,15 @@ public class SecurityLog {
     }
 
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public String getIp() { return ip; }
+    public void setIp(String ip) { this.ip = ip; }
     public String getType() { return type; }
+    public void setType(String type) { this.ip = type; this.type = type; }
     public String getAction() { return action; }
+    public void setAction(String action) { this.action = action; }
     public String getSeverity() { return severity; }
+    public void setSeverity(String severity) { this.severity = severity; }
     public LocalDateTime getDetectedAt() { return detectedAt; }
+    public void setDetectedAt(LocalDateTime detectedAt) { this.detectedAt = detectedAt; }
 }
