@@ -184,4 +184,38 @@
         </div>
       </div>
     </div>
+
+    <!-- === KHU VỰC TÀI KHOẢN ADMIN TRÊN TOPBAR (Chỉ hiện khi là ROLE_ADMIN) === -->
+    <div class="admin-topbar-profile" id="adminTopProfile" style="display: none;">
+      <div class="admin-avatar-btn" id="adminAvatarBtn" title="Tài khoản Quản trị">
+        <div class="admin-top-avatar" id="adminTopAvatar">AD</div>
+        <div class="admin-top-info">
+          <span class="admin-top-name" id="adminTopName">admin</span>
+          <span class="admin-top-badge">Quản trị viên</span>
+        </div>
+        <i class="ph-bold ph-caret-down"></i>
+      </div>
+
+      <!-- Dropdown menu của Admin -->
+      <div class="admin-profile-dropdown" id="adminProfileDropdown">
+        <div class="admin-dropdown-header">
+          <div class="admin-dropdown-avatar" id="adminDropdownAvatar">AD</div>
+          <div class="admin-dropdown-meta">
+            <b id="adminDropdownName">System Administrator</b>
+            <span id="adminDropdownEmail">admin@vaultdrive.com</span>
+          </div>
+        </div>
+        <div class="admin-dropdown-divider"></div>
+        <a href="#" class="admin-dropdown-item" id="adminMenuSettings">
+          <i class="ph-bold ph-gear"></i>
+          <span>Cài đặt</span>
+        </a>
+        <div class="admin-dropdown-divider"></div>
+        <a href="#" class="admin-dropdown-item text-danger" id="adminMenuLogout">
+          <i class="ph-bold ph-sign-out"></i>
+          <span>Đăng xuất</span>
+        </a>
+      </div>
+    </div>
+  </div>
 </header>
