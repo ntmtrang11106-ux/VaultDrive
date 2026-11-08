@@ -28,22 +28,26 @@
 
     <div class="settings-form-group">
       <label>Họ và tên</label>
-      <input type="text" class="settings-form-control" id="inputFullName" disabled />
+      <input type="text" class="settings-form-control" id="inputFullName" placeholder="Nhập họ và tên" disabled />
+      <label class="field-error" id="inputFullNameError"></label>
     </div>
 
     <div class="settings-form-group">
       <label>Email <span class="verified-badge">Đã xác minh</span></label>
       <input type="email" class="settings-form-control" id="inputEmail" disabled />
+      <label class="field-error" id="inputEmailError"></label>
     </div>
 
     <div class="settings-form-group">
       <label>Số điện thoại</label>
-      <input type="text" class="settings-form-control" id="inputPhone" disabled />
+      <input type="text" class="settings-form-control" id="inputPhone" placeholder="Nhập số điện thoại (10 chữ số)" disabled />
+      <label class="field-error" id="inputPhoneError"></label>
     </div>
 
     <div class="settings-form-group">
       <label>Ngày sinh</label>
       <input type="date" class="settings-form-control" id="inputDob" disabled />
+      <label class="field-error" id="inputDobError"></label>
     </div>
 
     <div class="settings-form-group">
@@ -54,6 +58,7 @@
         <option value="FEMALE">Nữ</option>
         <option value="OTHER">Khác</option>
       </select>
+      <label class="field-error" id="inputGenderError"></label>
     </div>
 
     <button class="btn-submit" id="btnSaveProfile" style="display: none;" onclick="saveProfile()">Lưu thay đổi</button>

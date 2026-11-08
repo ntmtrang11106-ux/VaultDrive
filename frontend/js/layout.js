@@ -305,7 +305,7 @@ const isPreviewLayoutMode = !!(layoutUrlParams.get("token") || layoutUrlParams.g
   document.documentElement.classList.contains("preview-only-mode");
 
 if (!isPreviewLayoutMode) {
-  fetch('layout.html') // GET file layout.html từ cùng thư mục
+  fetch('layout.html?v=' + Date.now()) // Thêm timestamp chống cache triệt để
     .then(response => {
       // Kiểm tra HTTP status (200 OK, 404 Not Found, ...)
       if (!response.ok) throw new Error('Không thể tải file layout.html');
@@ -333,6 +333,17 @@ if (!isPreviewLayoutMode) {
 
       if (headerContainer && headerElement) {
         headerContainer.replaceWith(headerElement);
+      }
+
+      // Đảm bảo nếu đang là Admin thì hiển thị ngay lập tức Avatar Admin trên Header
+      const currentRole = localStorage.getItem('user_role');
+      const isSocUrl = window.location.search.includes('tab=soc');
+      if (currentRole === 'ROLE_ADMIN' || isSocUrl || document.body.classList.contains('admin-mode')) {
+        document.body.classList.add('admin-mode');
+        const adminLogo = document.getElementById('adminLogoArea');
+        if (adminLogo) adminLogo.style.setProperty('display', 'flex', 'important');
+        const topProfile = document.getElementById('adminTopProfile');
+        if (topProfile) topProfile.style.setProperty('display', 'inline-flex', 'important');
       }
 
       // 5. Sau khi DOM đã có Sidebar & Header thật, khởi tạo các sự kiện tương tác

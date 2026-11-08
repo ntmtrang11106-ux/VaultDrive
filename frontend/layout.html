@@ -9,11 +9,7 @@
   <!-- === KHU VỰC LOGO & TÊN THƯƠNG HIỆU === -->
   <header class="logo-area">
     <div class="logo-icon">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.1325 20.176 10.2077 17.8596 10.0116C17.4326 6.64368 14.5683 4 11 4C7.13401 4 4 7.13401 4 11C4 11.2372 4.01174 11.4716 4.03454 11.7027C2.29063 12.1818 1 13.784 1 15.6667C1 17.8758 2.79086 19.6667 5 19.6667H17.5Z"
-          stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
+      <i class="ph-bold ph-cloud"></i>
     </div>
 
     <!-- Tên thương hiệu và slogan -->
@@ -125,10 +121,23 @@
      HEADER - Thanh tiêu đề trên cùng (top bar)
 ================================================================ -->
 <header class="top-header" id="top-header">
-  <!-- Breadcrumb: Đường dẫn thư mục hiện tại (VD: Tệp của tôi > Dự án > 2024)-->
-  <div class="breadcrumbs" id="breadcrumb-container">
-    <!-- .current: Style đậm cho tên mục hiện tại -->
-    <span class="current">Tệp của tôi</span>
+  <div class="header-left">
+    <!-- === KHU VỰC LOGO ADMIN (Chỉ hiển thị khi đăng nhập quyền ROLE_ADMIN) === -->
+    <div class="admin-logo-area" id="adminLogoArea" title="Bấm để quay lại Quản trị SOC">
+      <div class="logo-icon">
+        <i class="ph-bold ph-cloud"></i>
+      </div>
+      <div class="logo-text">
+        <span class="brand">VaultDrive</span>
+        <span class="sub">QUẢN TRỊ AN NINH SOC</span>
+      </div>
+    </div>
+
+    <!-- Breadcrumb: Đường dẫn thư mục hiện tại (VD: Tệp của tôi > Dự án > 2024)-->
+    <div class="breadcrumbs" id="breadcrumb-container">
+      <!-- .current: Style đậm cho tên mục hiện tại -->
+      <span class="current">Tệp của tôi</span>
+    </div>
   </div>
 
   <!-- Nhóm các hành động bên phải Header -->
@@ -184,4 +193,38 @@
         </div>
       </div>
     </div>
+
+    <!-- === KHU VỰC TÀI KHOẢN ADMIN TRÊN TOPBAR (Chỉ hiện khi là ROLE_ADMIN) === -->
+    <div class="admin-topbar-profile" id="adminTopProfile" style="position: relative;">
+      <div class="admin-avatar-btn" id="adminAvatarBtn" title="Tài khoản Quản trị">
+        <div class="admin-top-avatar" id="adminTopAvatar">AD</div>
+        <div class="admin-top-info">
+          <span class="admin-top-name" id="adminTopName">admin</span>
+          <span class="admin-top-badge">Quản trị viên</span>
+        </div>
+        <i class="ph-bold ph-caret-down"></i>
+      </div>
+
+      <!-- Dropdown menu của Admin -->
+      <div class="admin-profile-dropdown" id="adminProfileDropdown">
+        <div class="admin-dropdown-header">
+          <div class="admin-dropdown-avatar" id="adminDropdownAvatar">AD</div>
+          <div class="admin-dropdown-meta">
+            <b id="adminDropdownName">System Administrator</b>
+            <span id="adminDropdownEmail">admin@vaultdrive.com</span>
+          </div>
+        </div>
+        <div class="admin-dropdown-divider"></div>
+        <a href="#" class="admin-dropdown-item" id="adminMenuSettings">
+          <i class="ph-bold ph-gear"></i>
+          <span>Cài đặt</span>
+        </a>
+        <div class="admin-dropdown-divider"></div>
+        <a href="#" class="admin-dropdown-item text-danger" id="adminMenuLogout">
+          <i class="ph-bold ph-sign-out"></i>
+          <span>Đăng xuất</span>
+        </a>
+      </div>
+    </div>
+  </div>
 </header>

@@ -154,10 +154,21 @@
   border-left: 4px solid transparent;
 }
 
-.soc-kpi-card.danger { border-left-color: #ef4444; }
-.soc-kpi-card.warning { border-left-color: #f59e0b; }
-.soc-kpi-card.primary { border-left-color: #2563eb; }
-.soc-kpi-card.success { border-left-color: #10b981; }
+.soc-kpi-card.danger {
+  border-left-color: #ef4444;
+}
+
+.soc-kpi-card.warning {
+  border-left-color: #f59e0b;
+}
+
+.soc-kpi-card.primary {
+  border-left-color: #2563eb;
+}
+
+.soc-kpi-card.success {
+  border-left-color: #10b981;
+}
 
 .soc-kpi-header {
   display: flex;
@@ -216,22 +227,304 @@
 
 /* 3. Khung nhúng Grafana sạch sẽ (Đã sửa lỗi Not Found và cắt bỏ thanh thừa) */
 .soc-grafana-box {
-  background: #ffffff;
+  background: #fbfbfb;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  position: relative;
+}
+
+/* Lớp che màu đồng bộ 100% mã màu nền #fbfbfb của Grafana */
+.soc-grafana-box::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 250px;
+  height: 45px;
+  background: #fbfbfb;
+  border-bottom-right-radius: 12px;
+  z-index: 100;
+  pointer-events: none;
 }
 
 .soc-grafana-iframe {
   width: 100%;
-  height: 880px;
+  height: 1200px;
   border: none;
   display: block;
+  margin-bottom: -35px;
+  /* Đẩy chân trang Grafana ra ngoài khung overflow */
 }
 
 @media (max-width: 1100px) {
   .soc-kpi-row {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* ==========================================================================
+   ADMIN NO-SIDEBAR MODE & TOPBAR USER MENU (AD Avatar, Profile, Logout)
+   ========================================================================== */
+body.admin-mode .sidebar,
+body.admin-mode #sidebarResizer {
+  display: none !important;
+}
+
+body.admin-mode .main-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+body.admin-mode .top-header {
+  padding: 12px 28px !important;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* 1. MẶC ĐỊNH CHO USER THƯỜNG: Ẩn tuyệt đối Logo Admin và Avatar Admin trên Topbar */
+.admin-logo-area,
+.admin-topbar-profile,
+body:not(.admin-mode) .admin-logo-area,
+body:not(.admin-mode) .admin-topbar-profile {
+  display: none !important;
+}
+
+body.admin-mode .admin-logo-area {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  border-right: 1px solid #e2e8f0;
+  padding-right: 18px;
+  margin-right: 2px;
+}
+
+body.admin-mode .admin-logo-area:hover .brand {
+  color: #2563eb;
+  transition: color 0.15s ease;
+}
+
+body.admin-mode .admin-logo-area .sub {
+  color: #2563eb;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+body.admin-mode .header-left {
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.admin-mode .breadcrumbs {
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.admin-mode .header-actions {
+  visibility: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.admin-topbar-profile {
+  position: relative !important;
+}
+
+body.admin-mode .admin-topbar-profile {
+  display: inline-flex !important;
+  position: relative !important;
+}
+
+body.admin-mode .search-bar,
+body.admin-mode .view-toggle,
+body.admin-mode .notifications,
+body.admin-mode .section-title,
+body.admin-mode .grid-folders,
+body.admin-mode .grid-files,
+body.admin-mode .list-header,
+body.admin-mode .empty-state,
+body.admin-mode .shared-hero-banner {
+  display: none !important;
+}
+
+body.admin-mode #content-area {
+  padding: 20px 28px !important;
+}
+
+.admin-avatar-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 5px 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.admin-avatar-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.admin-top-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.admin-top-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  line-height: 1.25;
+  gap: 1px;
+}
+
+.admin-top-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.admin-top-badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: #2563eb;
+  line-height: 1.2;
+  padding: 0;
+  background: transparent;
+  display: block;
+}
+
+.admin-avatar-btn i {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Admin Profile Dropdown */
+.admin-profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 250px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  padding: 8px 0;
+  display: none;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.admin-profile-dropdown.show {
+  display: flex !important;
+}
+
+.admin-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+}
+
+.admin-dropdown-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-dropdown-meta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-dropdown-meta b {
+  font-size: 13px;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-dropdown-meta span {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-dropdown-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 6px 0;
+}
+
+.admin-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.admin-dropdown-item i {
+  font-size: 16px;
+  color: #64748b;
+}
+
+.admin-dropdown-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.admin-dropdown-item:hover i {
+  color: #2563eb;
+}
+
+.admin-dropdown-item.text-danger {
+  color: #ef4444;
+}
+
+.admin-dropdown-item.text-danger i {
+  color: #ef4444;
+}
+
+.admin-dropdown-item.text-danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
 }

@@ -8,14 +8,8 @@ services:
       - "14333:1433"
     environment:
       - TZ=Asia/Ho_Chi_Minh
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SECURITY_ALLOW_EMBEDDING=true
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-      - GF_USERS_DEFAULT_THEME=dark
-      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/soc/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Seer#2210
     volumes:
       - sqlserver-data:/var/opt/mssql
     healthcheck:
@@ -116,6 +110,9 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_USERS_DEFAULT_THEME=light
       - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/soc/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
