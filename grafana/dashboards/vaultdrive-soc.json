@@ -228,7 +228,7 @@
                       {
                         "id": "color",
                         "value": {
-                          "fixedColor": "yellow",
+                          "fixedColor": "orange",
                           "mode": "fixed"
                         }
                       },
@@ -442,7 +442,7 @@
                       {
                         "id": "color",
                         "value": {
-                          "fixedColor": "yellow",
+                          "fixedColor": "orange",
                           "mode": "fixed"
                         }
                       }
@@ -623,7 +623,7 @@
                       {
                         "id": "color",
                         "value": {
-                          "fixedColor": "yellow",
+                          "fixedColor": "orange",
                           "mode": "fixed"
                         }
                       },

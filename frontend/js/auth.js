@@ -78,9 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Kiểm tra quyền (role) để chuyển hướng
         if (data.role === "ROLE_ADMIN") {
           // Chuyển vào khung dashboard.html và mở thẳng tab SOC
-          // window.location.href = "dashboard.html";
-          window.location.href =
-            "http://localhost:3000/d/vaultdrive-soc/vaultdrive-soc-dashboard";
+          window.location.href = "dashboard.html";
         } else {
           // Trang dành cho user
           window.location.href = "dashboard.html";
@@ -216,9 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 
         if (!loginResponse.ok) {
-          throw new Error(
-            "Đăng ký thành công nhưng đăng nhập tự động thất bại. Vui lòng thử đăng nhập thủ công.",
-          );
+          throw new Error("Đăng ký thành công nhưng đăng nhập tự động thất bại. Vui lòng thử đăng nhập thủ công.");
         }
 
         const data = await loginResponse.json();

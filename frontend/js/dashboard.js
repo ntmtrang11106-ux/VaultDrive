@@ -199,11 +199,6 @@ function setupTabNavigation() {
         }
       }
 
-      // Kiểm tra lại: Nếu trong lúc chờ tải HTML giao diện mà người dùng đã bấm sang tab khác thì dừng ngay, tránh race condition
-      if (!item.classList.contains('active')) {
-        return;
-      }
-
       // --- Bước 6: Load dữ liệu cho tab tương ứng ---
       loadDashboardData(viewType); // Gọi hàm load data (định nghĩa trong file-actions.js)
     });

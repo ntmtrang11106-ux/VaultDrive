@@ -9,51 +9,51 @@
 //   4. Gắn event listeners cho thông báo, dropdown upload, profile...
 //   5. Gọi window.initDashboardUI() (được định nghĩa trong dashboard.js) để load dữ liệu
 
+
 // ================================================================
 // HÀM KHỞI TẠO SỰ KIỆN (chạy sau khi HTML layout đã được chèn vào trang)
 // ================================================================
 function initLayoutEvents() {
+
   // --- LẤY THAM CHIẾU ĐẾN CÁC PHẦN TỬ THÔNG BÁO ---
-  const notifBtn = document.getElementById("notificationBtn"); // Nút chuông
-  const notifDropdown = document.getElementById("notificationDropdown"); // Dropdown thông báo
+  const notifBtn = document.getElementById('notificationBtn');          // Nút chuông
+  const notifDropdown = document.getElementById('notificationDropdown'); // Dropdown thông báo
 
   if (notifBtn && notifDropdown) {
+
     // Khi click vào chuông → toggle (hiện/ẩn) dropdown thông báo
-    notifBtn.addEventListener("click", function (e) {
-      notifDropdown.classList.toggle("show"); // CSS: .show { display: flex }
+    notifBtn.addEventListener('click', function (e) {
+      notifDropdown.classList.toggle('show'); // CSS: .show { display: flex }
       e.stopPropagation(); // Ngăn event lan ra document (tránh đóng ngay lập tức)
     });
 
     // Click BÊN TRONG dropdown → KHÔNG đóng dropdown
-    notifDropdown.addEventListener("click", function (e) {
+    notifDropdown.addEventListener('click', function (e) {
       e.stopPropagation(); // Click bên trong bảng không làm đóng bảng
     });
 
     // Click BÊN NGOÀI dropdown → đóng dropdown
-    document.addEventListener("click", function () {
-      notifDropdown.classList.remove("show"); // Click ra ngoài sẽ đóng
+    document.addEventListener('click', function () {
+      notifDropdown.classList.remove('show'); // Click ra ngoài sẽ đóng
     });
 
     // --- CHỨC NĂNG "ĐÁNH DẤU ĐÃ ĐỌC" ---
-    const markReadBtn = notifDropdown.querySelector(".mark-read");
+    const markReadBtn = notifDropdown.querySelector('.mark-read');
     if (markReadBtn) {
       // async: Hàm bất đồng bộ vì cần gọi API
-      markReadBtn.addEventListener("click", async function (e) {
+      markReadBtn.addEventListener('click', async function (e) {
         e.preventDefault(); // Ngăn thẻ <a> nhảy lên đầu trang (#)
 
         try {
           // Lấy tất cả phần tử thông báo chưa đọc (class .unread)
-          const unreadItems =
-            notifDropdown.querySelectorAll(".notif-item.unread");
+          const unreadItems = notifDropdown.querySelectorAll('.notif-item.unread');
 
           // Tạo mảng các Promise API PATCH cho từng thông báo chưa đọc
-          const promises = Array.from(unreadItems).map((item) => {
+          const promises = Array.from(unreadItems).map(item => {
             const id = item.dataset.id; // Lấy ID từ attribute data-id
             if (id) {
               // Gọi API PATCH /notifications/{id}/read để đánh dấu đã đọc
-              return fetchWithAuth(`/notifications/${id}/read`, {
-                method: "PATCH",
-              });
+              return fetchWithAuth(`/notifications/${id}/read`, { method: "PATCH" });
             }
           });
 
@@ -61,15 +61,15 @@ function initLayoutEvents() {
           await Promise.all(promises);
 
           // Cập nhật UI sau khi API thành công:
-          unreadItems.forEach((item) => {
-            item.classList.remove("unread"); // Xóa style "chưa đọc"
-            const dot = item.querySelector(".unread-dot");
+          unreadItems.forEach(item => {
+            item.classList.remove('unread'); // Xóa style "chưa đọc"
+            const dot = item.querySelector('.unread-dot');
             if (dot) dot.remove();
           });
-          const indicator = notifBtn.querySelector(".indicator");
-          if (indicator) indicator.style.display = "none"; // Ẩn badge số ở chuông
-          const badge = notifDropdown.querySelector(".notif-badge");
-          if (badge) badge.style.display = "none"; // Ẩn badge số trong dropdown
+          const indicator = notifBtn.querySelector('.indicator');
+          if (indicator) indicator.style.display = 'none'; // Ẩn badge số ở chuông
+          const badge = notifDropdown.querySelector('.notif-badge');
+          if (badge) badge.style.display = 'none';         // Ẩn badge số trong dropdown
         } catch (error) {
           console.error("Lỗi đánh dấu đã đọc", error);
         }
@@ -89,8 +89,8 @@ function initLayoutEvents() {
   }
 
   // --- CHỨC NĂNG RESIZE SIDEBAR & CON TRỎ CHUỘT MÀU ĐEN ---
-  const sidebar = document.querySelector(".sidebar");
-  const resizer = document.getElementById("sidebarResizer");
+  const sidebar = document.querySelector('.sidebar');
+  const resizer = document.getElementById('sidebarResizer');
 
   if (sidebar && resizer) {
     let isResizing = false;
@@ -102,34 +102,34 @@ function initLayoutEvents() {
     // Đặt con trỏ chuột màu đen khi hover vào thanh kéo
     resizer.style.cursor = blackCursor;
 
-    resizer.addEventListener("mousedown", function (e) {
+    resizer.addEventListener('mousedown', function (e) {
       e.preventDefault();
       isResizing = true;
-      resizer.classList.add("active");
+      resizer.classList.add('active');
       document.body.style.cursor = blackCursor; // Giữ con trỏ đen khi kéo ra ngoài
     });
 
-    document.addEventListener("mousemove", function (e) {
+    document.addEventListener('mousemove', function (e) {
       if (!isResizing) return;
       let newWidth = e.clientX;
       if (newWidth < minWidth) newWidth = minWidth;
-      sidebar.style.width = newWidth + "px";
+      sidebar.style.width = newWidth + 'px';
     });
 
-    document.addEventListener("mouseup", function () {
+    document.addEventListener('mouseup', function () {
       if (isResizing) {
         isResizing = false;
-        resizer.classList.remove("active");
-        document.body.style.cursor = ""; // Trả lại con trỏ bình thường
+        resizer.classList.remove('active');
+        document.body.style.cursor = ''; // Trả lại con trỏ bình thường
       }
     });
   }
 
   // --- VẼ THANH TIẾN TRÌNH BỘ NHỚ TRONG LAYOUT.JS ---
   window.renderStorageInfo = async function () {
-    const storageValue = document.querySelector(".storage-value");
-    const progressFill = document.querySelector(".progress-fill");
-    const storageRemaining = document.querySelector(".storage-remaining");
+    const storageValue = document.querySelector('.storage-value');
+    const progressFill = document.querySelector('.progress-fill');
+    const storageRemaining = document.querySelector('.storage-remaining');
 
     if (!storageValue || !progressFill || !storageRemaining) return;
 
@@ -147,17 +147,14 @@ function initLayoutEvents() {
     }
 
     // Nếu không có data, dùng dữ liệu ảo (Mock Data)
-    const usedBytes = data ? data.usedBytes : 38.4 * 1024 * 1024 * 1024;
-    const maxBytes = data ? data.maxBytes : 100 * 1024 * 1024 * 1024;
+    const usedBytes = data ? data.usedBytes : (38.4 * 1024 * 1024 * 1024);
+    const maxBytes = data ? data.maxBytes : (100 * 1024 * 1024 * 1024);
 
     // Dùng hàm formatSizeGlobal nếu có, không thì tự format đơn giản
     let usedStr, maxStr, remainingStr;
     const format = (bytes) => {
-      if (typeof window.formatSizeGlobal === "function")
-        return window.formatSizeGlobal(bytes);
-      return (
-        (bytes / (1024 * 1024 * 1024)).toFixed(1).replace(".", ",") + " GB"
-      );
+      if (typeof window.formatSizeGlobal === "function") return window.formatSizeGlobal(bytes);
+      return (bytes / (1024 * 1024 * 1024)).toFixed(1).replace('.', ',') + " GB";
     };
 
     usedStr = format(usedBytes);
@@ -177,11 +174,10 @@ function initLayoutEvents() {
     storageValue.textContent = `${usedStr} / ${maxStr}`;
     progressFill.style.width = `${percent}%`;
     storageRemaining.textContent = `${remainingStr} còn lại`;
-  };
+  }
 
   // Thực thi hàm vẽ storage ngay khi layout load xong
-  if (typeof window.renderStorageInfo === "function")
-    window.renderStorageInfo();
+  if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
 
   // Đọc thông tin user từ localStorage và cập nhật lên Sidebar
   function renderUserInfo() {
@@ -192,8 +188,7 @@ function initLayoutEvents() {
     if (!userNameEl || !userEmailEl || !userAvatarEl) return;
 
     const savedProfileStr = localStorage.getItem("mock_user_profile");
-    const fallbackEmail =
-      localStorage.getItem("user_email") || "nguoidung@congty.vn";
+    const fallbackEmail = localStorage.getItem("user_email") || "nguoidung@congty.vn";
     let fullName = "Người dùng";
     let email = fallbackEmail;
 
@@ -202,9 +197,9 @@ function initLayoutEvents() {
         const profile = JSON.parse(savedProfileStr);
         fullName = profile.fullName || fullName;
         email = profile.email || email;
-      } catch (e) {}
+      } catch (e) { }
     } else {
-      fullName = email.split("@")[0];
+      fullName = email.split('@')[0];
     }
 
     userNameEl.textContent = fullName;
@@ -215,18 +210,11 @@ function initLayoutEvents() {
   renderUserInfo();
 
   // --- CHỨC NĂNG TÌM KIẾM FILE & FOLDER (Search Bar) ---
-  const searchInput =
-    document.getElementById("searchInput") ||
-    document.querySelector(".search-bar input");
+  const searchInput = document.getElementById("searchInput") || document.querySelector(".search-bar input");
   if (searchInput) {
     let searchDebounceTimer = null;
 
     searchInput.addEventListener("input", function (e) {
-      if (document.activeElement !== searchInput) {
-        searchInput.value = "";
-        return;
-      }
-
       clearTimeout(searchDebounceTimer);
       const query = e.target.value.trim();
 
@@ -242,9 +230,7 @@ function initLayoutEvents() {
 
         try {
           window.isSearching = true;
-          const res = await fetchWithAuth(
-            `/files/search?q=${encodeURIComponent(query)}`,
-          );
+          const res = await fetchWithAuth(`/files/search?q=${encodeURIComponent(query)}`);
           if (res && res.ok) {
             const data = await res.json();
             const folders = data.folders || [];
@@ -252,30 +238,21 @@ function initLayoutEvents() {
             window.lastSearchResults = { folders, files };
 
             // Ẩn các view đặc thù nếu đang mở
-            const trashContainer = document.getElementById(
-              "trash-view-container",
-            );
+            const trashContainer = document.getElementById("trash-view-container");
             if (trashContainer) trashContainer.style.display = "none";
-            const settingsContainer = document.getElementById(
-              "settings-view-container",
-            );
+            const settingsContainer = document.getElementById("settings-view-container");
             if (settingsContainer) settingsContainer.style.display = "none";
 
             const contentScroll = document.querySelector(".content-scroll");
             if (contentScroll) {
-              const heroBanner = contentScroll.querySelector(
-                ".shared-hero-banner",
-              );
+              const heroBanner = contentScroll.querySelector(".shared-hero-banner");
               if (heroBanner) heroBanner.style.display = "none";
 
-              const sharedTitles = contentScroll.querySelectorAll(
-                ".shared-folder-title, .shared-file-title",
-              );
-              sharedTitles.forEach((t) => t.remove());
+              const sharedTitles = contentScroll.querySelectorAll(".shared-folder-title, .shared-file-title");
+              sharedTitles.forEach(t => t.remove());
 
-              const sectionTitles =
-                contentScroll.querySelectorAll(".section-title");
-              sectionTitles.forEach((t) => (t.style.display = "block"));
+              const sectionTitles = contentScroll.querySelectorAll(".section-title");
+              sectionTitles.forEach(t => t.style.display = "block");
 
               const gridFolders = contentScroll.querySelector(".grid-folders");
               if (gridFolders) gridFolders.style.display = "grid";
@@ -285,9 +262,7 @@ function initLayoutEvents() {
             }
 
             // Cập nhật Breadcrumb thông báo kết quả tìm kiếm
-            const breadcrumbContainer = document.getElementById(
-              "breadcrumb-container",
-            );
+            const breadcrumbContainer = document.getElementById("breadcrumb-container");
             if (breadcrumbContainer) {
               breadcrumbContainer.innerHTML = `<span class="current">Kết quả tìm kiếm cho: "${query}"</span>`;
             }
@@ -316,43 +291,39 @@ function initLayoutEvents() {
 
   // Nếu dashboard.js đã load xong và có hàm initDashboardUI, gọi luôn
   // (Trường hợp layout.js chạy xong TRƯỚC khi dashboard.js xong thì không cần)
-  if (typeof window.initDashboardUI === "function") {
+  if (typeof window.initDashboardUI === 'function') {
     window.initDashboardUI();
   }
 }
+
 
 // ================================================================
 // TẢI VÀ CHÈN LAYOUT HTML VÀO TRANG (Bỏ qua nếu đang mở xem trước riêng biệt)
 // ================================================================
 const layoutUrlParams = new URLSearchParams(window.location.search);
-const isPreviewLayoutMode =
-  !!(
-    layoutUrlParams.get("token") ||
-    layoutUrlParams.get("shareToken") ||
-    layoutUrlParams.get("fileId") ||
-    layoutUrlParams.get("previewFileId")
-  ) || document.documentElement.classList.contains("preview-only-mode");
+const isPreviewLayoutMode = !!(layoutUrlParams.get("token") || layoutUrlParams.get("shareToken") || layoutUrlParams.get("fileId") || layoutUrlParams.get("previewFileId")) ||
+  document.documentElement.classList.contains("preview-only-mode");
 
 if (!isPreviewLayoutMode) {
-  fetch("layout.html") // GET file layout.html từ cùng thư mục
-    .then((response) => {
+  fetch('layout.html') // GET file layout.html từ cùng thư mục
+    .then(response => {
       // Kiểm tra HTTP status (200 OK, 404 Not Found, ...)
-      if (!response.ok) throw new Error("Không thể tải file layout.html");
+      if (!response.ok) throw new Error('Không thể tải file layout.html');
       return response.text(); // Chuyển response body thành chuỗi HTML
     })
-    .then((html) => {
+    .then(html => {
       // 1. Tạo một container ảo (không hiển thị) để parse HTML tải về
       //    Dùng div ảo thay vì DOMParser để dễ dàng querySelector
-      const tempDiv = document.createElement("div");
+      const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html; // Trình duyệt parse HTML string → DOM nodes
 
       // 2. Tìm các phần tử cần thiết bên trong file layout.html đã parse
-      const sidebarElement = tempDiv.querySelector(".sidebar"); // <aside class="sidebar">
-      const headerElement = tempDiv.querySelector(".top-header"); // <header class="top-header">
+      const sidebarElement = tempDiv.querySelector('.sidebar');     // <aside class="sidebar">
+      const headerElement = tempDiv.querySelector('.top-header');  // <header class="top-header">
 
       // 3. Tìm các placeholder đang chờ trên trang (dashboard.html)
-      const sidebarContainer = document.getElementById("sidebar-container"); // <div id="sidebar-container">
-      const headerContainer = document.getElementById("header-container"); // <div id="header-container">
+      const sidebarContainer = document.getElementById('sidebar-container'); // <div id="sidebar-container">
+      const headerContainer = document.getElementById('header-container');   // <div id="header-container">
 
       // 4. Lắp ráp: Thay thế placeholder bằng phần tử thật từ layout.html
       //    replaceWith() → thay toàn bộ node placeholder bằng sidebar/header thật
@@ -367,10 +338,11 @@ if (!isPreviewLayoutMode) {
       // 5. Sau khi DOM đã có Sidebar & Header thật, khởi tạo các sự kiện tương tác
       initLayoutEvents();
     })
-    .catch((err) => {
+    .catch(err => {
       console.error("Lỗi tải layout:", err);
     });
 }
+
 
 // ================================================================
 // HÀM LẤY THÔNG BÁO TỪ BACKEND VÀ RENDER VÀO DROPDOWN
@@ -379,9 +351,9 @@ if (!isPreviewLayoutMode) {
 // ================================================================
 window.fetchNotifications = async function () {
   // Lấy tham chiếu đến các phần tử UI cần cập nhật
-  const notifList = document.querySelector(".notif-list"); // Container danh sách
-  const indicator = document.querySelector("#notificationBtn .indicator"); // Badge số ở chuông
-  const badge = document.querySelector(".notif-badge"); // Badge số trong header dropdown
+  const notifList = document.querySelector('.notif-list');         // Container danh sách
+  const indicator = document.querySelector('#notificationBtn .indicator'); // Badge số ở chuông
+  const badge = document.querySelector('.notif-badge');            // Badge số trong header dropdown
 
   if (!notifList) return; // Sidebar chưa được chèn vào → bỏ qua
 
@@ -402,33 +374,31 @@ window.fetchNotifications = async function () {
   let unreadCount = 0; // Đếm số thông báo chưa đọc
 
   // Xóa nội dung cũ trong danh sách (chỉ xóa các item cũ, giữ nguyên template và footer)
-  const oldItems = notifList.querySelectorAll(
-    ".notif-item:not(template .notif-item)",
-  );
-  oldItems.forEach((item) => item.remove());
+  const oldItems = notifList.querySelectorAll('.notif-item:not(template .notif-item)');
+  oldItems.forEach(item => item.remove());
 
   // Xóa thông báo trống nếu có
-  const emptyMsg = notifList.querySelector(".empty-notif");
+  const emptyMsg = notifList.querySelector('.empty-notif');
   if (emptyMsg) emptyMsg.remove();
 
   if (!notifications || notifications.length === 0) {
-    const emptyDiv = document.createElement("div");
-    emptyDiv.className = "empty-notif";
-    emptyDiv.textContent = "Không có thông báo nào";
+    const emptyDiv = document.createElement('div');
+    emptyDiv.className = 'empty-notif';
+    emptyDiv.textContent = 'Không có thông báo nào';
     // Chèn sau template
-    const templateNode = document.getElementById("notif-item-template");
+    const templateNode = document.getElementById('notif-item-template');
     if (templateNode) {
-      templateNode.insertAdjacentElement("afterend", emptyDiv);
+      templateNode.insertAdjacentElement('afterend', emptyDiv);
     } else {
       notifList.prepend(emptyDiv);
     }
 
-    if (indicator) indicator.style.display = "none";
-    if (badge) badge.style.display = "none";
+    if (indicator) indicator.style.display = 'none';
+    if (badge) badge.style.display = 'none';
     return;
   }
 
-  const template = document.getElementById("notif-item-template");
+  const template = document.getElementById('notif-item-template');
   if (!template) {
     console.error("Không tìm thấy template thông báo!");
     return;
@@ -443,79 +413,59 @@ window.fetchNotifications = async function () {
 
     // Clone template ra thành 1 phần tử DOM thật
     const clone = template.content.cloneNode(true);
-    const itemNode = clone.querySelector(".notif-item");
+    const itemNode = clone.querySelector('.notif-item');
 
     itemNode.dataset.id = notif.id;
 
     // Class CSS cho item: thêm 'unread' nếu chưa đọc
     if (isUnread) {
-      itemNode.classList.add("unread");
+      itemNode.classList.add('unread');
       // Thêm chấm xanh báo chưa đọc
-      const dot = document.createElement("div");
-      dot.className = "unread-dot";
+      const dot = document.createElement('div');
+      dot.className = 'unread-dot';
       itemNode.appendChild(dot);
     }
 
     // Chọn icon phù hợp theo loại thông báo
-    const iconClass =
-      notif.type === "USER"
-        ? "ph-user"
-        : notif.type === "SUCCESS" || notif.type === "UPLOAD_COMPLETE"
-          ? "ph-check-square"
-          : "ph-warning";
+    const iconClass = notif.type === 'USER' ? 'ph-user' : (notif.type === 'SUCCESS' || notif.type === 'UPLOAD_COMPLETE' ? 'ph-check-square' : 'ph-warning');
     // Chọn màu nền icon theo loại thông báo
-    const bgClass =
-      notif.type === "USER"
-        ? "bg-purple"
-        : notif.type === "SUCCESS" || notif.type === "UPLOAD_COMPLETE"
-          ? "bg-green"
-          : "bg-yellow";
+    const bgClass = notif.type === 'USER' ? 'bg-purple' : (notif.type === 'SUCCESS' || notif.type === 'UPLOAD_COMPLETE' ? 'bg-green' : 'bg-yellow');
 
-    const iconContainer = itemNode.querySelector(".notif-icon");
+    const iconContainer = itemNode.querySelector('.notif-icon');
     if (iconContainer) {
       iconContainer.classList.add(bgClass);
-      const iTag = iconContainer.querySelector("i");
+      const iTag = iconContainer.querySelector('i');
       if (iTag) iTag.className = `ph-fill ${iconClass}`;
     }
 
     // Điền text
-    itemNode.querySelector(".notif-title").textContent =
-      notif.title || "Thông báo";
-    itemNode.querySelector(".notif-desc").textContent =
-      notif.content || notif.message || "";
-    const formatTimeFn =
-      window.formatSmartDate ||
-      (typeof formatSmartDate === "function" ? formatSmartDate : null);
-    itemNode.querySelector(".notif-time").textContent = formatTimeFn
-      ? formatTimeFn(notif.createdAt)
-      : notif.createdAt || "Vừa xong";
+    itemNode.querySelector('.notif-title').textContent = notif.title || 'Thông báo';
+    itemNode.querySelector('.notif-desc').textContent = notif.content || notif.message || '';
+    const formatTimeFn = window.formatSmartDate || (typeof formatSmartDate === 'function' ? formatSmartDate : null);
+    itemNode.querySelector('.notif-time').textContent = formatTimeFn ? formatTimeFn(notif.createdAt) : (notif.createdAt || 'Vừa xong');
 
     // Xử lý sự kiện click từng thông báo để đánh dấu đã đọc
-    itemNode.addEventListener("click", async (e) => {
+    itemNode.addEventListener('click', async (e) => {
       // Nếu là thông báo chưa đọc
-      if (itemNode.classList.contains("unread")) {
+      if (itemNode.classList.contains('unread')) {
         try {
-          const res = await fetchWithAuth(`/notifications/${notif.id}/read`, {
-            method: "PATCH",
-          });
+          const res = await fetchWithAuth(`/notifications/${notif.id}/read`, { method: "PATCH" });
           if (res && res.ok) {
             // Cập nhật UI cho thông báo này
-            itemNode.classList.remove("unread");
-            const dot = itemNode.querySelector(".unread-dot");
+            itemNode.classList.remove('unread');
+            const dot = itemNode.querySelector('.unread-dot');
             if (dot) dot.remove();
 
             // Cập nhật số lượng trên chuông
-            const indicatorEl = document.querySelector(
-              "#notificationBtn .indicator",
-            );
-            const badgeEl = document.querySelector(".notif-badge");
+            const indicatorEl = document.querySelector('#notificationBtn .indicator');
+            const badgeEl = document.querySelector('.notif-badge');
 
-            let currentCount = parseInt(indicatorEl?.textContent || "0", 10);
+            let currentCount = parseInt(indicatorEl?.textContent || '0', 10);
             if (currentCount > 0) {
               currentCount--;
               if (currentCount === 0) {
-                if (indicatorEl) indicatorEl.style.display = "none";
-                if (badgeEl) badgeEl.style.display = "none";
+                if (indicatorEl) indicatorEl.style.display = 'none';
+                if (badgeEl) badgeEl.style.display = 'none';
               } else {
                 if (indicatorEl) indicatorEl.textContent = currentCount;
                 if (badgeEl) badgeEl.textContent = currentCount;
@@ -530,12 +480,12 @@ window.fetchNotifications = async function () {
 
     // Ẩn các thông báo từ vị trí thứ 6 trở đi
     if (index >= 5) {
-      itemNode.style.display = "none";
-      itemNode.classList.add("extra-notif");
+      itemNode.style.display = 'none';
+      itemNode.classList.add('extra-notif');
     }
 
     // Nhét phần tử vừa tạo vào danh sách (phải chèn TRƯỚC footer)
-    const footer = notifList.querySelector(".notif-footer");
+    const footer = notifList.querySelector('.notif-footer');
     if (footer) {
       notifList.insertBefore(clone, footer);
     } else {
@@ -544,40 +494,35 @@ window.fetchNotifications = async function () {
   });
 
   // Xử lý nút Xem tất cả
-  const viewAllBtn = document.getElementById("viewAllNotifBtn");
+  const viewAllBtn = document.getElementById('viewAllNotifBtn');
   if (viewAllBtn) {
     if (notifications.length > 5) {
-      viewAllBtn.parentElement.style.display = "block";
+      viewAllBtn.parentElement.style.display = 'block';
       viewAllBtn.onclick = async (e) => {
         e.preventDefault();
         // Hiện tất cả các thông báo bị ẩn
-        notifList
-          .querySelectorAll(".extra-notif")
-          .forEach((el) => (el.style.display = "flex"));
+        notifList.querySelectorAll('.extra-notif').forEach(el => el.style.display = 'flex');
         // Ẩn nút xem tất cả sau khi đã mở rộng
-        viewAllBtn.parentElement.style.display = "none";
+        viewAllBtn.parentElement.style.display = 'none';
 
         // Tự động đánh dấu đã đọc và gọi API cho các mục chưa đọc
-        const unreadItems = notifList.querySelectorAll(".notif-item.unread");
+        const unreadItems = notifList.querySelectorAll('.notif-item.unread');
         if (unreadItems.length > 0) {
           try {
-            const promises = Array.from(unreadItems).map((item) => {
+            const promises = Array.from(unreadItems).map(item => {
               const id = item.dataset.id;
-              if (id)
-                return fetchWithAuth(`/notifications/${id}/read`, {
-                  method: "PATCH",
-                });
+              if (id) return fetchWithAuth(`/notifications/${id}/read`, { method: "PATCH" });
             });
             await Promise.all(promises);
 
-            unreadItems.forEach((item) => {
-              item.classList.remove("unread");
-              const dot = item.querySelector(".unread-dot");
+            unreadItems.forEach(item => {
+              item.classList.remove('unread');
+              const dot = item.querySelector('.unread-dot');
               if (dot) dot.remove();
             });
 
-            if (indicator) indicator.style.display = "none";
-            if (badge) badge.style.display = "none";
+            if (indicator) indicator.style.display = 'none';
+            if (badge) badge.style.display = 'none';
           } catch (err) {
             console.error("Lỗi khi đánh dấu đã đọc:", err);
           }
@@ -585,7 +530,7 @@ window.fetchNotifications = async function () {
       };
     } else {
       // Nếu ít hơn hoặc bằng 5 thông báo thì ẩn luôn nút Xem tất cả
-      viewAllBtn.parentElement.style.display = "none";
+      viewAllBtn.parentElement.style.display = 'none';
     }
   }
 
@@ -593,18 +538,19 @@ window.fetchNotifications = async function () {
   if (unreadCount > 0) {
     if (indicator) {
       indicator.textContent = unreadCount; // Gán số vào badge chuông
-      indicator.style.display = "flex";
+      indicator.style.display = 'flex';
     }
     if (badge) {
       badge.textContent = unreadCount; // Gán số vào badge header
-      badge.style.display = "inline-block";
+      badge.style.display = 'inline-block';
     }
   } else {
     // Không có thông báo chưa đọc → ẩn cả 2 badge
-    if (indicator) indicator.style.display = "none";
-    if (badge) badge.style.display = "none";
+    if (indicator) indicator.style.display = 'none';
+    if (badge) badge.style.display = 'none';
   }
 };
+
 
 // ================================================================
 // BADGE SỐ LƯỢNG FILE ĐƯỢC CHIA SẺ
@@ -632,9 +578,7 @@ window.fetchSharedCountBadge = async function () {
       const totalItems = items.length;
 
       // Tìm badge trong Sidebar
-      const sidebarBadge = document.querySelector(
-        '.nav-item[data-view="shared"] .badge',
-      );
+      const sidebarBadge = document.querySelector('.nav-item[data-view="shared"] .badge');
       if (sidebarBadge) {
         // Luôn hiển thị số
         sidebarBadge.textContent = totalItems;
