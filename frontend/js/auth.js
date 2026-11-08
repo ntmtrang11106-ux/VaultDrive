@@ -77,8 +77,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Kiểm tra quyền (role) để chuyển hướng
         if (data.role === "ROLE_ADMIN") {
-          // Chuyển hướng trực tiếp sang Grafana Dashboard (thay link dưới bằng link trên trình duyệt của bạn)
-          window.location.href = "http://localhost:3000";
+          // Chuyển vào khung dashboard.html và mở thẳng tab SOC
+          // window.location.href = "dashboard.html";
+          window.location.href =
+            "http://localhost:3000/d/vaultdrive-soc/vaultdrive-soc-dashboard";
         } else {
           // Trang dành cho user
           window.location.href = "dashboard.html";
