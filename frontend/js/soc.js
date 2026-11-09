@@ -78,12 +78,14 @@
       }
     }
 
-    // Đổi chữ "Tệp của tôi" trên thanh Header thành "Giám sát SOC"
+    // Cập nhật Header cho Admin (Hiển thị Logo có sẵn trong layout.html)
+    const adminLogo = document.getElementById("adminLogoArea");
+    if (adminLogo) adminLogo.style.display = "flex";
     const breadcrumb = document.getElementById("breadcrumb-container");
     if (breadcrumb) {
       breadcrumb.innerHTML = '<span class="current">Giám sát SOC</span>';
     }
-    document.title = "Giám sát SOC - VaultDrive";
+    document.title = "Quản trị An ninh SOC - VaultDrive";
 
     fetchPrometheusMetrics();
     if (pollInterval) clearInterval(pollInterval);
@@ -200,7 +202,7 @@
         "socTotalRequests",
         Math.round(httpReqs).toLocaleString("vi-VN") + " req",
       );
-    } catch (e) {}
+    } catch (e) { }
   }
 
   window.openSocView = openSocView;
@@ -217,12 +219,113 @@
     // Mở màn hình SOC toàn màn hình
     openSocView();
 
+    // 1. Menu: Cài đặt (Mở giao diện settings-view)
+    const openAdminSettingsView = async () => {
+      const dropdown = document.getElementById('adminProfileDropdown');
+      if (dropdown) dropdown.classList.remove('show');
+      const socContainer = document.getElementById('soc-view-container');
+      if (socContainer) socContainer.style.display = 'none';
+      if (pollInterval) clearInterval(pollInterval);
+
+      const settingsContainer = document.getElementById('settings-view-container');
+      if (settingsContainer) {
+        if (settingsContainer.innerHTML.trim() === '') {
+          try {
+            const res = await fetch('views/settings-view.html');
+            if (res.ok) {
+              settingsContainer.innerHTML = await res.text();
+            }
+          } catch (err) {
+            console.error('Lỗi tải settings view:', err);
+          }
+        }
+        settingsContainer.style.display = 'block';
+
+        if (typeof loadUserProfile === 'function') {
+          loadUserProfile();
+        }
+
+        // Cập nhật thông tin Admin lên Settings card
+        const adminEmail = localStorage.getItem('user_email') || 'admin@vaultdrive.com';
+        const adminName = adminEmail.split('@')[0];
+        const sFullName = document.getElementById('settingsFullName');
+        const sEmail = document.getElementById('settingsEmail');
+        const sAvatar = document.getElementById('settingsAvatar');
+        const inFullName = document.getElementById('inputFullName');
+        const inEmail = document.getElementById('inputEmail');
+        if (sFullName && (!sFullName.textContent || sFullName.textContent === 'Đang tải...')) sFullName.textContent = 'Quản trị viên (' + adminName + ')';
+        if (sEmail && (!sEmail.textContent || sEmail.textContent === '...')) sEmail.textContent = adminEmail;
+        if (sAvatar && (!sAvatar.textContent || sAvatar.textContent === 'TM')) sAvatar.textContent = 'AD';
+        if (inFullName && !inFullName.value) inFullName.value = 'System Administrator';
+        if (inEmail && !inEmail.value) inEmail.value = adminEmail;
+
+        const adminLogo = document.getElementById("adminLogoArea");
+        if (adminLogo) {
+          adminLogo.style.display = "flex";
+        }
+
+        const breadcrumb = document.getElementById('breadcrumb-container');
+        if (breadcrumb) {
+          breadcrumb.innerHTML = `
+            <a href="#" class="breadcrumb-link" id="adminBreadcrumbSoc">Giám sát SOC</a>
+            <i class="ph ph-caret-right" style="font-size: 13px; margin: 0 8px; color: #94a3b8;"></i>
+            <span class="current">Cài đặt</span>
+          `;
+        }
+        document.title = "Cài đặt - VaultDrive";
+      }
+    };
+
+    // Sự kiện toàn cục (Event Delegation) cho Avatar và Menu Admin
+    document.addEventListener('click', (e) => {
+      // Bấm vào Logo hoặc Breadcrumb "Giám sát SOC" để quay lại SOC
+      if (e.target.closest('#adminBreadcrumbSoc') || e.target.closest('#adminLogoArea')) {
+        const settingsContainer = document.getElementById('settings-view-container');
+        if (settingsContainer && settingsContainer.style.display !== 'none') {
+          e.preventDefault();
+          settingsContainer.style.display = 'none';
+          openSocView();
+          return;
+        }
+      }
+
+      const avatarBtn = e.target.closest('#adminAvatarBtn');
+      const dropdown = document.getElementById('adminProfileDropdown');
+
+      if (avatarBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (dropdown) dropdown.classList.toggle('show');
+        return;
+      }
+
+      if (e.target.closest('#adminMenuSettings')) {
+        e.preventDefault();
+        if (dropdown) dropdown.classList.remove('show');
+        openAdminSettingsView();
+        return;
+      }
+
+      if (e.target.closest('#adminMenuLogout')) {
+        e.preventDefault();
+        localStorage.removeItem('jwt_token');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('user_email');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      if (dropdown && !e.target.closest('#adminTopProfile')) {
+        dropdown.classList.remove('show');
+      }
+    });
+
     // Chờ top-header được load từ layout.js để gán thông tin Admin Profile
     const waitHeader = setInterval(() => {
       const topProfile = document.getElementById('adminTopProfile');
       if (topProfile) {
         clearInterval(waitHeader);
-        topProfile.style.display = 'inline-flex';
+        topProfile.style.setProperty('display', 'inline-flex', 'important');
 
         // Lấy thông tin admin
         const adminEmail = localStorage.getItem('user_email') || 'admin@vaultdrive.com';
@@ -234,84 +337,8 @@
         if (topNameEl) topNameEl.textContent = adminName;
         if (dropNameEl) dropNameEl.textContent = 'Quản trị viên (' + adminName + ')';
         if (dropEmailEl) dropEmailEl.textContent = adminEmail;
-
-        // Bật/tắt dropdown khi click Avatar
-        const avatarBtn = document.getElementById('adminAvatarBtn');
-        const dropdown = document.getElementById('adminProfileDropdown');
-        if (avatarBtn && dropdown) {
-          avatarBtn.onclick = (e) => {
-            e.stopPropagation();
-            dropdown.classList.toggle('show');
-          };
-          document.addEventListener('click', () => dropdown.classList.remove('show'));
-          dropdown.onclick = (e) => e.stopPropagation();
-        }
-
-        // 1. Menu: Cài đặt (Mở giao diện settings-view)
-        const openAdminSettingsView = async () => {
-          dropdown.classList.remove('show');
-          const socContainer = document.getElementById('soc-view-container');
-          if (socContainer) socContainer.style.display = 'none';
-          if (pollInterval) clearInterval(pollInterval);
-
-          const settingsContainer = document.getElementById('settings-view-container');
-          if (settingsContainer) {
-            if (settingsContainer.innerHTML.trim() === '') {
-              try {
-                const res = await fetch('views/settings-view.html');
-                if (res.ok) {
-                  settingsContainer.innerHTML = await res.text();
-                }
-              } catch (err) {
-                console.error('Lỗi tải settings view:', err);
-              }
-            }
-            settingsContainer.style.display = 'block';
-
-            if (typeof loadUserProfile === 'function') {
-              loadUserProfile();
-            }
-
-            const breadcrumb = document.getElementById('breadcrumb-container');
-            if (breadcrumb) {
-              breadcrumb.innerHTML = `
-                <a href="#" class="breadcrumb-link" id="btnBackToSoc">Giám sát SOC</a>
-                <i class="ph ph-caret-right" style="font-size: 13px; margin: 0 4px; color: #94a3b8;"></i>
-                <span class="current">Cài đặt</span>
-              `;
-              const backBtn = document.getElementById('btnBackToSoc');
-              if (backBtn) {
-                backBtn.onclick = (e) => {
-                  e.preventDefault();
-                  settingsContainer.style.display = 'none';
-                  openSocView();
-                };
-              }
-            }
-          }
-        };
-
-        const menuSettings = document.getElementById('adminMenuSettings');
-        if (menuSettings) {
-          menuSettings.onclick = (e) => {
-            e.preventDefault();
-            openAdminSettingsView();
-          };
-        }
-
-        // 2. Menu: Đăng xuất
-        const menuLogout = document.getElementById('adminMenuLogout');
-        if (menuLogout) {
-          menuLogout.onclick = (e) => {
-            e.preventDefault();
-            localStorage.removeItem('jwt_token');
-            localStorage.removeItem('user_role');
-            localStorage.removeItem('user_email');
-            window.location.href = 'login.html';
-          };
-        }
       }
-    }, 100);
+    }, 50);
   };
 
   initAdminMode();

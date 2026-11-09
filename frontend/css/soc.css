@@ -227,18 +227,35 @@
 
 /* 3. Khung nhúng Grafana sạch sẽ (Đã sửa lỗi Not Found và cắt bỏ thanh thừa) */
 .soc-grafana-box {
-  background: #ffffff;
+  background: #fbfbfb;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  position: relative;
+}
+
+/* Lớp che màu đồng bộ 100% mã màu nền #fbfbfb của Grafana */
+.soc-grafana-box::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 250px;
+  height: 45px;
+  background: #fbfbfb;
+  border-bottom-right-radius: 12px;
+  z-index: 100;
+  pointer-events: none;
 }
 
 .soc-grafana-iframe {
   width: 100%;
-  height: 880px;
+  height: 1200px;
   border: none;
   display: block;
+  margin-bottom: -35px;
+  /* Đẩy chân trang Grafana ra ngoài khung overflow */
 }
 
 @media (max-width: 1100px) {
@@ -268,11 +285,60 @@ body.admin-mode .top-header {
   border-bottom: 1px solid #e2e8f0;
 }
 
+/* 1. MẶC ĐỊNH CHO USER THƯỜNG: Ẩn tuyệt đối Logo Admin và Avatar Admin trên Topbar */
+.admin-logo-area,
+.admin-topbar-profile,
+body:not(.admin-mode) .admin-logo-area,
+body:not(.admin-mode) .admin-topbar-profile {
+  display: none !important;
+}
+
+body.admin-mode .admin-logo-area {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  border-right: 1px solid #e2e8f0;
+  padding-right: 18px;
+  margin-right: 2px;
+}
+
+body.admin-mode .admin-logo-area:hover .brand {
+  color: #2563eb;
+  transition: color 0.15s ease;
+}
+
+body.admin-mode .admin-logo-area .sub {
+  color: #2563eb;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+body.admin-mode .header-left {
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.admin-mode .breadcrumbs {
+  display: flex !important;
+  align-items: center !important;
+}
+
 body.admin-mode .header-actions {
   visibility: visible !important;
   display: flex !important;
   align-items: center !important;
   gap: 16px !important;
+}
+
+.admin-topbar-profile {
+  position: relative !important;
+}
+
+body.admin-mode .admin-topbar-profile {
+  display: inline-flex !important;
+  position: relative !important;
 }
 
 body.admin-mode .search-bar,
@@ -289,13 +355,6 @@ body.admin-mode .shared-hero-banner {
 
 body.admin-mode #content-area {
   padding: 20px 28px !important;
-}
-
-/* Admin Topbar Avatar Button */
-.admin-topbar-profile {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
 }
 
 .admin-avatar-btn {
@@ -333,23 +392,27 @@ body.admin-mode #content-area {
 .admin-top-info {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  justify-content: center;
+  align-items: flex-start;
+  line-height: 1.25;
+  gap: 1px;
 }
 
 .admin-top-name {
   font-size: 13px;
   font-weight: 600;
   color: #0f172a;
+  line-height: 1.2;
 }
 
 .admin-top-badge {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   color: #2563eb;
-  background: #eff6ff;
-  padding: 1px 6px;
-  border-radius: 4px;
-  display: inline-block;
+  line-height: 1.2;
+  padding: 0;
+  background: transparent;
+  display: block;
 }
 
 .admin-avatar-btn i {
@@ -374,7 +437,7 @@ body.admin-mode #content-area {
 }
 
 .admin-profile-dropdown.show {
-  display: flex;
+  display: flex !important;
 }
 
 .admin-dropdown-header {

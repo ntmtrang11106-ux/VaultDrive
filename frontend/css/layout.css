@@ -362,6 +362,15 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 32px;
+  position: relative;
+  z-index: 50;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
 }
 
 /* ================================================================
