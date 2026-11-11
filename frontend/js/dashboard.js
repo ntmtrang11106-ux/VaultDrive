@@ -83,14 +83,13 @@ async function fetchWithAuth(endpoint, options = {}) {
   // Thực hiện HTTP request đến Backend
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-  // Xử lý lỗi xác thực: 401 Unauthorized hoặc 403 Forbidden
-  if (response.status === 401 || response.status === 403) {
-    // Token không hợp lệ hoặc hết hạn → tự động đăng xuất
+  // Xử lý lỗi xác thực: 401 Unauthorized (token hết hạn hoặc không hợp lệ)
+  if (response.status === 401) {
     localStorage.removeItem("jwt_token");   // Xóa token cũ
     localStorage.removeItem("user_role");   // Xóa role cũ
     localStorage.removeItem("user_email");  // Xóa email cũ
     window.location.href = "login.html";    // Chuyển về trang đăng nhập
-    throw new Error(`Lỗi xác thực (401/403) từ Backend. Đã chuyển hướng về trang đăng nhập.`);
+    throw new Error(`Lỗi xác thực (401) từ Backend. Đã chuyển hướng về trang đăng nhập.`);
   }
 
   return response; // Trả response cho caller xử lý tiếp
@@ -145,7 +144,10 @@ function setupTabNavigation() {
 
       // Reset ô tìm kiếm nếu đang search
       const searchInput = document.getElementById("searchInput") || document.querySelector(".search-bar input");
-      if (searchInput) searchInput.value = "";
+      if (searchInput) {
+        searchInput.value = "";
+        searchInput.blur();
+      }
       window.isSearching = false;
       window.lastSearchResults = null;
 
@@ -232,6 +234,12 @@ function setupViewToggle() {
       const gridFiles = document.querySelector('.grid-files');
       if (gridFiles) gridFiles.classList.remove('list-view');
 
+      if (window.currentViewType === 'trash' || window.currentViewType === 'settings') {
+        if (gridFiles) gridFiles.style.setProperty('display', 'none', 'important');
+        const gridFolders = document.querySelector('.grid-folders');
+        if (gridFolders) gridFolders.style.setProperty('display', 'none', 'important');
+      }
+
       // Cập nhật tên tệp tin dạng Grid View (cắt thông minh bảo toàn đuôi file)
       document.querySelectorAll('.file-name').forEach((nameEl) => {
         const fullName = nameEl.dataset.fullName || nameEl.title;
@@ -257,6 +265,12 @@ function setupViewToggle() {
       if (contentScroll) contentScroll.classList.add('list-view');
       const gridFiles = document.querySelector('.grid-files');
       if (gridFiles) gridFiles.classList.add('list-view');
+
+      if (window.currentViewType === 'trash' || window.currentViewType === 'settings') {
+        if (gridFiles) gridFiles.style.setProperty('display', 'none', 'important');
+        const gridFolders = document.querySelector('.grid-folders');
+        if (gridFolders) gridFolders.style.setProperty('display', 'none', 'important');
+      }
 
       // Cập nhật tên tệp tin dạng List View (chiều ngang rộng hơn nên cho phép hiển thị dài hơn)
       document.querySelectorAll('.file-name').forEach((nameEl) => {
@@ -321,6 +335,8 @@ window.initDashboardUI = function () {
   // 6. Lấy trước số lượng file chia sẻ để gán lên huy hiệu (badge) mà không cần click tab
   if (typeof fetchSharedCountBadge === "function") fetchSharedCountBadge();
 
+  // 7. Đồng bộ thông tin Họ tên và Avatar của người dùng lên Sidebar
+  if (typeof window.renderUserInfo === "function") window.renderUserInfo();
 };
 
 

@@ -8,7 +8,6 @@
 //   - Trash (Thùng rác): xóa, khôi phục, xóa vĩnh viễn
 //   - loadDashboardData: hàm tổng dispatch load dữ liệu theo tab
 
-
 // ================================================================
 // BIẾN TOÀN CỤC (State)
 // ================================================================
@@ -17,7 +16,6 @@
 // Dùng để các handler trong Context Menu biết cần thao tác trên item nào
 let currentTargetId = null;
 let currentTargetType = null; // 'file' hoặc 'folder'
-
 
 // ================================================================
 // TIỆN ÍCH FORMAT DỮ LIỆU
@@ -41,10 +39,19 @@ function parseLocalDate(isoString) {
   if (!isoString) return null;
   if (isoString instanceof Date) return isoString;
   if (Array.isArray(isoString)) {
-    return new Date(isoString[0], isoString[1] - 1, isoString[2], isoString[3] || 0, isoString[4] || 0, isoString[5] || 0);
+    return new Date(
+      isoString[0],
+      isoString[1] - 1,
+      isoString[2],
+      isoString[3] || 0,
+      isoString[4] || 0,
+      isoString[5] || 0,
+    );
   }
   const s = String(isoString).trim();
-  const match = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+  const match = s.match(
+    /^(\d{4})[-/](\d{2})[-/](\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2}))?)?/,
+  );
   if (match) {
     const yyyy = parseInt(match[1]);
     const mm = parseInt(match[2]) - 1;
@@ -73,11 +80,11 @@ function formatSmartDate(isoString) {
     const diffDays = Math.round((today - targetDate) / (1000 * 60 * 60 * 24));
 
     // Format giờ:phút với leading zero (VD: 9 → "09")
-    const hh = String(d.getHours()).padStart(2, '0');
-    const mm = String(d.getMinutes()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
     const yyyy = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0'); // getMonth() bắt đầu từ 0
-    const dd = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, "0"); // getMonth() bắt đầu từ 0
+    const dd = String(d.getDate()).padStart(2, "0");
 
     if (diffDays === 0) {
       return `Hôm nay, ${hh}:${mm}`; // Cùng ngày → hiện giờ
@@ -95,12 +102,19 @@ window.formatSmartDate = formatSmartDate;
 
 async function downloadItem(id, type, name) {
   if (!id) return;
-  const token = typeof checkAuth === "function" ? checkAuth() : localStorage.getItem("jwt_token");
-  const baseUrl = typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "http://localhost:8080/api";
+  const token =
+    typeof checkAuth === "function"
+      ? checkAuth()
+      : localStorage.getItem("jwt_token");
+  const baseUrl =
+    typeof API_BASE_URL !== "undefined"
+      ? API_BASE_URL
+      : "http://localhost:8080/api";
 
   // Stream directly via browser native download manager to avoid loading up to 4GB into browser RAM
   if (token) {
-    const endpointPath = type === 'folder' ? `/folders/${id}/download` : `/files/${id}/download`;
+    const endpointPath =
+      type === "folder" ? `/folders/${id}/download` : `/files/${id}/download`;
     const downloadUrl = `${baseUrl}${endpointPath}?token=${encodeURIComponent(token)}`;
     const a = document.createElement("a");
     a.href = downloadUrl;
@@ -111,7 +125,8 @@ async function downloadItem(id, type, name) {
     return;
   }
 
-  const endpoint = type === 'folder' ? `/folders/${id}/download` : `/files/${id}/download`;
+  const endpoint =
+    type === "folder" ? `/folders/${id}/download` : `/files/${id}/download`;
   try {
     const response = await fetchWithAuth(endpoint);
     if (!response || !response.ok) {
@@ -121,26 +136,27 @@ async function downloadItem(id, type, name) {
 
     // 1. Tự động tìm tên tệp tin từ dữ liệu đã nạp nếu chưa có tham số name
     let finalFileName = name;
-    if (!finalFileName && type === 'file') {
+    if (!finalFileName && type === "file") {
       const allFiles = [
         ...(window.currentLoadedData?.files || []),
         ...(window.lastSharedData?.files || []),
         ...(Array.isArray(window.lastSharedData) ? window.lastSharedData : []),
-        ...(window.mockData?.files || [])
+        ...(window.mockData?.files || []),
       ];
-      const found = allFiles.find(item => (item.fileId || item.id) == id);
+      const found = allFiles.find((item) => (item.fileId || item.id) == id);
       if (found) {
         finalFileName = found.fileName || found.name || found.originalName;
       }
-    } else if (!finalFileName && type === 'folder') {
+    } else if (!finalFileName && type === "folder") {
       const allFolders = [
         ...(window.currentLoadedData?.folders || []),
         ...(window.currentLoadedData?.subfolders || []),
-        ...(window.mockData?.folders || [])
+        ...(window.mockData?.folders || []),
       ];
-      const found = allFolders.find(item => (item.folderId || item.id) == id);
+      const found = allFolders.find((item) => (item.folderId || item.id) == id);
       if (found) {
-        finalFileName = (found.folderName || found.name || `folder_${id}`) + ".zip";
+        finalFileName =
+          (found.folderName || found.name || `folder_${id}`) + ".zip";
       }
     }
 
@@ -160,7 +176,7 @@ async function downloadItem(id, type, name) {
 
     // 3. Fallback cuối cùng nếu hoàn toàn không xác định được tên
     if (!finalFileName) {
-      finalFileName = type === 'folder' ? `folder_${id}.zip` : `file_${id}`;
+      finalFileName = type === "folder" ? `folder_${id}.zip` : `file_${id}`;
     }
 
     const blob = await response.blob();
@@ -190,10 +206,16 @@ let previousDocumentTitle = null;
 
 function getDefaultDocumentTitle() {
   const viewType = window.currentViewType || "home";
-  const rootName = viewType === "shared" ? "Được chia sẻ" :
-    viewType === "trash" ? "Thùng rác" :
-      viewType === "settings" ? "Cài đặt" :
-        viewType === "recent" ? "Gần đây" : "Tệp của tôi";
+  const rootName =
+    viewType === "shared"
+      ? "Được chia sẻ"
+      : viewType === "trash"
+        ? "Thùng rác"
+        : viewType === "settings"
+          ? "Cài đặt"
+          : viewType === "recent"
+            ? "Gần đây"
+            : "Tệp của tôi";
   return `${rootName} - VaultDrive`;
 }
 
@@ -205,7 +227,6 @@ function restoreDocumentTitle() {
   }
   previousDocumentTitle = null;
 }
-
 
 function escapeHtml(str) {
   if (!str) return "";
@@ -240,7 +261,11 @@ function getFileCategoryAndIcon(fileName) {
   } else if (["ppt", "pptx", "odp"].includes(ext)) {
     iconClass = "ph-file-ppt";
     colorClass = "file-ppt";
-  } else if (["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico", "tiff"].includes(ext)) {
+  } else if (
+    ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico", "tiff"].includes(
+      ext,
+    )
+  ) {
     iconClass = "ph-file-image";
     colorClass = "file-img";
   } else if (["mp4", "avi", "mov", "webm", "mkv", "flv", "wmv"].includes(ext)) {
@@ -249,7 +274,9 @@ function getFileCategoryAndIcon(fileName) {
   } else if (["mp3", "wav", "ogg", "m4a", "flac", "aac", "wma"].includes(ext)) {
     iconClass = "ph-file-audio";
     colorClass = "file-audio";
-  } else if (["zip", "rar", "tar", "gz", "7z", "bz2", "xz", "iso"].includes(ext)) {
+  } else if (
+    ["zip", "rar", "tar", "gz", "7z", "bz2", "xz", "iso"].includes(ext)
+  ) {
     iconClass = "ph-file-zip";
     colorClass = "file-zip";
   } else if (["md"].includes(ext)) {
@@ -285,7 +312,9 @@ function getFileCategoryAndIcon(fileName) {
   } else if (["rs"].includes(ext)) {
     iconClass = "ph-file-rs";
     colorClass = "file-code";
-  } else if (["json", "xml", "yaml", "yml", "php", "java", "sh", "bat"].includes(ext)) {
+  } else if (
+    ["json", "xml", "yaml", "yml", "php", "java", "sh", "bat"].includes(ext)
+  ) {
     iconClass = "ph-file-code";
     colorClass = "file-code";
   }
@@ -339,7 +368,7 @@ window.formatMiddleTruncate = formatMiddleTruncate;
  */
 function renderFileNameHTML(fullName) {
   if (!fullName || typeof fullName !== "string") return fullName || "";
-  const lastDotIndex = fullName.lastIndexOf('.');
+  const lastDotIndex = fullName.lastIndexOf(".");
   if (lastDotIndex <= 0 || lastDotIndex === fullName.length - 1) {
     return `<span class="name-stem">${escapeHtml(fullName)}</span>`;
   }
@@ -357,8 +386,13 @@ window.renderFileNameHTML = renderFileNameHTML;
 
 function closeFilePreview() {
   const params = new URLSearchParams(window.location.search);
-  const isPreviewOnly = !!(params.get("token") || params.get("shareToken") || params.get("fileId") || params.get("previewFileId")) ||
-    document.documentElement.classList.contains("preview-only-mode");
+  const isPreviewOnly =
+    !!(
+      params.get("token") ||
+      params.get("shareToken") ||
+      params.get("fileId") ||
+      params.get("previewFileId")
+    ) || document.documentElement.classList.contains("preview-only-mode");
 
   // Nếu người dùng mở bằng link trong tab riêng: khi bấm dấu X thì trong tab đó KHÔNG chuyển lại giao diện dashboard
   if (isPreviewOnly) {
@@ -368,7 +402,7 @@ function closeFilePreview() {
     }
     try {
       window.close();
-    } catch (e) { }
+    } catch (e) {}
 
     // Nếu trình duyệt chặn window.close() (do gõ/dán link trực tiếp): giữ nguyên màn hình tối và hiện thông báo đã đóng sạch sẽ
     const container = document.getElementById("previewModalContainer");
@@ -432,7 +466,8 @@ function renderPreviewError(container, message, fileId, fileName) {
   }
 
   const msgEl = fragment.querySelector(".preview-error-msg");
-  if (msgEl) msgEl.textContent = message || "Đã xảy ra sự cố khi tải bản xem trước.";
+  if (msgEl)
+    msgEl.textContent = message || "Đã xảy ra sự cố khi tải bản xem trước.";
 
   const retryBtn = fragment.querySelector(".preview-retry-btn");
   if (retryBtn) {
@@ -473,14 +508,20 @@ function renderImagePreview(container, url, fileName) {
     imgEl.src = url;
     imgEl.alt = fileName || "Ảnh xem trước";
     imgEl.onerror = () => {
-      renderPreviewError(container, "Không thể giải mã dữ liệu hình ảnh.", null, fileName);
+      renderPreviewError(
+        container,
+        "Không thể giải mã dữ liệu hình ảnh.",
+        null,
+        fileName,
+      );
     };
   }
 
   const updateTransform = () => {
     if (!imgEl) return;
     imgEl.style.transform = `scale(${currentPreviewZoom}) rotate(${currentPreviewRotation}deg)`;
-    if (zoomValEl) zoomValEl.textContent = `${Math.round(currentPreviewZoom * 100)}%`;
+    if (zoomValEl)
+      zoomValEl.textContent = `${Math.round(currentPreviewZoom * 100)}%`;
   };
 
   zoomInBtn?.addEventListener("click", () => {
@@ -509,24 +550,31 @@ function renderImagePreview(container, url, fileName) {
   });
 
   // Cuộn chuột phóng to/thu nhỏ
-  scrollArea?.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    if (e.deltaY < 0) {
-      if (currentPreviewZoom < 3.0) {
-        currentPreviewZoom = Math.min(3.0, currentPreviewZoom + 0.15);
-        updateTransform();
+  scrollArea?.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        if (currentPreviewZoom < 3.0) {
+          currentPreviewZoom = Math.min(3.0, currentPreviewZoom + 0.15);
+          updateTransform();
+        }
+      } else {
+        if (currentPreviewZoom > 0.3) {
+          currentPreviewZoom = Math.max(0.3, currentPreviewZoom - 0.15);
+          updateTransform();
+        }
       }
-    } else {
-      if (currentPreviewZoom > 0.3) {
-        currentPreviewZoom = Math.max(0.3, currentPreviewZoom - 0.15);
-        updateTransform();
-      }
-    }
-  }, { passive: false });
+    },
+    { passive: false },
+  );
 
   // Kéo rê ảnh khi zoom lớn
   let isDragging = false;
-  let startX = 0, startY = 0, scrollLeft = 0, scrollTop = 0;
+  let startX = 0,
+    startY = 0,
+    scrollLeft = 0,
+    scrollTop = 0;
   if (scrollArea) {
     scrollArea.addEventListener("mousedown", (e) => {
       if (currentPreviewZoom > 1.0) {
@@ -570,16 +618,18 @@ function renderPdfPreview(container, url) {
 function renderVideoPreview(container, url) {
   const fragment = cloneTemplate("tmpl-preview-video");
   if (!fragment) return;
-  const video = fragment.querySelector("#previewVideoEl") || fragment.querySelector(".preview-video-player");
+  const video =
+    fragment.querySelector("#previewVideoEl") ||
+    fragment.querySelector(".preview-video-player");
   if (video) video.src = url;
 
   // Điều khiển tốc độ phát video
   const speedBtns = fragment.querySelectorAll(".btn-vspeed");
-  speedBtns.forEach(btn => {
+  speedBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
       const speed = parseFloat(btn.dataset.speed || "1.0");
       if (video) video.playbackRate = speed;
-      speedBtns.forEach(b => b.classList.remove("active"));
+      speedBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
     });
   });
@@ -591,12 +641,20 @@ function renderVideoPreview(container, url) {
 function renderAudioPreview(container, url, fileName, sizeText) {
   const fragment = cloneTemplate("tmpl-preview-audio");
   if (!fragment) return;
-  const titleEl = fragment.querySelector("#previewAudioTitle") || fragment.querySelector(".preview-audio-title");
+  const titleEl =
+    fragment.querySelector("#previewAudioTitle") ||
+    fragment.querySelector(".preview-audio-title");
   if (titleEl) titleEl.textContent = fileName || "Tệp âm thanh";
-  const metaEl = fragment.querySelector("#previewAudioMeta") || fragment.querySelector(".preview-audio-meta");
+  const metaEl =
+    fragment.querySelector("#previewAudioMeta") ||
+    fragment.querySelector(".preview-audio-meta");
   if (metaEl) metaEl.textContent = sizeText || "";
-  const audio = fragment.querySelector("#previewAudioPlayer") || fragment.querySelector(".preview-audio-player");
-  const card = fragment.querySelector("#previewAudioCard") || fragment.querySelector(".preview-audio-card");
+  const audio =
+    fragment.querySelector("#previewAudioPlayer") ||
+    fragment.querySelector(".preview-audio-player");
+  const card =
+    fragment.querySelector("#previewAudioCard") ||
+    fragment.querySelector(".preview-audio-card");
 
   if (audio) {
     audio.src = url;
@@ -615,21 +673,35 @@ function renderAudioPreview(container, url, fileName, sizeText) {
   container.appendChild(fragment);
 }
 
-async function renderTextPreview(container, blob, ext, fileId = null, fileName = "") {
+async function renderTextPreview(
+  container,
+  blob,
+  ext,
+  fileId = null,
+  fileName = "",
+) {
   try {
     let currentText = await blob.text();
     let initialText = currentText;
     const fragment = cloneTemplate("tmpl-preview-text");
     if (!fragment) return;
 
-    const badge = fragment.querySelector("#previewTextBadge") || fragment.querySelector(".preview-text-badge");
+    const badge =
+      fragment.querySelector("#previewTextBadge") ||
+      fragment.querySelector(".preview-text-badge");
     if (badge) badge.textContent = (ext || "TXT").toUpperCase();
 
-    const statsEl = fragment.querySelector("#previewTextStats") || fragment.querySelector(".preview-text-stats");
+    const statsEl =
+      fragment.querySelector("#previewTextStats") ||
+      fragment.querySelector(".preview-text-stats");
     const dirtyBadge = fragment.querySelector("#previewTextDirty");
     const linesEl = fragment.querySelector("#previewCodeLines");
-    const preEl = fragment.querySelector("#previewTextPre") || fragment.querySelector(".preview-text-pre");
-    const codeEl = fragment.querySelector("#previewTextCode") || fragment.querySelector(".preview-text-code");
+    const preEl =
+      fragment.querySelector("#previewTextPre") ||
+      fragment.querySelector(".preview-text-pre");
+    const codeEl =
+      fragment.querySelector("#previewTextCode") ||
+      fragment.querySelector(".preview-text-code");
     const editorEl = fragment.querySelector("#previewTextEditor");
     const copyBtn = fragment.querySelector("#previewCopyCodeBtn");
     const toggleEditBtn = fragment.querySelector("#previewToggleEditBtn");
@@ -642,7 +714,7 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
     const updateStatsAndLines = (textVal) => {
       const lines = textVal.split("\n");
       if (statsEl) {
-        statsEl.textContent = `${lines.length} dòng · ${textVal.length.toLocaleString('vi-VN')} ký tự`;
+        statsEl.textContent = `${lines.length} dòng · ${textVal.length.toLocaleString("vi-VN")} ký tự`;
       }
       if (linesEl) {
         linesEl.innerHTML = lines.map((_, i) => `<div>${i + 1}</div>`).join("");
@@ -660,17 +732,23 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
       isCopied = copied;
       if (!copyBtn) return;
       if (copied) {
-        copyBtn.innerHTML = '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã sao chép</span>';
+        copyBtn.innerHTML =
+          '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã sao chép</span>';
         copyBtn.classList.add("copied");
       } else {
-        copyBtn.innerHTML = '<i class="ph-bold ph-copy"></i> <span>Sao chép</span>';
+        copyBtn.innerHTML =
+          '<i class="ph-bold ph-copy"></i> <span>Sao chép</span>';
         copyBtn.classList.remove("copied");
       }
     };
 
     copyBtn?.addEventListener("click", () => {
-      const textToCopy = isEditing && editorEl ? editorEl.value : (codeEl?.textContent || currentText);
-      navigator.clipboard.writeText(textToCopy)
+      const textToCopy =
+        isEditing && editorEl
+          ? editorEl.value
+          : codeEl?.textContent || currentText;
+      navigator.clipboard
+        .writeText(textToCopy)
         .then(() => {
           setCopiedStatus(true);
         })
@@ -713,7 +791,8 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
         }
         // Hiển thị trạng thái chưa lưu nếu có thay đổi
         if (dirtyBadge) {
-          dirtyBadge.style.display = (val !== initialText) ? "inline-block" : "none";
+          dirtyBadge.style.display =
+            val !== initialText ? "inline-block" : "none";
         }
       });
 
@@ -723,7 +802,10 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
           e.preventDefault();
           const start = editorEl.selectionStart;
           const end = editorEl.selectionEnd;
-          editorEl.value = editorEl.value.substring(0, start) + "  " + editorEl.value.substring(end);
+          editorEl.value =
+            editorEl.value.substring(0, start) +
+            "  " +
+            editorEl.value.substring(end);
           editorEl.selectionStart = editorEl.selectionEnd = start + 2;
           updateStatsAndLines(editorEl.value);
           if (dirtyBadge) dirtyBadge.style.display = "inline-block";
@@ -752,7 +834,8 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
 
       if (saveBtn) {
         saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="ph-bold ph-spinner"></i> <span>Đang lưu...</span>';
+        saveBtn.innerHTML =
+          '<i class="ph-bold ph-spinner"></i> <span>Đang lưu...</span>';
       }
 
       try {
@@ -762,9 +845,9 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
         const response = await fetchWithAuth(`/files/${fileId}/content`, {
           method: "PUT",
           headers: {
-            "Content-Type": "text/plain; charset=utf-8"
+            "Content-Type": "text/plain; charset=utf-8",
           },
-          body: newText
+          body: newText,
         });
 
         if (response && response.ok) {
@@ -772,15 +855,21 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
           initialText = newText;
           if (codeEl) codeEl.textContent = newText;
           if (dirtyBadge) dirtyBadge.style.display = "none";
-          if (saveBtn) saveBtn.innerHTML = '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã lưu!</span>';
+          if (saveBtn)
+            saveBtn.innerHTML =
+              '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã lưu!</span>';
         } else {
           // Trường hợp Backend chưa có endpoint PUT /files/{id}/content
           currentText = newText;
           initialText = newText;
           if (codeEl) codeEl.textContent = newText;
           if (dirtyBadge) dirtyBadge.style.display = "none";
-          if (saveBtn) saveBtn.innerHTML = '<i class="ph-bold ph-check" style="color:#38bdf8;"></i> <span style="color:#38bdf8;">Đã lưu tạm!</span>';
-          console.info(`[Frontend] Đã chuẩn bị sẵn API PUT /api/files/${fileId}/content. Hiện tại Backend chưa triển khai nên nội dung được cập nhật trên giao diện.`);
+          if (saveBtn)
+            saveBtn.innerHTML =
+              '<i class="ph-bold ph-check" style="color:#38bdf8;"></i> <span style="color:#38bdf8;">Đã lưu tạm!</span>';
+          console.info(
+            `[Frontend] Đã chuẩn bị sẵn API PUT /api/files/${fileId}/content. Hiện tại Backend chưa triển khai nên nội dung được cập nhật trên giao diện.`,
+          );
         }
       } catch (err) {
         // Fallback lưu giao diện tạm thời khi chưa có Backend
@@ -788,12 +877,15 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
         initialText = newText;
         if (codeEl) codeEl.textContent = newText;
         if (dirtyBadge) dirtyBadge.style.display = "none";
-        if (saveBtn) saveBtn.innerHTML = '<i class="ph-bold ph-check" style="color:#38bdf8;"></i> <span style="color:#38bdf8;">Đã lưu tạm!</span>';
+        if (saveBtn)
+          saveBtn.innerHTML =
+            '<i class="ph-bold ph-check" style="color:#38bdf8;"></i> <span style="color:#38bdf8;">Đã lưu tạm!</span>';
       } finally {
         setTimeout(() => {
           if (saveBtn) {
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> <span>Lưu thay đổi</span>';
+            saveBtn.innerHTML =
+              '<i class="ph-bold ph-floppy-disk"></i> <span>Lưu thay đổi</span>';
           }
         }, 2000);
       }
@@ -808,12 +900,22 @@ async function renderTextPreview(container, blob, ext, fileId = null, fileName =
     container.appendChild(fragment);
   } catch (err) {
     console.error("Lỗi khi đọc file văn bản:", err);
-    renderPreviewError(container, "Không thể đọc nội dung văn bản. Tệp tin có thể mã hóa theo định dạng nhị phân không tương thích.");
+    renderPreviewError(
+      container,
+      "Không thể đọc nội dung văn bản. Tệp tin có thể mã hóa theo định dạng nhị phân không tương thích.",
+    );
   }
 }
 
-
-function renderUnsupportedPreview(container, fileName, ext, sizeText, iconClass, colorClass, fileId) {
+function renderUnsupportedPreview(
+  container,
+  fileName,
+  ext,
+  sizeText,
+  iconClass,
+  colorClass,
+  fileId,
+) {
   const fragment = cloneTemplate("tmpl-preview-unsupported");
   if (!fragment) return;
 
@@ -834,14 +936,22 @@ async function openFilePreview(fileId, fileData = null) {
   // Tìm thông tin file trong bộ nhớ đệm hoặc tham số
   let file = fileData;
   if (!file && window.currentLoadedData && window.currentLoadedData.files) {
-    file = window.currentLoadedData.files.find(f => (f.fileId || f.id) == fileId);
+    file = window.currentLoadedData.files.find(
+      (f) => (f.fileId || f.id) == fileId,
+    );
   }
   if (!file && window.mockData && window.mockData.files) {
-    file = window.mockData.files.find(f => (f.fileId || f.id) == fileId);
+    file = window.mockData.files.find((f) => (f.fileId || f.id) == fileId);
   }
 
-  const fileName = file ? (file.fileName || file.name || file.originalName || `file_${fileId}`) : `file_${fileId}`;
-  const fileSizeVal = file ? (file.sizeBytes !== undefined ? file.sizeBytes : file.size) : null;
+  const fileName = file
+    ? file.fileName || file.name || file.originalName || `file_${fileId}`
+    : `file_${fileId}`;
+  const fileSizeVal = file
+    ? file.sizeBytes !== undefined
+      ? file.sizeBytes
+      : file.size
+    : null;
   const formatSize = (bytes) => {
     if (!bytes && bytes !== 0) return "";
     const k = 1024;
@@ -854,10 +964,13 @@ async function openFilePreview(fileId, fileData = null) {
   const formatShortDate = (dateVal) => {
     if (!dateVal) return "";
     try {
-      const d = (typeof parseLocalDate === 'function') ? parseLocalDate(dateVal) : new Date(dateVal);
+      const d =
+        typeof parseLocalDate === "function"
+          ? parseLocalDate(dateVal)
+          : new Date(dateVal);
       if (!d || isNaN(d.getTime())) return "";
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
       return `Chỉnh sửa ${dd}/${mm}`;
     } catch (_) {
       return "";
@@ -865,7 +978,9 @@ async function openFilePreview(fileId, fileData = null) {
   };
 
   const displaySize = fileSizeVal ? formatSize(fileSizeVal) : "";
-  const dateText = file ? formatShortDate(file.updatedAt || file.createdAt) : "";
+  const dateText = file
+    ? formatShortDate(file.updatedAt || file.createdAt)
+    : "";
   const { ext, iconClass, colorClass } = getFileCategoryAndIcon(fileName);
 
   const buildMetaString = (sizeStr, dateStr, extStr) => {
@@ -914,7 +1029,7 @@ async function openFilePreview(fileId, fileData = null) {
   if (downloadBtn) {
     downloadBtn.onclick = () => {
       if (typeof downloadItem === "function") {
-        downloadItem(fileId, 'file', fileName);
+        downloadItem(fileId, "file", fileName);
       }
     };
   }
@@ -930,15 +1045,56 @@ async function openFilePreview(fileId, fileData = null) {
   const pdfExts = ["pdf"];
   const videoExts = ["mp4", "webm", "ogg", "mov"];
   const audioExts = ["mp3", "wav", "ogg", "m4a", "flac"];
-  const textCodeExts = ["txt", "md", "json", "js", "ts", "html", "css", "py", "java", "c", "cpp", "cs", "php", "sql", "xml", "yaml", "yml", "sh", "bat", "log", "ini", "env"];
-  const unsupportedExts = ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "rar", "7z", "tar", "gz", "exe", "apk", "dmg", "iso", "bin"];
+  const textCodeExts = [
+    "txt",
+    "md",
+    "json",
+    "js",
+    "ts",
+    "html",
+    "css",
+    "py",
+    "java",
+    "c",
+    "cpp",
+    "cs",
+    "php",
+    "sql",
+    "xml",
+    "yaml",
+    "yml",
+    "sh",
+    "bat",
+    "log",
+    "ini",
+    "env",
+  ];
+  const unsupportedExts = [
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "ppt",
+    "pptx",
+    "zip",
+    "rar",
+    "7z",
+    "tar",
+    "gz",
+    "exe",
+    "apk",
+    "dmg",
+    "iso",
+    "bin",
+  ];
 
   const isImage = imageExts.includes(ext);
   const isPdf = pdfExts.includes(ext);
   const isVideo = videoExts.includes(ext);
   const isAudio = audioExts.includes(ext);
   const isTextOrCode = textCodeExts.includes(ext);
-  const isKnownSupported = isImage || isPdf || isVideo || isAudio || isTextOrCode;
+  const isKnownSupported =
+    isImage || isPdf || isVideo || isAudio || isTextOrCode;
   const isKnownUnsupported = unsupportedExts.includes(ext);
 
   overlay.style.display = "flex";
@@ -947,7 +1103,15 @@ async function openFilePreview(fileId, fileData = null) {
   // 1. Nếu là định dạng KHÔNG THỂ XEM TRỰC TIẾP (Office: doc, docx, xls, xlsx, ppt, pptx; Nén: zip, rar...)
   // Hoặc định dạng lạ không hỗ trợ: hiển thị NGAY giao diện Chuẩn Hình 1 (không cần gọi fetch tốn băng thông)
   if (isKnownUnsupported || (!isKnownSupported && ext)) {
-    renderUnsupportedPreview(bodyEl, fileName, ext, displaySize, iconClass, colorClass, fileId);
+    renderUnsupportedPreview(
+      bodyEl,
+      fileName,
+      ext,
+      displaySize,
+      iconClass,
+      colorClass,
+      fileId,
+    );
     return;
   }
 
@@ -970,23 +1134,34 @@ async function openFilePreview(fileId, fileData = null) {
     let blob = null;
 
     if (!objectUrl) {
-      const token = localStorage.getItem("jwt_token") || localStorage.getItem("token");
-      const baseUrl = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL : "http://localhost:8080/api";
+      const token =
+        localStorage.getItem("jwt_token") || localStorage.getItem("token");
+      const baseUrl =
+        typeof API_BASE_URL !== "undefined"
+          ? API_BASE_URL
+          : "http://localhost:8080/api";
       const response = await fetch(`${baseUrl}/files/${fileId}/preview`, {
         headers: {
-          ...(token ? { "Authorization": `Bearer ${token}` } : {})
-        }
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Máy chủ không thể cung cấp bản xem trước`);
+        throw new Error(
+          `HTTP ${response.status}: Máy chủ không thể cung cấp bản xem trước`,
+        );
       }
 
       // Trích xuất tên tệp từ header Content-Disposition nếu chưa có tên thật
       const disposition = response.headers.get("content-disposition") || "";
       const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
       const asciiMatch = disposition.match(/filename="?([^";]+)"?/i);
-      const serverFileName = (utf8Match && utf8Match[1]) ? decodeURIComponent(utf8Match[1]) : (asciiMatch ? asciiMatch[1] : null);
+      const serverFileName =
+        utf8Match && utf8Match[1]
+          ? decodeURIComponent(utf8Match[1])
+          : asciiMatch
+            ? asciiMatch[1]
+            : null;
       if (serverFileName && (!file || fileName.startsWith("file_"))) {
         fileName = serverFileName;
         const iconInfo = getFileCategoryAndIcon(serverFileName);
@@ -995,8 +1170,10 @@ async function openFilePreview(fileId, fileData = null) {
           fileNameEl.textContent = fileName;
           fileNameEl.title = fileName;
         }
-        if (fileIconEl) fileIconEl.className = `preview-file-icon ${iconInfo.colorClass}`;
-        if (fileIconInner) fileIconInner.className = `ph-fill ${iconInfo.iconClass}`;
+        if (fileIconEl)
+          fileIconEl.className = `preview-file-icon ${iconInfo.colorClass}`;
+        if (fileIconInner)
+          fileIconInner.className = `ph-fill ${iconInfo.iconClass}`;
         document.title = `${fileName} - VaultDrive`;
       }
 
@@ -1006,10 +1183,14 @@ async function openFilePreview(fileId, fileData = null) {
     }
 
     if (fileMetaEl && blob && blob.size) {
-      fileMetaEl.textContent = buildMetaString(formatSize(blob.size), dateText, ext);
+      fileMetaEl.textContent = buildMetaString(
+        formatSize(blob.size),
+        dateText,
+        ext,
+      );
     }
 
-    const mimeType = blob ? (blob.type || "") : "";
+    const mimeType = blob ? blob.type || "" : "";
     const finalIsImage = isImage || mimeType.startsWith("image/");
     const finalIsPdf = isPdf || mimeType === "application/pdf";
     const finalIsVideo = isVideo || mimeType.startsWith("video/");
@@ -1024,7 +1205,12 @@ async function openFilePreview(fileId, fileData = null) {
     } else if (finalIsVideo) {
       renderVideoPreview(bodyEl, objectUrl);
     } else if (finalIsAudio) {
-      renderAudioPreview(bodyEl, objectUrl, fileName, displaySize || (blob ? formatSize(blob.size) : ""));
+      renderAudioPreview(
+        bodyEl,
+        objectUrl,
+        fileName,
+        displaySize || (blob ? formatSize(blob.size) : ""),
+      );
     } else if (finalIsTextOrCode) {
       if (blob) {
         await renderTextPreview(bodyEl, blob, ext, fileId, fileName);
@@ -1035,14 +1221,26 @@ async function openFilePreview(fileId, fileData = null) {
       }
     } else {
       // Trường hợp dự phòng nếu mimeType thực tế không hỗ trợ xem
-      renderUnsupportedPreview(bodyEl, fileName, ext, displaySize || (blob ? formatSize(blob.size) : ""), iconClass, colorClass, fileId);
+      renderUnsupportedPreview(
+        bodyEl,
+        fileName,
+        ext,
+        displaySize || (blob ? formatSize(blob.size) : ""),
+        iconClass,
+        colorClass,
+        fileId,
+      );
     }
-
   } catch (err) {
     console.error("Lỗi khi mở bản xem trước:", err);
     // Nếu tệp thuộc nhóm xem được (như JPG/PNG) nhưng tải bị lỗi (lỗi mạng hoặc file không tồn tại trên ổ đĩa),
     // hiển thị giao diện báo lỗi kèm nút Thử lại / Tải về máy
-    renderPreviewError(bodyEl, "Không thể tải bản xem trước của tệp tin. Vui lòng kiểm tra kết nối mạng hoặc thử tải tệp về máy.", fileId, fileName);
+    renderPreviewError(
+      bodyEl,
+      "Không thể tải bản xem trước của tệp tin. Vui lòng kiểm tra kết nối mạng hoặc thử tải tệp về máy.",
+      fileId,
+      fileName,
+    );
   }
 }
 window.openFilePreview = openFilePreview;
@@ -1085,11 +1283,16 @@ async function openPublicFilePreview(token) {
   }
 
   try {
-    const baseUrl = typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "http://localhost:8080/api";
+    const baseUrl =
+      typeof API_BASE_URL !== "undefined"
+        ? API_BASE_URL
+        : "http://localhost:8080/api";
     const res = await fetch(`${baseUrl}/public/share-links/${token}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || "Liên kết chia sẻ không tồn tại hoặc đã hết hạn!");
+      throw new Error(
+        err.message || "Liên kết chia sẻ không tồn tại hoặc đã hết hạn!",
+      );
     }
 
     const data = await res.json();
@@ -1098,7 +1301,9 @@ async function openPublicFilePreview(token) {
         window.location.href = `dashboard.html?token=${encodeURIComponent(token)}`;
         return;
       }
-      throw new Error("Liên kết chia sẻ không trỏ đến một tệp tin xem trước được!");
+      throw new Error(
+        "Liên kết chia sẻ không trỏ đến một tệp tin xem trước được!",
+      );
     }
 
     const file = data.file;
@@ -1118,7 +1323,10 @@ async function openPublicFilePreview(token) {
     const formatShortDate = (dateVal) => {
       if (!dateVal) return "";
       try {
-        const d = typeof parseLocalDate === "function" ? parseLocalDate(dateVal) : new Date(dateVal);
+        const d =
+          typeof parseLocalDate === "function"
+            ? parseLocalDate(dateVal)
+            : new Date(dateVal);
         if (!d || isNaN(d.getTime())) return "";
         const dd = String(d.getDate()).padStart(2, "0");
         const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -1129,7 +1337,9 @@ async function openPublicFilePreview(token) {
     };
 
     const displaySize = fileSizeVal ? formatSize(fileSizeVal) : "";
-    const dateText = file ? formatShortDate(file.updatedAt || file.createdAt) : "";
+    const dateText = file
+      ? formatShortDate(file.updatedAt || file.createdAt)
+      : "";
     const { ext, iconClass, colorClass } = getFileCategoryAndIcon(fileName);
 
     const buildMetaString = (sizeStr, dateStr, extStr) => {
@@ -1176,24 +1386,82 @@ async function openPublicFilePreview(token) {
     }
 
     // Danh sách các định dạng
-    const imageExts = ["png", "jpg", "jpeg", "gif", "svg", "webp", "bmp", "ico"];
+    const imageExts = [
+      "png",
+      "jpg",
+      "jpeg",
+      "gif",
+      "svg",
+      "webp",
+      "bmp",
+      "ico",
+    ];
     const pdfExts = ["pdf"];
     const videoExts = ["mp4", "webm", "ogg", "mov"];
     const audioExts = ["mp3", "wav", "ogg", "m4a", "flac"];
-    const textCodeExts = ["txt", "md", "json", "js", "ts", "html", "css", "py", "java", "c", "cpp", "cs", "php", "sql", "xml", "yaml", "yml", "sh", "bat", "log", "ini", "env"];
-    const unsupportedExts = ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "rar", "7z", "tar", "gz", "exe", "apk", "dmg", "iso", "bin"];
+    const textCodeExts = [
+      "txt",
+      "md",
+      "json",
+      "js",
+      "ts",
+      "html",
+      "css",
+      "py",
+      "java",
+      "c",
+      "cpp",
+      "cs",
+      "php",
+      "sql",
+      "xml",
+      "yaml",
+      "yml",
+      "sh",
+      "bat",
+      "log",
+      "ini",
+      "env",
+    ];
+    const unsupportedExts = [
+      "doc",
+      "docx",
+      "xls",
+      "xlsx",
+      "ppt",
+      "pptx",
+      "zip",
+      "rar",
+      "7z",
+      "tar",
+      "gz",
+      "exe",
+      "apk",
+      "dmg",
+      "iso",
+      "bin",
+    ];
 
     const isImage = imageExts.includes(ext);
     const isPdf = pdfExts.includes(ext);
     const isVideo = videoExts.includes(ext);
     const isAudio = audioExts.includes(ext);
     const isTextOrCode = textCodeExts.includes(ext);
-    const isKnownSupported = isImage || isPdf || isVideo || isAudio || isTextOrCode;
+    const isKnownSupported =
+      isImage || isPdf || isVideo || isAudio || isTextOrCode;
     const isKnownUnsupported = unsupportedExts.includes(ext);
 
     // 1. Định dạng không hỗ trợ xem trực tiếp (docx, xlsx, pptx, zip...) -> renderUnsupportedPreview (Hình 1)
     if (isKnownUnsupported || (!isKnownSupported && ext)) {
-      renderUnsupportedPreview(bodyEl, fileName, ext, displaySize, iconClass, colorClass, fileId);
+      renderUnsupportedPreview(
+        bodyEl,
+        fileName,
+        ext,
+        displaySize,
+        iconClass,
+        colorClass,
+        fileId,
+      );
       const unsuppBtn = bodyEl.querySelector("#previewUnsupportedDownloadBtn");
       if (unsuppBtn) {
         unsuppBtn.onclick = () => {
@@ -1204,9 +1472,13 @@ async function openPublicFilePreview(token) {
     }
 
     // 2. Tải blob từ endpoint xem trước công khai
-    const previewRes = await fetch(`${baseUrl}/public/share-links/${token}/preview`);
+    const previewRes = await fetch(
+      `${baseUrl}/public/share-links/${token}/preview`,
+    );
     if (!previewRes.ok) {
-      throw new Error(`HTTP ${previewRes.status}: Máy chủ không thể cung cấp bản xem trước`);
+      throw new Error(
+        `HTTP ${previewRes.status}: Máy chủ không thể cung cấp bản xem trước`,
+      );
     }
 
     const blob = await previewRes.blob();
@@ -1214,10 +1486,14 @@ async function openPublicFilePreview(token) {
     currentPreviewBlobUrl = objectUrl;
 
     if (fileMetaEl && blob && blob.size) {
-      fileMetaEl.textContent = buildMetaString(formatSize(blob.size), dateText, ext);
+      fileMetaEl.textContent = buildMetaString(
+        formatSize(blob.size),
+        dateText,
+        ext,
+      );
     }
 
-    const mimeType = blob ? (blob.type || "") : "";
+    const mimeType = blob ? blob.type || "" : "";
     const finalIsImage = isImage || mimeType.startsWith("image/");
     const finalIsPdf = isPdf || mimeType === "application/pdf";
     const finalIsVideo = isVideo || mimeType.startsWith("video/");
@@ -1231,12 +1507,25 @@ async function openPublicFilePreview(token) {
     } else if (finalIsVideo) {
       renderVideoPreview(bodyEl, objectUrl);
     } else if (finalIsAudio) {
-      renderAudioPreview(bodyEl, objectUrl, fileName, displaySize || formatSize(blob.size));
+      renderAudioPreview(
+        bodyEl,
+        objectUrl,
+        fileName,
+        displaySize || formatSize(blob.size),
+      );
     } else if (finalIsTextOrCode) {
       // Xem văn bản/mã nguồn (Hình 2: hiển thị cả Sao chép và Chỉnh sửa)
       await renderTextPreview(bodyEl, blob, ext, fileId, fileName);
     } else {
-      renderUnsupportedPreview(bodyEl, fileName, ext, displaySize || formatSize(blob.size), iconClass, colorClass, fileId);
+      renderUnsupportedPreview(
+        bodyEl,
+        fileName,
+        ext,
+        displaySize || formatSize(blob.size),
+        iconClass,
+        colorClass,
+        fileId,
+      );
       const unsuppBtn = bodyEl.querySelector("#previewUnsupportedDownloadBtn");
       if (unsuppBtn) {
         unsuppBtn.onclick = () => {
@@ -1244,17 +1533,21 @@ async function openPublicFilePreview(token) {
         };
       }
     }
-
   } catch (err) {
     console.error("Lỗi khi mở bản xem trước công khai:", err);
-    renderPreviewError(bodyEl, err.message || "Không thể tải bản xem trước của tệp tin.", null, "Tệp chia sẻ");
+    renderPreviewError(
+      bodyEl,
+      err.message || "Không thể tải bản xem trước của tệp tin.",
+      null,
+      "Tệp chia sẻ",
+    );
   }
 }
 window.openPublicFilePreview = openPublicFilePreview;
 
 document.addEventListener("DOMContentLoaded", () => {
   // Lấy tham chiếu đến Context Menu và các Modal overlay
-  const contextMenu = document.getElementById("globalContextMenu");  // Menu chuột phải
+  const contextMenu = document.getElementById("globalContextMenu"); // Menu chuột phải
 
   // Nếu đang ở trang xem trước riêng biệt (preview.html) hoặc trang không có context menu
   if (!contextMenu) {
@@ -1279,7 +1572,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Tự động mở xem trước nếu URL có param token hoặc fileId
     const pageParams = new URLSearchParams(window.location.search);
     const paramToken = pageParams.get("token") || pageParams.get("shareToken");
-    const paramFileId = pageParams.get("fileId") || pageParams.get("previewFileId");
+    const paramFileId =
+      pageParams.get("fileId") || pageParams.get("previewFileId");
 
     if (paramToken && typeof openPublicFilePreview === "function") {
       openPublicFilePreview(paramToken);
@@ -1291,7 +1585,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // DOM elements của Modals (lớp phủ tối toàn màn hình)
   const renameOverlay = document.getElementById("renameModalOverlay"); // Modal đổi tên
-  const shareOverlay = document.getElementById("shareModalOverlay");   // Modal chia sẻ
+  const shareOverlay = document.getElementById("shareModalOverlay"); // Modal chia sẻ
 
   // ─── 1. LOGIC ẨN CONTEXT MENU KHI CLICK RA NGOÀI ───
   document.addEventListener("click", (e) => {
@@ -1315,22 +1609,26 @@ document.addEventListener("DOMContentLoaded", () => {
     e.stopPropagation(); // Ngăn sự kiện lan ra document (tránh menu bị đóng ngay)
 
     // Lưu item đang được chọn vào biến state toàn cục
-    currentTargetId = id;   // ID của file/folder
+    currentTargetId = id; // ID của file/folder
     currentTargetType = type; // 'file' hoặc 'folder'
 
-    // Lấy quyền của file/folder từ window.currentLoadedData
+    // Lấy quyền của file/folder từ window.currentLoadedData và window.lastSharedData
     let itemPerm = "OWNER";
-    if (window.currentLoadedData) {
-      if (type === 'folder') {
-        let list = window.currentLoadedData.folders || [];
-        if (window.currentLoadedData.subfolders) list = list.concat(window.currentLoadedData.subfolders);
-        const item = list.find(f => (f.folderId || f.id) == id);
-        if (item && item.permission) itemPerm = item.permission;
-      } else {
-        let list = window.currentLoadedData.files || [];
-        const item = list.find(f => (f.fileId || f.id) == id);
-        if (item && item.permission) itemPerm = item.permission;
-      }
+    const allItems = [
+      ...(window.currentLoadedData?.files || []),
+      ...(window.currentLoadedData?.folders || []),
+      ...(window.currentLoadedData?.subfolders || []),
+      ...(Array.isArray(window.lastSharedData) ? window.lastSharedData : []),
+      ...(window.lastSharedData?.files || []),
+      ...(window.lastSharedData?.folders || []),
+    ];
+    const foundItem = allItems.find(
+      (f) => (f.fileId || f.id) == id || (f.folderId || f.id) == id,
+    );
+    if (foundItem && foundItem.permission) {
+      itemPerm = foundItem.permission;
+    } else if (window.currentViewType === "shared") {
+      itemPerm = "VIEW";
     }
     window.currentTargetPermission = itemPerm.toUpperCase();
 
@@ -1343,34 +1641,66 @@ document.addEventListener("DOMContentLoaded", () => {
     const btn = e.currentTarget;
     btn.classList.add("active");
 
-    // Hiện context menu
+    // Reset trạng thái submenu "Chia sẻ"
+    const shareWrap = document.getElementById("ctxShareWrap");
+    if (shareWrap) shareWrap.classList.remove("submenu-open");
+
+    // Hiện context menu để lấy kích thước chính xác
     contextMenu.style.display = "block";
+    contextMenu.style.visibility = "hidden";
+    const menuWidth = contextMenu.offsetWidth || 230;
+    const menuHeight = contextMenu.offsetHeight || 220;
+    contextMenu.style.visibility = "visible";
 
     // --- Tính toán vị trí hiển thị menu (tránh bị tràn ra ngoài màn hình) ---
     const btnRect = btn.getBoundingClientRect(); // Vị trí của nút ⋮ trên màn hình
-    let left = btnRect.right + 10;  // Mặc định: hiện bên PHẢI nút ⋮, cách 10px
-    let top = btnRect.top;          // Cùng chiều cao với nút ⋮
+    const winWidth = window.innerWidth;
+    const winHeight = window.innerHeight;
 
-    // Nếu menu bị tràn ra lề PHẢI màn hình → lật sang hiện ở bên TRÁI nút ⋮
-    if (left + contextMenu.offsetWidth > window.innerWidth) {
-      left = btnRect.left - contextMenu.offsetWidth - 10;
-    }
-    // Nếu menu bị tràn xuống lề DƯỚI màn hình → dịch lên trên cho vừa
-    if (top + contextMenu.offsetHeight > window.innerHeight) {
-      top = window.innerHeight - contextMenu.offsetHeight - 10;
+    let left, top;
+
+    // Trên màn hình di động nhỏ (<= 480px)
+    if (winWidth <= 480) {
+      if (btnRect.right > winWidth / 2) {
+        // Nút ở nửa phải -> mở về bên trái mép nút
+        left = btnRect.right - menuWidth;
+      } else {
+        // Nút ở nửa trái -> mở từ mép trái nút
+        left = btnRect.left;
+      }
+      top = btnRect.bottom + 6;
+      if (top + menuHeight > winHeight - 10) {
+        top = btnRect.top - menuHeight - 6;
+      }
+    } else {
+      // Màn hình tablet / desktop
+      left = btnRect.right + 8;
+      top = btnRect.top;
+
+      if (left + menuWidth > winWidth - 10) {
+        left = btnRect.left - menuWidth - 8;
+      }
+      if (top + menuHeight > winHeight - 10) {
+        top = winHeight - menuHeight - 10;
+      }
     }
 
-    contextMenu.style.left = left + "px";
-    contextMenu.style.top = top + "px";
+    // CLAMP CHẶT CHẼ TRONG VIEWPORT: Không bao giờ bị tràn bất kỳ mép nào
+    const margin = winWidth <= 480 ? 8 : 12;
+    left = Math.max(margin, Math.min(left, winWidth - menuWidth - margin));
+    top = Math.max(margin, Math.min(top, winHeight - menuHeight - margin));
+
+    contextMenu.style.left = Math.round(left) + "px";
+    contextMenu.style.top = Math.round(top) + "px";
 
     // --- Ẩn/Hiện nút theo VIEW hiện tại ---
-    const ctxDelete = document.getElementById("ctxDelete");       // "Chuyển vào thùng rác"
-    const ctxRestore = document.getElementById("ctxRestore");     // "Khôi phục"
+    const ctxDelete = document.getElementById("ctxDelete"); // "Chuyển vào thùng rác"
+    const ctxRestore = document.getElementById("ctxRestore"); // "Khôi phục"
     const ctxDeletePerm = document.getElementById("ctxDeletePermanent"); // "Xóa vĩnh viễn"
-    const ctxPreview = document.getElementById("ctxPreview");     // "Xem trước"
+    const ctxPreview = document.getElementById("ctxPreview"); // "Xem trước"
 
     if (ctxPreview) {
-      if (type === 'file' && window.currentViewType !== "trash") {
+      if (type === "file" && window.currentViewType !== "trash") {
         ctxPreview.style.display = "flex";
       } else {
         ctxPreview.style.display = "none";
@@ -1413,6 +1743,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Xử lý click/tap toggle submenu "Chia sẻ" trên màn hình cảm ứng & di động
+  const shareWrapEl = document.getElementById("ctxShareWrap");
+  if (shareWrapEl) {
+    shareWrapEl.addEventListener("click", function (e) {
+      if (e.target.closest(".context-submenu .context-menu-item")) return;
+      if (
+        window.innerWidth <= 520 ||
+        window.matchMedia("(pointer: coarse)").matches
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.toggle("submenu-open");
+      }
+    });
+  }
+
   // 2. Logic click các mục trong Context Menu
   document.getElementById("ctxRename").addEventListener("click", () => {
     contextMenu.style.display = "none";
@@ -1421,12 +1767,16 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentName = "";
     const data = window.currentLoadedData || window.mockData;
     if (data) {
-      if (currentTargetType === 'file') {
-        const file = (data.files || []).find(f => (f.fileId || f.id) == currentTargetId);
+      if (currentTargetType === "file") {
+        const file = (data.files || []).find(
+          (f) => (f.fileId || f.id) == currentTargetId,
+        );
         if (file) currentName = file.fileName || file.name;
-      } else if (currentTargetType === 'folder') {
+      } else if (currentTargetType === "folder") {
         const folders = data.folders || data.subfolders || [];
-        const folder = folders.find(f => (f.folderId || f.id) == currentTargetId);
+        const folder = folders.find(
+          (f) => (f.folderId || f.id) == currentTargetId,
+        );
         if (folder) currentName = folder.folderName || folder.name;
       }
     }
@@ -1436,24 +1786,210 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("renameInput").focus();
   });
 
-  // Lấy danh sách người dùng được chia sẻ từ backend
+  // ─── KIỂM TRA QUYỀN SỞ HỮU & ĐIỀU KHIỂN GIAO DIỆN CHIA SẺ ───
+  function isCurrentItemOwner(itemId, itemType, sharedUsers = null) {
+    if (window.currentViewType === "shared") return false;
+
+    const currentPerm = String(
+      window.currentTargetPermission || "",
+    ).toUpperCase();
+    if (
+      currentPerm === "VIEW" ||
+      currentPerm === "VIEWER" ||
+      currentPerm === "EDIT" ||
+      currentPerm === "EDITOR"
+    ) {
+      return false;
+    }
+
+    const myEmail = (
+      localStorage.getItem("user_email") ||
+      sessionStorage.getItem("user_email") ||
+      ""
+    )
+      .toLowerCase()
+      .trim();
+
+    if (Array.isArray(sharedUsers) && sharedUsers.length > 0) {
+      const ownerEntry = sharedUsers.find(
+        (u) => String(u.permission || "").toUpperCase() === "OWNER",
+      );
+      if (ownerEntry) {
+        const ownerEmail = (
+          ownerEntry.sharedToEmail ||
+          ownerEntry.sharedByEmail ||
+          ""
+        )
+          .toLowerCase()
+          .trim();
+        if (ownerEmail && myEmail && ownerEmail !== myEmail) {
+          return false;
+        }
+      }
+
+      if (myEmail) {
+        const myRecord = sharedUsers.find(
+          (u) =>
+            (u.sharedToEmail || "").toLowerCase().trim() === myEmail &&
+            String(u.permission || "").toUpperCase() !== "OWNER",
+        );
+        if (myRecord) {
+          return false;
+        }
+      }
+    }
+
+    const allItems = [
+      ...(window.currentLoadedData?.files || []),
+      ...(window.currentLoadedData?.folders || []),
+      ...(window.currentLoadedData?.subfolders || []),
+      ...(Array.isArray(window.lastSharedData) ? window.lastSharedData : []),
+      ...(window.lastSharedData?.files || []),
+      ...(window.lastSharedData?.folders || []),
+    ];
+
+    const item = allItems.find(
+      (i) => (i.fileId || i.id) == itemId || (i.folderId || i.id) == itemId,
+    );
+
+    if (item) {
+      const itemPerm = String(item.permission || "").toUpperCase();
+      if (
+        itemPerm === "VIEW" ||
+        itemPerm === "VIEWER" ||
+        itemPerm === "EDIT" ||
+        itemPerm === "EDITOR"
+      ) {
+        return false;
+      }
+      const sharedBy = (item.sharedByEmail || "").toLowerCase().trim();
+      if (sharedBy && myEmail && sharedBy !== myEmail) {
+        return false;
+      }
+      const itemOwnerEmail = (item.userEmail || "").toLowerCase().trim();
+      if (itemOwnerEmail && myEmail && itemOwnerEmail !== myEmail) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+  window.isCurrentItemOwner = isCurrentItemOwner;
+
+  function applyShareModalPermissions(isOwner) {
+    const shareInputGroup = document.querySelector(".share-input-group");
+    const emailInput = document.getElementById("shareEmailInput");
+    const roleSelect = document.getElementById("shareRoleSelect");
+    const addShareUserBtn = document.getElementById("addShareUserBtn");
+    const generalAccessBtn = document.getElementById("generalAccessBtn");
+    const generalAccessMenu = document.getElementById("generalAccessMenu");
+    const generalAccessRow = document.querySelector(".general-access-row");
+
+    if (!isOwner) {
+      if (shareInputGroup) {
+        shareInputGroup.classList.add("is-disabled");
+        shareInputGroup.style.display = "flex";
+        shareInputGroup.style.opacity = "0.55";
+        shareInputGroup.style.pointerEvents = "none";
+      }
+      if (emailInput) {
+        emailInput.disabled = true;
+        emailInput.value = "";
+        emailInput.placeholder = "Chỉ chủ sở hữu mới có quyền chia sẻ";
+        emailInput.style.backgroundColor = "#f1f5f9";
+        emailInput.style.cursor = "not-allowed";
+      }
+      if (roleSelect) {
+        roleSelect.disabled = true;
+        roleSelect.style.backgroundColor = "#f1f5f9";
+        roleSelect.style.cursor = "not-allowed";
+      }
+      if (addShareUserBtn) {
+        addShareUserBtn.disabled = true;
+        addShareUserBtn.style.opacity = "0.5";
+        addShareUserBtn.style.cursor = "not-allowed";
+      }
+
+      if (generalAccessBtn) {
+        generalAccessBtn.disabled = true;
+        generalAccessBtn.classList.add("is-disabled");
+        generalAccessBtn.classList.remove("open");
+        generalAccessBtn.style.cursor = "not-allowed";
+        generalAccessBtn.style.opacity = "0.55";
+        generalAccessBtn.style.pointerEvents = "none";
+        generalAccessBtn.title =
+          "Chỉ chủ sở hữu mới có quyền thay đổi quyền truy cập chung";
+        const caret = generalAccessBtn.querySelector(".general-access-caret");
+        if (caret) caret.style.display = "none";
+      }
+      if (generalAccessMenu) {
+        generalAccessMenu.style.display = "none";
+      }
+      if (generalAccessRow) {
+        generalAccessRow.classList.add("is-disabled");
+      }
+    } else {
+      if (shareInputGroup) {
+        shareInputGroup.classList.remove("is-disabled");
+        shareInputGroup.style.display = "flex";
+        shareInputGroup.style.opacity = "1";
+        shareInputGroup.style.pointerEvents = "";
+      }
+      if (emailInput) {
+        emailInput.disabled = false;
+        emailInput.placeholder = "Thêm người bằng email...";
+        emailInput.style.backgroundColor = "white";
+        emailInput.style.cursor = "";
+      }
+      if (roleSelect) {
+        roleSelect.disabled = false;
+        roleSelect.style.backgroundColor = "white";
+        roleSelect.style.cursor = "";
+      }
+      if (addShareUserBtn) {
+        addShareUserBtn.disabled = false;
+        addShareUserBtn.style.opacity = "1";
+        addShareUserBtn.style.cursor = "pointer";
+      }
+
+      if (generalAccessBtn) {
+        generalAccessBtn.disabled = false;
+        generalAccessBtn.classList.remove("is-disabled");
+        generalAccessBtn.style.cursor = "pointer";
+        generalAccessBtn.style.opacity = "1";
+        generalAccessBtn.style.pointerEvents = "";
+        generalAccessBtn.removeAttribute("title");
+        const caret = generalAccessBtn.querySelector(".general-access-caret");
+        if (caret) caret.style.display = "inline-block";
+      }
+      if (generalAccessRow) {
+        generalAccessRow.classList.remove("is-disabled");
+      }
+    }
+  }
+  window.applyShareModalPermissions = applyShareModalPermissions;
+
   // Lấy danh sách người dùng được chia sẻ từ backend
   async function fetchSharedUsers(itemId, itemType) {
     const container = document.getElementById("sharedUsersListContainer");
     if (!container) return;
 
-    container.innerHTML = '<div style="text-align: center; color: #64748b; font-size: 13px; padding: 20px;">Đang tải danh sách...</div>';
+    container.innerHTML =
+      '<div style="text-align: center; color: #64748b; font-size: 13px; padding: 20px;">Đang tải danh sách...</div>';
 
     // Lấy thông tin phụ trợ từ cache nếu có
     const allItems = [
       ...(window.currentLoadedData?.files || []),
       ...(window.currentLoadedData?.folders || []),
-      ...(Array.isArray(window.lastSharedData) ? window.lastSharedData : [])
+      ...(Array.isArray(window.lastSharedData) ? window.lastSharedData : []),
     ];
-    const sharedMeta = allItems.find(i => (i.fileId || i.id) == itemId || (i.folderId || i.id) == itemId);
+    const sharedMeta = allItems.find(
+      (i) => (i.fileId || i.id) == itemId || (i.folderId || i.id) == itemId,
+    );
 
     try {
-      const queryParam = itemType === 'file' ? `fileId=${itemId}` : `folderId=${itemId}`;
+      const queryParam =
+        itemType === "file" ? `fileId=${itemId}` : `folderId=${itemId}`;
       const res = await fetchWithAuth(`/shares/users?${queryParam}`);
 
       let sharedUsers = [];
@@ -1466,20 +2002,33 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!Array.isArray(sharedUsers)) sharedUsers = [];
 
       // Tự động kiểm tra và bổ sung dòng Chủ sở hữu (OWNER) ở vị trí đầu tiên
-      const hasOwnerInList = sharedUsers.some(s => s.permission === 'OWNER');
+      const hasOwnerInList = sharedUsers.some((s) => s.permission === "OWNER");
       if (!hasOwnerInList) {
         let ownerEmail = null;
         if (window.currentLoadedData) {
-          const list = itemType === 'file' ? (window.currentLoadedData.files || []) : (window.currentLoadedData.subfolders || window.currentLoadedData.folders || []);
-          const currentItem = list.find(i => (i.fileId || i.id) == itemId);
+          const list =
+            itemType === "file"
+              ? window.currentLoadedData.files || []
+              : window.currentLoadedData.subfolders ||
+                window.currentLoadedData.folders ||
+                [];
+          const currentItem = list.find((i) => (i.fileId || i.id) == itemId);
           if (currentItem && currentItem.userEmail) {
             ownerEmail = currentItem.userEmail;
           }
         }
-        if (!ownerEmail && sharedUsers.length > 0 && sharedUsers[0].sharedByEmail) {
+        if (
+          !ownerEmail &&
+          sharedUsers.length > 0 &&
+          sharedUsers[0].sharedByEmail
+        ) {
           ownerEmail = sharedUsers[0].sharedByEmail;
         }
-        if (!ownerEmail && sharedMeta && (sharedMeta.sharedByEmail || sharedMeta.userEmail)) {
+        if (
+          !ownerEmail &&
+          sharedMeta &&
+          (sharedMeta.sharedByEmail || sharedMeta.userEmail)
+        ) {
           ownerEmail = sharedMeta.sharedByEmail || sharedMeta.userEmail;
         }
 
@@ -1487,93 +2036,107 @@ document.addEventListener("DOMContentLoaded", () => {
           sharedUsers.unshift({
             id: -1,
             sharedToEmail: ownerEmail,
-            permission: 'OWNER'
+            permission: "OWNER",
           });
         }
       }
 
       if (!sharedUsers || sharedUsers.length === 0) {
-        container.innerHTML = '<div style="text-align: center; color: #64748b; font-size: 13px; padding: 20px;">Chưa chia sẻ với ai.</div>';
+        container.innerHTML =
+          '<div style="text-align: center; color: #64748b; font-size: 13px; padding: 20px;">Chưa chia sẻ với ai.</div>';
         return;
       }
 
-      const isCurrentOwner = !window.currentTargetPermission || window.currentTargetPermission === "OWNER";
+      const isCurrentOwner = isCurrentItemOwner(itemId, itemType, sharedUsers);
+      applyShareModalPermissions(isCurrentOwner);
 
-      container.innerHTML = sharedUsers.map(share => {
-        const userEmail = share.sharedToEmail || share.sharedByEmail || "User";
-        const initial = userEmail.charAt(0).toUpperCase();
-        const perm = share.permission;
-        const shareId = share.id;
+      container.innerHTML = sharedUsers
+        .map((share) => {
+          const userEmail =
+            share.sharedToEmail || share.sharedByEmail || "User";
+          const initial = userEmail.charAt(0).toUpperCase();
+          const perm = share.permission;
+          const shareId = share.id;
 
-        if (perm === 'OWNER') {
-          return `
+          if (perm === "OWNER") {
+            return `
             <div class="shared-user-item">
               <div class="shared-user-info">
                 <div class="shared-user-avatar" style="background-color: #0ea5e9;">${initial}</div>
                 <div class="shared-user-details">
-                  <span class="su-name">${userEmail.split('@')[0]}</span>
+                  <span class="su-name">${userEmail.split("@")[0]}</span>
                   <span class="su-email">${userEmail}</span>
                 </div>
               </div>
               <span class="shared-owner-badge" style="color: #64748b; font-size: 13px; font-weight: 500; padding-right: 12px;">Chủ sở hữu</span>
             </div>
           `;
-        }
+          }
 
-        // Nếu người xem hiện tại không phải Owner thì chỉ xem quyền dạng text (không thể sửa quyền của người khác)
-        if (!isCurrentOwner) {
-          const roleText = perm === 'EDIT' ? 'Người chỉnh sửa' : 'Người xem';
-          return `
+          // Nếu người xem hiện tại không phải Owner thì chỉ xem quyền dạng text (không thể sửa quyền của người khác)
+          if (!isCurrentOwner) {
+            const roleText = perm === "EDIT" ? "Người chỉnh sửa" : "Người xem";
+            return `
             <div class="shared-user-item">
               <div class="shared-user-info">
                 <div class="shared-user-avatar" style="background-color: #0ea5e9;">${initial}</div>
                 <div class="shared-user-details">
-                  <span class="su-name">${userEmail.split('@')[0]}</span>
+                  <span class="su-name">${userEmail.split("@")[0]}</span>
                   <span class="su-email">${userEmail}</span>
                 </div>
               </div>
               <span style="color: #64748b; font-size: 13px; font-weight: 500; padding-right: 12px;">${roleText}</span>
             </div>
           `;
-        }
+          }
 
-        return `
+          return `
           <div class="shared-user-item">
             <div class="shared-user-info">
               <div class="shared-user-avatar" style="background-color: #0ea5e9;">${initial}</div>
               <div class="shared-user-details">
-                <span class="su-name">${userEmail.split('@')[0]}</span>
+                <span class="su-name">${userEmail.split("@")[0]}</span>
                 <span class="su-email">${userEmail}</span>
               </div>
             </div>
             <select class="share-role-select-inline" onchange="window.updateShareRole('${shareId}', this.value)">
-              <option value="VIEW" ${perm === 'VIEW' ? 'selected' : ''}>Người xem</option>
-              <option value="EDIT" ${perm === 'EDIT' ? 'selected' : ''}>Người chỉnh sửa</option>
+              <option value="VIEW" ${perm === "VIEW" ? "selected" : ""}>Người xem</option>
+              <option value="EDIT" ${perm === "EDIT" ? "selected" : ""}>Người chỉnh sửa</option>
               <option value="REMOVE" class="text-danger">Xóa quyền</option>
             </select>
           </div>
         `;
-      }).join('');
+        })
+        .join("");
     } catch (err) {
       console.error(err);
+      const isCurrentOwner = isCurrentItemOwner(itemId, itemType);
+      applyShareModalPermissions(isCurrentOwner);
       const fallbackList = getFallbackSharedUsers(sharedMeta);
-      container.innerHTML = fallbackList.map(share => {
-        const userEmail = share.sharedToEmail || "User";
-        const initial = userEmail.charAt(0).toUpperCase();
-        const roleText = share.permission === 'OWNER' ? 'Chủ sở hữu' : (share.permission === 'EDIT' ? 'Người chỉnh sửa' : 'Người xem');
-        return `
+      container.innerHTML = fallbackList
+        .map((share) => {
+          const userEmail = share.sharedToEmail || "User";
+          const initial = userEmail.charAt(0).toUpperCase();
+          const roleText =
+            share.permission === "OWNER"
+              ? "Chủ sở hữu"
+              : share.permission === "EDIT"
+                ? "Người chỉnh sửa"
+                : "Người xem";
+          return `
           <div class="shared-user-item">
             <div class="shared-user-info">
               <div class="shared-user-avatar" style="background-color: #0ea5e9;">${initial}</div>
               <div class="shared-user-details">
-                <span class="su-name">${userEmail.split('@')[0]}</span>
+                <span class="su-name">${userEmail.split("@")[0]}</span>
                 <span class="su-email">${userEmail}</span>
               </div>
             </div>
             <span style="color: #64748b; font-size: 13px; font-weight: 500; padding-right: 12px;">${roleText}</span>
           </div>
         `;
-      }).join('');
+        })
+        .join("");
     }
   }
 
@@ -1581,11 +2144,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const list = [];
     const ownerEmail = sharedMeta?.sharedByEmail || sharedMeta?.userEmail;
     if (ownerEmail) {
-      list.push({ id: -1, sharedToEmail: ownerEmail, permission: 'OWNER' });
+      list.push({ id: -1, sharedToEmail: ownerEmail, permission: "OWNER" });
     }
-    const myEmail = sharedMeta?.sharedToEmail || localStorage.getItem("user_email");
+    const myEmail =
+      sharedMeta?.sharedToEmail || localStorage.getItem("user_email");
     if (myEmail && myEmail !== ownerEmail) {
-      list.push({ id: -2, sharedToEmail: myEmail, permission: sharedMeta?.permission || window.currentTargetPermission || 'VIEW' });
+      list.push({
+        id: -2,
+        sharedToEmail: myEmail,
+        permission:
+          sharedMeta?.permission || window.currentTargetPermission || "VIEW",
+      });
     }
     return list;
   }
@@ -1593,8 +2162,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Khai báo hàm updateShareRole ở dạng global để có thể gọi từ onchange trong HTML
   window.updateShareRole = async function (shareId, newRole) {
     try {
-      if (newRole === 'REMOVE') {
-        const res = await fetchWithAuth(`/shares/${shareId}`, { method: "DELETE" });
+      if (newRole === "REMOVE") {
+        const res = await fetchWithAuth(`/shares/${shareId}`, {
+          method: "DELETE",
+        });
         if (res && res.ok) {
           fetchSharedUsers(currentTargetId, currentTargetType);
           loadDashboardData(window.currentViewType || "home"); // Reload UI
@@ -1602,7 +2173,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         const res = await fetchWithAuth(`/shares/${shareId}`, {
           method: "PUT",
-          body: JSON.stringify({ permission: newRole })
+          body: JSON.stringify({ permission: newRole }),
         });
         if (res && res.ok) {
           fetchSharedUsers(currentTargetId, currentTargetType);
@@ -1621,32 +2192,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const emailInput = document.getElementById("shareEmailInput");
     if (emailInput) emailInput.value = "";
 
-    const shareInputGroup = document.querySelector(".share-input-group");
-    const shareRoleSelect = document.getElementById("shareRoleSelect");
-    const addShareUserBtn = document.getElementById("addShareUserBtn");
-
-    // Chế độ xem: nếu quyền là VIEWER / VIEW thì làm mờ khung nhập email
-    const isViewer = window.currentTargetPermission === "VIEWER" || window.currentTargetPermission === "VIEW";
-
-    if (shareInputGroup) {
-      shareInputGroup.style.display = "flex";
-      shareInputGroup.style.opacity = isViewer ? "0.55" : "1";
-    }
-
-    if (emailInput) {
-      emailInput.disabled = isViewer;
-      emailInput.placeholder = isViewer ? "Bạn chỉ có quyền xem" : "Thêm người bằng email...";
-      emailInput.style.backgroundColor = isViewer ? "#f1f5f9" : "white";
-    }
-    if (shareRoleSelect) {
-      shareRoleSelect.disabled = isViewer;
-      shareRoleSelect.style.backgroundColor = isViewer ? "#f1f5f9" : "white";
-    }
-    if (addShareUserBtn) {
-      addShareUserBtn.disabled = isViewer;
-      addShareUserBtn.style.opacity = isViewer ? "0.5" : "1";
-      addShareUserBtn.style.cursor = isViewer ? "not-allowed" : "pointer";
-    }
+    // Áp dụng quyền ngay lập tức theo dữ liệu đã có
+    const initialIsOwner = isCurrentItemOwner(
+      currentTargetId,
+      currentTargetType,
+    );
+    applyShareModalPermissions(initialIsOwner);
 
     // Lấy thông tin từ backend
     await fetchSharedUsers(currentTargetId, currentTargetType);
@@ -1660,7 +2211,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ctxPreviewItem.addEventListener("click", (e) => {
       e.preventDefault();
       contextMenu.style.display = "none";
-      if (currentTargetId && currentTargetType === 'file') {
+      if (currentTargetId && currentTargetType === "file") {
         openFilePreview(currentTargetId);
       }
     });
@@ -1671,14 +2222,20 @@ document.addEventListener("DOMContentLoaded", () => {
     contextMenu.style.display = "none";
     if (currentTargetId && currentTargetType) {
       let targetName = null;
-      if (currentTargetType === 'file') {
+      if (currentTargetType === "file") {
         const list = window.currentLoadedData?.files || [];
-        const f = list.find(item => (item.fileId || item.id) == currentTargetId);
+        const f = list.find(
+          (item) => (item.fileId || item.id) == currentTargetId,
+        );
         if (f) targetName = f.fileName || f.name || f.originalName;
       } else {
         const list = window.currentLoadedData?.folders || [];
-        const f = list.find(item => (item.folderId || item.id) == currentTargetId);
-        if (f) targetName = (f.folderName || f.name || `folder_${currentTargetId}`) + ".zip";
+        const f = list.find(
+          (item) => (item.folderId || item.id) == currentTargetId,
+        );
+        if (f)
+          targetName =
+            (f.folderName || f.name || `folder_${currentTargetId}`) + ".zip";
       }
       downloadItem(currentTargetId, currentTargetType, targetName);
     }
@@ -1695,7 +2252,7 @@ document.addEventListener("DOMContentLoaded", () => {
    */
   function buildShareWebUrl(token, fileId, targetType = "file") {
     const href = window.location.href;
-    const base = href.substring(0, href.lastIndexOf('/') + 1);
+    const base = href.substring(0, href.lastIndexOf("/") + 1);
     if (token) {
       return `${base}dashboard.html?token=${encodeURIComponent(token)}`;
     }
@@ -1707,13 +2264,18 @@ document.addEventListener("DOMContentLoaded", () => {
   /**
    * Sao chép liên kết xem trước tệp qua Backend (/api/share-links) hoặc link nội bộ tùy theo chế độ truy cập chung
    */
-  async function copyResourceShareLink(targetId, targetType, triggerBtn = null) {
+  async function copyResourceShareLink(
+    targetId,
+    targetType,
+    triggerBtn = null,
+  ) {
     if (!targetId || !targetType) return;
 
     const originalHtml = triggerBtn ? triggerBtn.innerHTML : "";
     if (triggerBtn) {
       triggerBtn.disabled = true;
-      triggerBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Đang lấy liên kết...';
+      triggerBtn.innerHTML =
+        '<i class="ph ph-spinner ph-spin"></i> Đang lấy liên kết...';
     }
 
     try {
@@ -1724,10 +2286,15 @@ document.addEventListener("DOMContentLoaded", () => {
         webShareUrl = buildShareWebUrl(null, targetId, targetType);
       } else {
         // Chế độ công khai hoặc gọi ngoài context menu
-        let activeToken = currentActiveToken || (currentShareUrl ? currentShareUrl.split("/").pop() : null);
+        let activeToken =
+          currentActiveToken ||
+          (currentShareUrl ? currentShareUrl.split("/").pop() : null);
 
         if (!activeToken) {
-          const queryParam = targetType === "file" ? `fileId=${targetId}` : `folderId=${targetId}`;
+          const queryParam =
+            targetType === "file"
+              ? `fileId=${targetId}`
+              : `folderId=${targetId}`;
 
           // Kiểm tra xem file/folder đã có link chia sẻ công khai nào đang hoạt động chưa
           try {
@@ -1735,36 +2302,44 @@ document.addEventListener("DOMContentLoaded", () => {
             if (checkRes && checkRes.ok) {
               const links = await checkRes.json();
               if (Array.isArray(links) && links.length > 0) {
-                const activeLink = links.find((l) => l.isActive !== false) || links[0];
+                const activeLink =
+                  links.find((l) => l.isActive !== false) || links[0];
                 if (activeLink && activeLink.publicUrl) {
                   currentActiveShareLinkId = activeLink.id;
                   currentShareUrl = activeLink.publicUrl;
-                  currentActiveToken = activeLink.token || activeLink.publicUrl.split("/").pop();
+                  currentActiveToken =
+                    activeLink.token || activeLink.publicUrl.split("/").pop();
                   activeToken = currentActiveToken;
                 }
               }
             }
           } catch (checkErr) {
-            console.warn("Chưa có link chia sẻ hoặc không thể lấy danh sách:", checkErr);
+            console.warn(
+              "Chưa có link chia sẻ hoặc không thể lấy danh sách:",
+              checkErr,
+            );
           }
 
           // Nếu chưa có link, tạo link mới bằng POST /api/share-links
           if (!activeToken) {
-            const body = targetType === "file"
-              ? { fileId: Number(targetId) }
-              : { folderId: Number(targetId) };
+            const body =
+              targetType === "file"
+                ? { fileId: Number(targetId) }
+                : { folderId: Number(targetId) };
 
             const createRes = await fetchWithAuth("/share-links", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body)
+              body: JSON.stringify(body),
             });
 
             if (createRes && createRes.ok) {
               const data = await createRes.json();
               currentActiveShareLinkId = data.id;
               currentShareUrl = data.publicUrl;
-              currentActiveToken = data.token || (data.publicUrl ? data.publicUrl.split("/").pop() : null);
+              currentActiveToken =
+                data.token ||
+                (data.publicUrl ? data.publicUrl.split("/").pop() : null);
               activeToken = currentActiveToken;
               if (typeof renderGeneralAccessUI === "function") {
                 renderGeneralAccessUI("PUBLIC");
@@ -1781,7 +2356,11 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (currentShareUrl) {
           const extractedToken = currentShareUrl.split("/").pop();
           if (extractedToken) {
-            webShareUrl = buildShareWebUrl(extractedToken, targetId, targetType);
+            webShareUrl = buildShareWebUrl(
+              extractedToken,
+              targetId,
+              targetType,
+            );
           } else {
             webShareUrl = currentShareUrl;
           }
@@ -1805,7 +2384,10 @@ document.addEventListener("DOMContentLoaded", () => {
           await navigator.clipboard.writeText(webShareUrl);
           copied = true;
         } catch (clipErr) {
-          console.warn("navigator.clipboard không khả dụng, dùng textarea fallback:", clipErr);
+          console.warn(
+            "navigator.clipboard không khả dụng, dùng textarea fallback:",
+            clipErr,
+          );
         }
       }
 
@@ -1828,7 +2410,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // 4. Phản hồi người dùng
       if (triggerBtn) {
-        triggerBtn.innerHTML = '<i class="ph ph-check" style="color: #10b981;"></i> Đã sao chép liên kết!';
+        triggerBtn.innerHTML =
+          '<i class="ph ph-check" style="color: #10b981;"></i> Đã sao chép liên kết!';
         setTimeout(() => {
           if (triggerBtn) {
             triggerBtn.innerHTML = originalHtml;
@@ -1837,7 +2420,6 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         alert(`Đã sao chép liên kết xem trước tệp:\n${webShareUrl}`);
       }
-
     } catch (err) {
       console.error("Lỗi khi sao chép liên kết:", err);
       const errMsg = err.message || "Có lỗi xảy ra khi lấy liên kết chia sẻ!";
@@ -1867,16 +2449,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!currentTargetId) return;
 
     try {
-      let endpoint = currentTargetType === 'folder'
-        ? `/folders/${currentTargetId}/trash`
-        : `/files/${currentTargetId}/trash`;
+      let endpoint =
+        currentTargetType === "folder"
+          ? `/folders/${currentTargetId}/trash`
+          : `/files/${currentTargetId}/trash`;
 
       const response = await fetchWithAuth(endpoint, { method: "PATCH" });
 
       if (response && response.ok) {
         // Tải lại giao diện hiện tại
         loadDashboardData(window.currentViewType || "home");
-        if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
+        if (typeof window.renderStorageInfo === "function")
+          window.renderStorageInfo();
       } else {
         alert("Có lỗi xảy ra khi xóa!");
       }
@@ -1885,10 +2469,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Fallback mockdata
       if (window.mockData) {
-        if (currentTargetType === 'file') {
-          window.mockData.files = window.mockData.files.filter(f => f.id !== currentTargetId);
+        if (currentTargetType === "file") {
+          window.mockData.files = window.mockData.files.filter(
+            (f) => f.id !== currentTargetId,
+          );
         } else {
-          window.mockData.folders = window.mockData.folders.filter(f => f.id !== currentTargetId);
+          window.mockData.folders = window.mockData.folders.filter(
+            (f) => f.id !== currentTargetId,
+          );
         }
         renderFolders(window.mockData.folders);
         renderFiles(window.mockData.files);
@@ -1902,9 +2490,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!currentTargetId) return;
 
     try {
-      let endpoint = currentTargetType === 'folder'
-        ? `/folders/${currentTargetId}/restore`
-        : `/files/${currentTargetId}/restore`;
+      let endpoint =
+        currentTargetType === "folder"
+          ? `/folders/${currentTargetId}/restore`
+          : `/files/${currentTargetId}/restore`;
 
       const response = await fetchWithAuth(endpoint, { method: "PATCH" });
       if (response && response.ok) {
@@ -1915,29 +2504,37 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("ctxDeletePermanent")?.addEventListener("click", async () => {
-    const contextMenu = document.getElementById("globalContextMenu");
-    contextMenu.style.display = "none";
-    if (!currentTargetId) return;
+  document
+    .getElementById("ctxDeletePermanent")
+    ?.addEventListener("click", async () => {
+      const contextMenu = document.getElementById("globalContextMenu");
+      contextMenu.style.display = "none";
+      if (!currentTargetId) return;
 
-    if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Không thể khôi phục!")) {
-      return;
-    }
-
-    try {
-      let endpoint = currentTargetType === 'folder'
-        ? `/folders/${currentTargetId}/permanent`
-        : `/files/${currentTargetId}/permanent`;
-
-      const response = await fetchWithAuth(endpoint, { method: "DELETE" });
-      if (response && response.ok) {
-        loadDashboardData(window.currentViewType || "home");
-        if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
+      if (
+        !confirm(
+          "Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Không thể khôi phục!",
+        )
+      ) {
+        return;
       }
-    } catch (err) {
-      console.error(err);
-    }
-  });
+
+      try {
+        let endpoint =
+          currentTargetType === "folder"
+            ? `/folders/${currentTargetId}/permanent`
+            : `/files/${currentTargetId}/permanent`;
+
+        const response = await fetchWithAuth(endpoint, { method: "DELETE" });
+        if (response && response.ok) {
+          loadDashboardData(window.currentViewType || "home");
+          if (typeof window.renderStorageInfo === "function")
+            window.renderStorageInfo();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
 
   // 3. Logic hiển thị và xóa lỗi trong Rename Modal
   function showRenameError(msg) {
@@ -1978,18 +2575,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Logic đóng mở Rename Modal
-  document
-    .getElementById("closeRenameModal")
-    ?.addEventListener("click", () => {
-      clearRenameError();
-      if (renameOverlay) renameOverlay.style.display = "none";
-    });
-  document
-    .getElementById("cancelRenameBtn")
-    ?.addEventListener("click", () => {
-      clearRenameError();
-      if (renameOverlay) renameOverlay.style.display = "none";
-    });
+  document.getElementById("closeRenameModal")?.addEventListener("click", () => {
+    clearRenameError();
+    if (renameOverlay) renameOverlay.style.display = "none";
+  });
+  document.getElementById("cancelRenameBtn")?.addEventListener("click", () => {
+    clearRenameError();
+    if (renameOverlay) renameOverlay.style.display = "none";
+  });
 
   // Đóng khi click ngoài modal box
   if (renameOverlay) {
@@ -2001,71 +2594,79 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  document.getElementById("confirmRenameBtn")?.addEventListener("click", async () => {
-    clearRenameError();
-    const newName = document.getElementById("renameInput")?.value.trim();
-    if (!newName) {
-      showRenameError("Vui lòng nhập tên mới!");
-      return;
-    }
-    if (!currentTargetId) return;
-
-    try {
-      const endpoint = currentTargetType === 'folder'
-        ? `/folders/${currentTargetId}/rename`
-        : `/files/${currentTargetId}/rename`;
-
-      const response = await fetchWithAuth(endpoint, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName })
-      });
-
-      if (response && response.ok) {
-        if (renameOverlay) renameOverlay.style.display = "none";
-        loadDashboardData(window.currentViewType || "home");
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        showRenameError(errData.message || "Bạn không có quyền đổi tên file này!");
+  document
+    .getElementById("confirmRenameBtn")
+    ?.addEventListener("click", async () => {
+      clearRenameError();
+      const newName = document.getElementById("renameInput")?.value.trim();
+      if (!newName) {
+        showRenameError("Vui lòng nhập tên mới!");
+        return;
       }
-    } catch (err) {
-      console.error("Lỗi khi đổi tên:", err);
-      showRenameError("Lỗi kết nối khi đổi tên!");
-    }
-  });
+      if (!currentTargetId) return;
+
+      try {
+        const endpoint =
+          currentTargetType === "folder"
+            ? `/folders/${currentTargetId}/rename`
+            : `/files/${currentTargetId}/rename`;
+
+        const response = await fetchWithAuth(endpoint, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: newName }),
+        });
+
+        if (response && response.ok) {
+          if (renameOverlay) renameOverlay.style.display = "none";
+          loadDashboardData(window.currentViewType || "home");
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          showRenameError(
+            errData.message || "Bạn không có quyền đổi tên file này!",
+          );
+        }
+      } catch (err) {
+        console.error("Lỗi khi đổi tên:", err);
+        showRenameError("Lỗi kết nối khi đổi tên!");
+      }
+    });
 
   // 4. Logic đóng mở Share Modal
+  function handleCloseShareModal() {
+    if (shareOverlay) shareOverlay.style.display = "none";
+    if (typeof clearShareError === "function") clearShareError();
+    const menu = document.getElementById("generalAccessMenu");
+    if (menu) menu.style.display = "none";
+    const btn = document.getElementById("generalAccessBtn");
+    if (btn) btn.classList.remove("open");
+    applyShareModalPermissions(true);
+  }
+
   document
     .getElementById("closeShareModal")
-    ?.addEventListener("click", () => {
-      if (shareOverlay) shareOverlay.style.display = "none";
-      if (typeof clearShareError === "function") clearShareError();
-      const menu = document.getElementById("generalAccessMenu");
-      if (menu) menu.style.display = "none";
-      const btn = document.getElementById("generalAccessBtn");
-      if (btn) btn.classList.remove("open");
-      const shareInputGroup = document.querySelector(".share-input-group");
-      if (shareInputGroup) shareInputGroup.style.display = "flex";
-    });
+    ?.addEventListener("click", handleCloseShareModal);
   document
     .getElementById("doneShareBtn")
-    ?.addEventListener("click", () => {
-      if (shareOverlay) shareOverlay.style.display = "none";
-      if (typeof clearShareError === "function") clearShareError();
-      const menu = document.getElementById("generalAccessMenu");
-      if (menu) menu.style.display = "none";
-      const btn = document.getElementById("generalAccessBtn");
-      if (btn) btn.classList.remove("open");
-      const shareInputGroup = document.querySelector(".share-input-group");
-      if (shareInputGroup) shareInputGroup.style.display = "flex";
+    ?.addEventListener("click", handleCloseShareModal);
+  if (shareOverlay) {
+    shareOverlay.addEventListener("click", (e) => {
+      if (e.target === shareOverlay) {
+        handleCloseShareModal();
+      }
     });
+  }
 
   const copyLinkBtnModal = document.getElementById("copyLinkBtnModal");
   if (copyLinkBtnModal) {
     copyLinkBtnModal.addEventListener("click", () => {
       if (currentTargetId && currentTargetType) {
         if (typeof clearShareError === "function") clearShareError();
-        copyResourceShareLink(currentTargetId, currentTargetType, copyLinkBtnModal);
+        copyResourceShareLink(
+          currentTargetId,
+          currentTargetType,
+          copyLinkBtnModal,
+        );
       }
     });
   }
@@ -2080,14 +2681,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const optRestricted = document.getElementById("optRestricted");
     const optPublic = document.getElementById("optPublic");
 
-    const checkRestricted = optRestricted?.querySelector(".general-access-check i");
+    const checkRestricted = optRestricted?.querySelector(
+      ".general-access-check i",
+    );
     const checkPublic = optPublic?.querySelector(".general-access-check i");
 
     if (mode === "PUBLIC") {
       if (iconWrap) iconWrap.classList.add("is-public");
       if (icon) icon.className = "ph ph-globe";
       if (label) label.textContent = "Bất kỳ ai có đường liên kết";
-      if (desc) desc.textContent = "Bất kỳ ai trên Internet có đường liên kết này đều có thể xem";
+      if (desc)
+        desc.textContent =
+          "Bất kỳ ai trên Internet có đường liên kết này đều có thể xem";
 
       if (optRestricted) optRestricted.classList.remove("selected");
       if (checkRestricted) checkRestricted.style.display = "none";
@@ -2098,7 +2703,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (iconWrap) iconWrap.classList.remove("is-public");
       if (icon) icon.className = "ph ph-lock";
       if (label) label.textContent = "Hạn chế";
-      if (desc) desc.textContent = "Chỉ những người có quyền truy cập mới có thể mở bằng đường liên kết này";
+      if (desc)
+        desc.textContent =
+          "Chỉ những người có quyền truy cập mới có thể mở bằng đường liên kết này";
 
       if (optRestricted) optRestricted.classList.add("selected");
       if (checkRestricted) checkRestricted.style.display = "inline-flex";
@@ -2112,9 +2719,11 @@ document.addEventListener("DOMContentLoaded", () => {
   async function setGeneralAccessMode(newMode) {
     if (newMode === currentGeneralAccessMode) return;
 
-    const isOwner = !window.currentTargetPermission || window.currentTargetPermission === "OWNER";
+    const isOwner = isCurrentItemOwner(currentTargetId, currentTargetType);
     if (!isOwner) {
-      alert("Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chung!");
+      alert(
+        "Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chung!",
+      );
       return;
     }
 
@@ -2125,25 +2734,36 @@ document.addEventListener("DOMContentLoaded", () => {
     if (newMode === "PUBLIC") {
       // 1. Chuyển sang công khai: Tạo link qua POST /api/share-links
       try {
-        const body = targetType === "file" ? { fileId: Number(targetId) } : { folderId: Number(targetId) };
+        const body =
+          targetType === "file"
+            ? { fileId: Number(targetId) }
+            : { folderId: Number(targetId) };
         const res = await fetchWithAuth("/share-links", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
         });
 
         if (res && res.ok) {
           const data = await res.json();
           currentActiveShareLinkId = data.id;
           currentShareUrl = data.publicUrl;
-          currentActiveToken = data.token || (data.publicUrl ? data.publicUrl.split("/").pop() : null);
+          currentActiveToken =
+            data.token ||
+            (data.publicUrl ? data.publicUrl.split("/").pop() : null);
           renderGeneralAccessUI("PUBLIC");
         } else {
           const errData = await res.json().catch(() => ({}));
-          alert(errData.message || "Không thể chuyển sang chế độ Bất kỳ ai có đường liên kết!");
+          alert(
+            errData.message ||
+              "Không thể chuyển sang chế độ Bất kỳ ai có đường liên kết!",
+          );
         }
       } catch (err) {
-        console.error("Lỗi khi chuyển quyền truy cập chung sang công khai:", err);
+        console.error(
+          "Lỗi khi chuyển quyền truy cập chung sang công khai:",
+          err,
+        );
         alert("Lỗi khi kết nối đến máy chủ!");
       }
     } else {
@@ -2151,16 +2771,21 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         if (currentActiveShareLinkId) {
           await fetchWithAuth(`/share-links/${currentActiveShareLinkId}`, {
-            method: "DELETE"
+            method: "DELETE",
           });
         } else {
-          const queryParam = targetType === "file" ? `fileId=${targetId}` : `folderId=${targetId}`;
+          const queryParam =
+            targetType === "file"
+              ? `fileId=${targetId}`
+              : `folderId=${targetId}`;
           const checkRes = await fetchWithAuth(`/share-links?${queryParam}`);
           if (checkRes && checkRes.ok) {
             const links = await checkRes.json();
             for (const l of links) {
               if (l.id && l.isActive !== false) {
-                await fetchWithAuth(`/share-links/${l.id}`, { method: "DELETE" });
+                await fetchWithAuth(`/share-links/${l.id}`, {
+                  method: "DELETE",
+                });
               }
             }
           }
@@ -2181,27 +2806,13 @@ document.addEventListener("DOMContentLoaded", () => {
   window.setGeneralAccessMode = setGeneralAccessMode;
 
   async function initGeneralAccessModal(targetId, targetType) {
-    const isOwner = !window.currentTargetPermission || window.currentTargetPermission === "OWNER";
+    const isOwner = isCurrentItemOwner(targetId, targetType);
     const btn = document.getElementById("generalAccessBtn");
     const menu = document.getElementById("generalAccessMenu");
     if (menu) menu.style.display = "none";
     if (btn) btn.classList.remove("open");
 
-    if (!isOwner) {
-      if (btn) {
-        btn.style.cursor = "default";
-        btn.title = "Chỉ chủ sở hữu mới có quyền thay đổi";
-        const caret = btn.querySelector(".general-access-caret");
-        if (caret) caret.style.display = "none";
-      }
-    } else {
-      if (btn) {
-        btn.style.cursor = "pointer";
-        btn.removeAttribute("title");
-        const caret = btn.querySelector(".general-access-caret");
-        if (caret) caret.style.display = "inline-block";
-      }
-    }
+    applyShareModalPermissions(isOwner);
 
     currentActiveShareLinkId = null;
     currentShareUrl = null;
@@ -2210,16 +2821,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isOwner && targetId && targetType) {
       try {
-        const queryParam = targetType === "file" ? `fileId=${targetId}` : `folderId=${targetId}`;
+        const queryParam =
+          targetType === "file" ? `fileId=${targetId}` : `folderId=${targetId}`;
         const res = await fetchWithAuth(`/share-links?${queryParam}`);
         if (res && res.ok) {
           const links = await res.json();
           if (Array.isArray(links) && links.length > 0) {
-            const activeLink = links.find(l => l.isActive !== false) || links[0];
+            const activeLink =
+              links.find((l) => l.isActive !== false) || links[0];
             if (activeLink && activeLink.isActive !== false) {
               currentActiveShareLinkId = activeLink.id;
               currentShareUrl = activeLink.publicUrl;
-              currentActiveToken = activeLink.token || (activeLink.publicUrl ? activeLink.publicUrl.split("/").pop() : null);
+              currentActiveToken =
+                activeLink.token ||
+                (activeLink.publicUrl
+                  ? activeLink.publicUrl.split("/").pop()
+                  : null);
               renderGeneralAccessUI("PUBLIC");
             }
           }
@@ -2237,9 +2854,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (generalAccessBtn && generalAccessMenu) {
     generalAccessBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const isOwner = !window.currentTargetPermission || window.currentTargetPermission === "OWNER";
+      const isOwner = isCurrentItemOwner(currentTargetId, currentTargetType);
       if (!isOwner) {
-        alert("Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chung!");
+        alert(
+          "Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chung!",
+        );
         return;
       }
       const isOpen = generalAccessMenu.style.display === "block";
@@ -2322,61 +2941,73 @@ document.addEventListener("DOMContentLoaded", () => {
     shareEmailInputEl.addEventListener("input", clearShareError);
   }
 
-  document.getElementById("addShareUserBtn")?.addEventListener("click", async () => {
-    clearShareError();
-    const emailInput = document.getElementById("shareEmailInput");
-    const roleSelect = document.getElementById("shareRoleSelect");
-    if (!emailInput || !roleSelect) return;
-    const email = emailInput.value.trim();
-    const role = roleSelect.value;
-
-    if (!email) {
-      showShareError("Vui lòng nhập email người nhận!");
-      emailInput.focus();
-      return;
-    }
-
-    if (!currentTargetId || !currentTargetType) return;
-
-    try {
-      const body = {
-        fileId: currentTargetType === 'file' ? currentTargetId : null,
-        folderId: currentTargetType === 'folder' ? currentTargetId : null,
-        recipientEmail: email,
-        permission: role === 'EDITOR' ? 'EDIT' : (role === 'EDIT' ? 'EDIT' : 'VIEW')
-      };
-      const res = await fetchWithAuth("/shares", {
-        method: "POST",
-        body: JSON.stringify(body)
-      });
-
-      if (res && res.ok) {
-        emailInput.value = ""; // Xóa form
-        clearShareError();
-        fetchSharedUsers(currentTargetId, currentTargetType);
-        loadDashboardData(window.currentViewType || "home"); // Reload UI
-      } else {
-        let errorMsg = "Lỗi chia sẻ, có thể email không tồn tại hoặc lỗi mạng.";
-        if (res) {
-          try {
-            const errData = await res.json();
-            if (errData && errData.message) {
-              errorMsg = errData.message;
-            }
-          } catch (e) { }
-        }
-        showShareError(errorMsg);
+  document
+    .getElementById("addShareUserBtn")
+    ?.addEventListener("click", async () => {
+      clearShareError();
+      const isOwner = isCurrentItemOwner(currentTargetId, currentTargetType);
+      if (!isOwner) {
+        showShareError(
+          "Chỉ chủ sở hữu (Owner) mới có quyền chia sẻ thêm người!",
+        );
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      showShareError("Lỗi kết nối khi gửi yêu cầu chia sẻ.");
-    }
-  });
+      const emailInput = document.getElementById("shareEmailInput");
+      const roleSelect = document.getElementById("shareRoleSelect");
+      if (!emailInput || !roleSelect) return;
+      const email = emailInput.value.trim();
+      const role = roleSelect.value;
+
+      if (!email) {
+        showShareError("Vui lòng nhập email người nhận!");
+        emailInput.focus();
+        return;
+      }
+
+      if (!currentTargetId || !currentTargetType) return;
+
+      try {
+        const body = {
+          fileId: currentTargetType === "file" ? currentTargetId : null,
+          folderId: currentTargetType === "folder" ? currentTargetId : null,
+          recipientEmail: email,
+          permission:
+            role === "EDITOR" ? "EDIT" : role === "EDIT" ? "EDIT" : "VIEW",
+        };
+        const res = await fetchWithAuth("/shares", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+
+        if (res && res.ok) {
+          emailInput.value = ""; // Xóa form
+          clearShareError();
+          fetchSharedUsers(currentTargetId, currentTargetType);
+          loadDashboardData(window.currentViewType || "home"); // Reload UI
+        } else {
+          let errorMsg =
+            "Lỗi chia sẻ, có thể email không tồn tại hoặc lỗi mạng.";
+          if (res) {
+            try {
+              const errData = await res.json();
+              if (errData && errData.message) {
+                errorMsg = errData.message;
+              }
+            } catch (e) {}
+          }
+          showShareError(errorMsg);
+        }
+      } catch (err) {
+        console.error(err);
+        showShareError("Lỗi kết nối khi gửi yêu cầu chia sẻ.");
+      }
+    });
 
   // Tự động mở xem trước nếu URL có param token hoặc fileId (hỗ trợ cả khi mở dashboard.html?token=...)
   const pageParams = new URLSearchParams(window.location.search);
   const paramToken = pageParams.get("token") || pageParams.get("shareToken");
-  const paramFileId = pageParams.get("fileId") || pageParams.get("previewFileId");
+  const paramFileId =
+    pageParams.get("fileId") || pageParams.get("previewFileId");
 
   if (paramToken && typeof openPublicFilePreview === "function") {
     openPublicFilePreview(paramToken);
@@ -2407,10 +3038,24 @@ document.addEventListener("DOMContentLoaded", () => {
  * createSharedUserMetaNode(item) - Tạo phần tử DOM hiển thị avatar và tên người chia sẻ (XSS-safe)
  */
 function createSharedUserMetaNode(item) {
-  const sharerName = typeof formatSharerName === "function" ? formatSharerName(item) : (item.ownerName || "Ai đó");
-  const initials = typeof getInitials === "function" ? getInitials(sharerName) : "U";
-  const avatarColors = ["avatar-bg-blue", "avatar-bg-pink", "avatar-bg-orange", "avatar-bg-emerald", "avatar-bg-purple", "avatar-bg-cyan"];
-  const colorIndex = typeof hashCode === "function" ? Math.abs(hashCode(sharerName)) % avatarColors.length : 0;
+  const sharerName =
+    typeof formatSharerName === "function"
+      ? formatSharerName(item)
+      : item.ownerName || "Ai đó";
+  const initials =
+    typeof getInitials === "function" ? getInitials(sharerName) : "U";
+  const avatarColors = [
+    "avatar-bg-blue",
+    "avatar-bg-pink",
+    "avatar-bg-orange",
+    "avatar-bg-emerald",
+    "avatar-bg-purple",
+    "avatar-bg-cyan",
+  ];
+  const colorIndex =
+    typeof hashCode === "function"
+      ? Math.abs(hashCode(sharerName)) % avatarColors.length
+      : 0;
   const avatarColor = avatarColors[colorIndex];
 
   const metaWrap = document.createElement("div");
@@ -2442,7 +3087,7 @@ function renderFolders(folders, viewType = "home") {
 
   if (!folders || folders.length === 0) {
     foldersContainer.innerHTML =
-      '<p style="color: var(--text-muted); font-size: 14px;">Không có thư mục nào.</p>';
+      '<p class="empty-state-text" style="color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; width: 100%; white-space: nowrap;">Không có thư mục nào.</p>';
     return;
   }
 
@@ -2452,7 +3097,8 @@ function renderFolders(folders, viewType = "home") {
     const folderId = folder.folderId || folder.id;
     const folderName = folder.folderName || folder.name || "Thư mục không tên";
     const displayDate = formatSmartDate(folder.updatedAt || folder.createdAt);
-    const isSharedVal = folder.isShared !== undefined ? folder.isShared : folder.shared;
+    const isSharedVal =
+      folder.isShared !== undefined ? folder.isShared : folder.shared;
     const folderPerm = folder.permission;
 
     let folderBadgeText = "Riêng tư";
@@ -2461,7 +3107,8 @@ function renderFolders(folders, viewType = "home") {
     if (viewType === "shared" || (folderPerm && folderPerm !== "OWNER")) {
       const rawPerm = String(folderPerm || "VIEW").toUpperCase();
       const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
-      folderBadgeText = viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ";
+      folderBadgeText =
+        viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ";
       folderBadgeClass = "shared-badge active shared-received";
     } else if (isSharedVal) {
       folderBadgeText = "Đã chia sẻ";
@@ -2483,7 +3130,8 @@ function renderFolders(folders, viewType = "home") {
     // Nút ba chấm mở Context Menu
     const moreOptions = folderCard.querySelector(".more-options");
     if (moreOptions) {
-      moreOptions.onclick = (e) => window.openContextMenu(e, folderId, "folder");
+      moreOptions.onclick = (e) =>
+        window.openContextMenu(e, folderId, "folder");
     }
 
     // Icon thư mục
@@ -2519,14 +3167,20 @@ function renderFolders(folders, viewType = "home") {
 
     // Thông tin người chia sẻ (tab 'shared')
     if (viewType === "shared") {
-      const slot = folderCard.querySelector(".shared-user-meta-slot") || folderCard.querySelector(".file-info-main");
+      const slot =
+        folderCard.querySelector(".shared-user-meta-slot") ||
+        folderCard.querySelector(".file-info-main");
       if (slot) {
         slot.appendChild(createSharedUserMetaNode(folder));
       }
     }
 
     // Tự động kiểm tra nếu folder chính chủ đã được chia sẻ cho người khác
-    if ((!folderPerm || folderPerm === "OWNER") && !isSharedVal && viewType !== "shared") {
+    if (
+      (!folderPerm || folderPerm === "OWNER") &&
+      !isSharedVal &&
+      viewType !== "shared"
+    ) {
       fetchWithAuth(`/shares/users?folderId=${folderId}`)
         .then(async (res) => {
           if (res && res.ok) {
@@ -2541,7 +3195,7 @@ function renderFolders(folders, viewType = "home") {
             }
           }
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     // Sự kiện mở thư mục
@@ -2570,7 +3224,7 @@ function renderFiles(files, viewType = "home") {
 
   if (!files || files.length === 0) {
     filesContainer.innerHTML =
-      '<p style="color: var(--text-muted); font-size: 14px;">Không có tệp tin nào.</p>';
+      '<p class="empty-state-text" style="color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; width: 100%; white-space: nowrap;">Không có tệp tin nào.</p>';
     return;
   }
 
@@ -2581,10 +3235,12 @@ function renderFiles(files, viewType = "home") {
     const listHeader = document.createElement("div");
     listHeader.className = "list-header";
     listHeader.innerHTML = `
+      <div class="col-icon"></div>
       <div class="col-name">TÊN</div>
       <div class="col-date">NGÀY SỬA</div>
       <div class="col-size">KÍCH THƯỚC</div>
       <div class="col-shared">CHIA SẺ</div>
+      <div class="col-actions"></div>
     `;
     filesContainer.appendChild(listHeader);
   }
@@ -2602,11 +3258,14 @@ function renderFiles(files, viewType = "home") {
     const fileId = file.fileId || file.id;
     const displayFileName = file.fileName || file.name || "Không tên";
 
-    const { ext, iconClass, colorClass } = getFileCategoryAndIcon(displayFileName);
+    const { ext, iconClass, colorClass } =
+      getFileCategoryAndIcon(displayFileName);
 
-    const fileSizeVal = file.sizeBytes !== undefined ? file.sizeBytes : file.size;
+    const fileSizeVal =
+      file.sizeBytes !== undefined ? file.sizeBytes : file.size;
     const displaySize = formatSize(fileSizeVal);
-    const isSharedVal = file.isShared !== undefined ? file.isShared : file.shared;
+    const isSharedVal =
+      file.isShared !== undefined ? file.isShared : file.shared;
     const filePerm = file.permission;
     let fileBadgeText = "Riêng tư";
     let fileBadgeClass = "shared-badge";
@@ -2614,7 +3273,8 @@ function renderFiles(files, viewType = "home") {
     if (viewType === "shared" || (filePerm && filePerm !== "OWNER")) {
       const rawPerm = String(filePerm || "VIEW").toUpperCase();
       const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
-      fileBadgeText = viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ";
+      fileBadgeText =
+        viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ";
       fileBadgeClass = "shared-badge active shared-received";
     } else if (isSharedVal) {
       fileBadgeText = "Đã chia sẻ";
@@ -2652,7 +3312,10 @@ function renderFiles(files, viewType = "home") {
     // Tên tệp tin (gán qua textContent chống XSS, cắt thông minh bảo toàn đuôi file)
     const nameEl = fileCard.querySelector(".file-name");
     if (nameEl) {
-      const isListView = document.querySelector(".content-scroll")?.classList.contains("list-view") ||
+      const isListView =
+        document
+          .querySelector(".content-scroll")
+          ?.classList.contains("list-view") ||
         document.getElementById("gridFiles")?.classList.contains("list-view");
       const maxLen = isListView ? 65 : 26;
       nameEl.textContent = formatMiddleTruncate(displayFileName, maxLen);
@@ -2677,14 +3340,20 @@ function renderFiles(files, viewType = "home") {
 
     // Thông tin người chia sẻ (tab 'shared')
     if (viewType === "shared") {
-      const slot = fileCard.querySelector(".shared-user-meta-slot") || fileCard.querySelector(".file-info-main");
+      const slot =
+        fileCard.querySelector(".shared-user-meta-slot") ||
+        fileCard.querySelector(".file-info-main");
       if (slot) {
         slot.appendChild(createSharedUserMetaNode(file));
       }
     }
 
     // Tự động kiểm tra nếu file chính chủ đã được chia sẻ cho người khác
-    if ((!filePerm || filePerm === "OWNER") && !isSharedVal && viewType !== "shared") {
+    if (
+      (!filePerm || filePerm === "OWNER") &&
+      !isSharedVal &&
+      viewType !== "shared"
+    ) {
       fetchWithAuth(`/shares/users?fileId=${fileId}`)
         .then(async (res) => {
           if (res && res.ok) {
@@ -2699,7 +3368,7 @@ function renderFiles(files, viewType = "home") {
             }
           }
         })
-        .catch(() => { });
+        .catch(() => {});
     }
 
     // Sự kiện mở modal xem trước
@@ -2747,9 +3416,20 @@ function setUploadMode(mode) {
     addFileBtn.innerHTML = `<i class="ph ph-plus"></i> Thêm ${noun}`;
   }
 
+  const uploadLimitNote = document.getElementById("uploadLimitNote");
+  if (uploadLimitNote) {
+    if (isFolder) {
+      uploadLimitNote.innerHTML = `<i class="ph-bold ph-info"></i><span>Thư mục tối đa <strong>4 GB</strong> &middot; Cả thư mục theo dung lượng trống tài khoản</span>`;
+    } else {
+      uploadLimitNote.innerHTML = `<i class="ph-bold ph-info"></i><span>Tệp tối đa: <strong>4 GB</strong> &middot; Thư mục theo dung lượng trống tài khoản</span>`;
+    }
+  }
+
   if (!window.uploadGlobalState || window.uploadGlobalState.totalFiles === 0) {
-    if (modalSubtitle) modalSubtitle.textContent = `Chưa có ${noun} nào đang tải`;
-    if (minimizedTitle) minimizedTitle.textContent = `Không có ${noun} nào đang tải`;
+    if (modalSubtitle)
+      modalSubtitle.textContent = `Chưa có ${noun} nào đang tải`;
+    if (minimizedTitle)
+      minimizedTitle.textContent = `Không có ${noun} nào đang tải`;
   } else if (typeof window.updateMinimizedUploadUI === "function") {
     window.updateMinimizedUploadUI();
   }
@@ -2763,9 +3443,9 @@ function setUploadMode(mode) {
  *   - Kéo thư mục vào dropzone → tự động chuyển sang chế độ folder
  */
 function setupDragAndDrop() {
-  const dropzone = document.getElementById("dropzone");         // Vùng kéo thả
-  const fileInput = document.getElementById("fileInput");       // Input ẩn chọn file
-  const folderInput = document.getElementById("folderInput");   // Input ẩn chọn folder
+  const dropzone = document.getElementById("dropzone"); // Vùng kéo thả
+  const fileInput = document.getElementById("fileInput"); // Input ẩn chọn file
+  const folderInput = document.getElementById("folderInput"); // Input ẩn chọn folder
   const browseBtn = document.getElementById("browseFileBtn");
 
   if (!dropzone) return;
@@ -2849,7 +3529,7 @@ function setupDragAndDrop() {
                     value: path + file.name,
                     writable: false,
                   });
-                } catch (err) { }
+                } catch (err) {}
                 filesList.push(file);
                 resolve();
               });
@@ -2859,7 +3539,10 @@ function setupDragAndDrop() {
             const dirReader = entry.createReader();
             const readAllEntries = async () => {
               const allEntries = [];
-              const readBatch = () => new Promise((resolve) => dirReader.readEntries((res) => resolve(res || [])));
+              const readBatch = () =>
+                new Promise((resolve) =>
+                  dirReader.readEntries((res) => resolve(res || [])),
+                );
               let batch = await readBatch();
               while (batch && batch.length > 0) {
                 allEntries.push(...batch);
@@ -2875,7 +3558,9 @@ function setupDragAndDrop() {
         };
 
         for (let i = 0; i < dt.items.length; i++) {
-          const entry = dt.items[i].webkitGetAsEntry ? dt.items[i].webkitGetAsEntry() : null;
+          const entry = dt.items[i].webkitGetAsEntry
+            ? dt.items[i].webkitGetAsEntry()
+            : null;
           if (entry) {
             await processEntry(entry);
           }
@@ -2989,7 +3674,9 @@ function setupDragAndDrop() {
       const validFiles = [];
       Array.from(files).forEach((file) => {
         if (file.size > MAX_ALLOWED_FILE_SIZE) {
-          alert(`Tệp "${file.name}" (${formatSize(file.size)}) vượt quá giới hạn tối đa cho phép là 4GB! Vui lòng chọn tệp nhỏ hơn.`);
+          alert(
+            `Tệp "${file.name}" (${formatSize(file.size)}) vượt quá giới hạn tối đa cho phép là 4GB! Vui lòng chọn tệp nhỏ hơn.`,
+          );
         } else {
           validFiles.push(file);
         }
@@ -3004,7 +3691,7 @@ function setupDragAndDrop() {
           totalFiles: 0,
           completedFiles: 0,
           totalSize: 0,
-          uploadedSize: 0
+          uploadedSize: 0,
         };
       }
 
@@ -3019,7 +3706,7 @@ function setupDragAndDrop() {
             folderGroupsMap.set(topFolderName, {
               folderName: topFolderName,
               files: [],
-              totalSize: 0
+              totalSize: 0,
             });
           }
           const group = folderGroupsMap.get(topFolderName);
@@ -3031,7 +3718,8 @@ function setupDragAndDrop() {
       });
 
       // Update global total count based on UI item count (folder cards + single file cards)
-      window.uploadGlobalState.totalFiles += (standaloneFiles.length + folderGroupsMap.size);
+      window.uploadGlobalState.totalFiles +=
+        standaloneFiles.length + folderGroupsMap.size;
 
       // Process folder groups (1 card per top-level folder)
       folderGroupsMap.forEach((group) => {
@@ -3158,7 +3846,11 @@ function setupDragAndDrop() {
 
     pauseBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      if (isCancelled || completedFilesCount + failedFilesCount === group.files.length) return;
+      if (
+        isCancelled ||
+        completedFilesCount + failedFilesCount === group.files.length
+      )
+        return;
       isPaused = !isPaused;
 
       const icon = pauseBtn.querySelector("i");
@@ -3195,7 +3887,10 @@ function setupDragAndDrop() {
 
       let percent = 0;
       if (group.totalSize > 0) {
-        percent = Math.min(100, Math.round((totalUploadedBytes / group.totalSize) * 100));
+        percent = Math.min(
+          100,
+          Math.round((totalUploadedBytes / group.totalSize) * 100),
+        );
       }
 
       percentEl.textContent = `${percent}%`;
@@ -3204,9 +3899,9 @@ function setupDragAndDrop() {
     }
 
     // --- UPLOAD SONG SONG TỐI ĐA 3 FILE (CONCURRENT QUEUE) ---
-    const queue = [...group.files];       // Hàng đợi các file chưa tải
-    const MAX_CONCURRENT_FILES = 3;       // Giới hạn 3 file tải đồng thời (tránh quá tải server)
-    let activeFiles = 0;                  // Số file đang tải hiện tại
+    const queue = [...group.files]; // Hàng đợi các file chưa tải
+    const MAX_CONCURRENT_FILES = 3; // Giới hạn 3 file tải đồng thời (tránh quá tải server)
+    let activeFiles = 0; // Số file đang tải hiện tại
 
     return new Promise((resolve) => {
       function processNextFile() {
@@ -3264,7 +3959,7 @@ function setupDragAndDrop() {
             fileUploadedBytesMap,
             updateFolderUI,
             () => isPaused,
-            () => isCancelled
+            () => isCancelled,
           )
             .then((success) => {
               activeFiles--;
@@ -3294,13 +3989,13 @@ function setupDragAndDrop() {
    * Hỗ trợ tệp lớn đến 4GB, tự động retry chunk và báo cáo tiến trình
    */
   async function uploadSingleFileInFolder(
-    file,               // File object
-    baseUrl,            // URL gốc API
-    token,              // JWT token
+    file, // File object
+    baseUrl, // URL gốc API
+    token, // JWT token
     fileUploadedBytesMap, // Map lưu bytes đã tải của từng file
-    onProgress,         // Callback cập nhật UI tiến trình folder
-    getIsPaused,        // Hàm trả về trạng thái tạm dừng
-    getIsCancelled      // Hàm trả về trạng thái hủy
+    onProgress, // Callback cập nhật UI tiến trình folder
+    getIsPaused, // Hàm trả về trạng thái tạm dừng
+    getIsCancelled, // Hàm trả về trạng thái hủy
   ) {
     try {
       if (file.size > MAX_ALLOWED_FILE_SIZE) {
@@ -3316,20 +4011,21 @@ function setupDragAndDrop() {
       }
 
       const CHUNK_SIZE = getOptimalChunkSize(file.size);
-      const totalChunks = file.size === 0 ? 1 : Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+      const totalChunks =
+        file.size === 0 ? 1 : Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
 
       const initResponse = await fetch(`${baseUrl}/uploads/init`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           fileName: file.name,
           totalSizeBytes: file.size,
           totalChunks: totalChunks,
-          targetFolderId: targetFolderId
-        })
+          targetFolderId: targetFolderId,
+        }),
       });
 
       if (!initResponse.ok) {
@@ -3345,13 +4041,15 @@ function setupDragAndDrop() {
       const initData = await initResponse.json();
       const sessionId = initData.sessionId;
 
-      const uploadedChunkIndices = parseIndicesArrayOrString(initData.uploadedChunkIndices);
+      const uploadedChunkIndices = parseIndicesArrayOrString(
+        initData.uploadedChunkIndices,
+      );
 
       let initialUploaded = 0;
       uploadedChunkIndices.forEach((idx) => {
         const s = idx * CHUNK_SIZE;
         const e = file.size === 0 ? 0 : Math.min(s + CHUNK_SIZE, file.size);
-        initialUploaded += (e - s);
+        initialUploaded += e - s;
       });
       fileUploadedBytesMap.set(file, initialUploaded);
       if (initialUploaded > 0) {
@@ -3378,8 +4076,12 @@ function setupDragAndDrop() {
         }
 
         const start = i * CHUNK_SIZE;
-        const end = file.size === 0 ? 0 : Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.size === 0 ? new Blob([], { type: "application/octet-stream" }) : file.slice(start, end);
+        const end =
+          file.size === 0 ? 0 : Math.min(start + CHUNK_SIZE, file.size);
+        const chunk =
+          file.size === 0
+            ? new Blob([], { type: "application/octet-stream" })
+            : file.slice(start, end);
 
         let success = false;
         let lastError = null;
@@ -3392,11 +4094,14 @@ function setupDragAndDrop() {
             formData.append("file", chunk, `chunk_${i}.part`);
             formData.append("chunkIndex", i);
 
-            const response = await fetch(`${baseUrl}/uploads/${sessionId}/chunk`, {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token}` },
-              body: formData,
-            });
+            const response = await fetch(
+              `${baseUrl}/uploads/${sessionId}/chunk`,
+              {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
+              },
+            );
 
             if (response.ok) {
               success = true;
@@ -3415,7 +4120,9 @@ function setupDragAndDrop() {
           }
 
           if (attempt < MAX_CHUNK_RETRIES) {
-            await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, Math.min(attempt, 3))));
+            await new Promise((r) =>
+              setTimeout(r, 1000 * Math.pow(2, Math.min(attempt, 3))),
+            );
           }
         }
 
@@ -3430,7 +4137,7 @@ function setupDragAndDrop() {
         uploadedChunkIndices.forEach((idx) => {
           const s = idx * CHUNK_SIZE;
           const e = file.size === 0 ? 0 : Math.min(s + CHUNK_SIZE, file.size);
-          currentUploaded += (e - s);
+          currentUploaded += e - s;
         });
         const prevUploaded = fileUploadedBytesMap.get(file) || 0;
         const delta = currentUploaded - prevUploaded;
@@ -3449,16 +4156,22 @@ function setupDragAndDrop() {
       let completeSuccess = false;
       for (let completeAttempt = 1; completeAttempt <= 3; completeAttempt++) {
         try {
-          const completeRes = await fetch(`${baseUrl}/uploads/${sessionId}/complete`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const completeRes = await fetch(
+            `${baseUrl}/uploads/${sessionId}/complete`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
           if (completeRes.ok) {
             completeSuccess = true;
             break;
           }
         } catch (cErr) {
-          console.warn(`Thử ghép file ${file.name} lần ${completeAttempt} lỗi:`, cErr);
+          console.warn(
+            `Thử ghép file ${file.name} lần ${completeAttempt} lỗi:`,
+            cErr,
+          );
         }
         if (completeAttempt < 3) {
           await new Promise((r) => setTimeout(r, 1500 * completeAttempt));
@@ -3490,7 +4203,10 @@ function setupDragAndDrop() {
   }
 
   function releaseStandaloneUploadSlot() {
-    currentActiveStandaloneUploads = Math.max(0, currentActiveStandaloneUploads - 1);
+    currentActiveStandaloneUploads = Math.max(
+      0,
+      currentActiveStandaloneUploads - 1,
+    );
     if (standaloneUploadQueue.length > 0) {
       currentActiveStandaloneUploads++;
       const nextResolve = standaloneUploadQueue.shift();
@@ -3506,7 +4222,9 @@ function setupDragAndDrop() {
     if (!token) return;
 
     if (file.size > MAX_ALLOWED_FILE_SIZE) {
-      alert(`Tệp "${file.name}" (${formatSize(file.size)}) vượt quá giới hạn tối đa cho phép là 4GB!`);
+      alert(
+        `Tệp "${file.name}" (${formatSize(file.size)}) vượt quá giới hạn tối đa cho phép là 4GB!`,
+      );
       return;
     }
 
@@ -3563,7 +4281,8 @@ function setupDragAndDrop() {
         ? API_BASE_URL
         : "http://localhost:8080/api";
     const CHUNK_SIZE = getOptimalChunkSize(file.size);
-    const totalChunks = file.size === 0 ? 1 : Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+    const totalChunks =
+      file.size === 0 ? 1 : Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
     const maxConcurrent = 2; // 2 luồng tải chunk song song cho mỗi tệp
 
     let hasError = false;
@@ -3604,17 +4323,23 @@ function setupDragAndDrop() {
         uploadedIndices.forEach((idx) => {
           const s = idx * CHUNK_SIZE;
           const e = file.size === 0 ? 0 : Math.min(s + CHUNK_SIZE, file.size);
-          uploadedBytes += (e - s);
+          uploadedBytes += e - s;
         });
 
-        const percentComplete = file.size === 0 ? 100 : Math.min(100, Math.round((uploadedBytes / file.size) * 100));
+        const percentComplete =
+          file.size === 0
+            ? 100
+            : Math.min(100, Math.round((uploadedBytes / file.size) * 100));
         percentEl.textContent = `${percentComplete}%`;
         barEl.style.width = `${percentComplete}%`;
 
         if (!isError) {
           percentEl.style.color = "";
           barEl.style.backgroundColor = "";
-          const defaultMsg = activeThreadsCount > 0 ? `${activeThreadsCount} luồng` : `Đang tải...`;
+          const defaultMsg =
+            activeThreadsCount > 0
+              ? `${activeThreadsCount} luồng`
+              : `Đang tải...`;
           metaEl.innerHTML = `${formatSize(uploadedBytes)} / ${formatSize(file.size)} &middot; <span class="text-blue">${statusText || defaultMsg}</span>`;
         }
 
@@ -3673,7 +4398,8 @@ function setupDragAndDrop() {
     // Xử lý nút Tạm dừng
     pauseBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      if (isCancelled || uploadedIndices.size === totalChunks || !sessionId) return;
+      if (isCancelled || uploadedIndices.size === totalChunks || !sessionId)
+        return;
       isPaused = !isPaused;
 
       const icon = pauseBtn.querySelector("i");
@@ -3688,9 +4414,9 @@ function setupDragAndDrop() {
         try {
           await fetch(`${baseUrl}/uploads/${sessionId}/pause`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
-        } catch (_) { }
+        } catch (_) {}
       } else {
         icon.classList.remove("ph-play-circle");
         icon.classList.add("ph-pause-circle");
@@ -3702,7 +4428,7 @@ function setupDragAndDrop() {
         try {
           const res = await fetch(`${baseUrl}/uploads/${sessionId}/resume`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {
             const data = await res.json();
@@ -3715,7 +4441,7 @@ function setupDragAndDrop() {
               });
             }
           }
-        } catch (_) { }
+        } catch (_) {}
 
         isPaused = false;
         if (activeThreadsCount === 0) {
@@ -3736,16 +4462,19 @@ function setupDragAndDrop() {
         try {
           await fetch(`${baseUrl}/uploads/${sessionId}/cancel`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           });
-        } catch (_) { }
+        } catch (_) {}
       }
     });
 
     async function uploadSingleChunk(chunkIndex) {
       const start = chunkIndex * CHUNK_SIZE;
       const end = file.size === 0 ? 0 : Math.min(start + CHUNK_SIZE, file.size);
-      const chunk = file.size === 0 ? new Blob([], { type: "application/octet-stream" }) : file.slice(start, end);
+      const chunk =
+        file.size === 0
+          ? new Blob([], { type: "application/octet-stream" })
+          : file.slice(start, end);
 
       const formData = new FormData();
       formData.append("file", chunk, `chunk_${chunkIndex}.part`);
@@ -3767,7 +4496,7 @@ function setupDragAndDrop() {
         try {
           const errData = await response.json();
           if (errData && errData.message) errorMsg = errData.message;
-        } catch (_) { }
+        } catch (_) {}
         throw new Error(errorMsg);
       }
 
@@ -3812,16 +4541,25 @@ function setupDragAndDrop() {
           const retries = chunkRetryCount.get(chunkIndex) || 0;
           if (retries < MAX_CHUNK_RETRIES) {
             chunkRetryCount.set(chunkIndex, retries + 1);
-            console.warn(`Thử lại chunk ${chunkIndex + 1}/${totalChunks} (lần ${retries + 1}/${MAX_CHUNK_RETRIES}) do:`, err.message);
+            console.warn(
+              `Thử lại chunk ${chunkIndex + 1}/${totalChunks} (lần ${retries + 1}/${MAX_CHUNK_RETRIES}) do:`,
+              err.message,
+            );
             retryingCount++;
-            setTimeout(() => {
-              retryingCount--;
-              if (!hasError && !isCancelled) {
-                chunksToUpload.unshift(chunkIndex);
-              }
-            }, 1000 * Math.pow(2, Math.min(retries, 3)));
+            setTimeout(
+              () => {
+                retryingCount--;
+                if (!hasError && !isCancelled) {
+                  chunksToUpload.unshift(chunkIndex);
+                }
+              },
+              1000 * Math.pow(2, Math.min(retries, 3)),
+            );
           } else {
-            console.error(`Chunk ${chunkIndex + 1} tạm thời thất bại sau ${MAX_CHUNK_RETRIES} lần thử lại:`, err);
+            console.error(
+              `Chunk ${chunkIndex + 1} tạm thời thất bại sau ${MAX_CHUNK_RETRIES} lần thử lại:`,
+              err,
+            );
             // CÔ LẬP LỖI: Không gán hasError = true để các worker khác vẫn tiếp tục tải nốt các phần khác!
             failedChunks.add(chunkIndex);
           }
@@ -3840,17 +4578,20 @@ function setupDragAndDrop() {
       if (pauseBtn) pauseBtn.style.display = "none";
 
       try {
-        const completeRes = await fetch(`${baseUrl}/uploads/${sessionId}/complete`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const completeRes = await fetch(
+          `${baseUrl}/uploads/${sessionId}/complete`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
 
         if (!completeRes.ok) {
           let msg = "Lỗi khi ghép tệp trên máy chủ";
           try {
             const errJson = await completeRes.json();
             if (errJson && errJson.message) msg = errJson.message;
-          } catch (_) { }
+          } catch (_) {}
           throw new Error(msg);
         }
 
@@ -3907,7 +4648,10 @@ function setupDragAndDrop() {
       if (pauseBtn) pauseBtn.style.display = "inline-flex";
       hasError = false;
 
-      const concurrency = Math.min(maxConcurrent, Math.max(1, chunksToUpload.length));
+      const concurrency = Math.min(
+        maxConcurrent,
+        Math.max(1, chunksToUpload.length),
+      );
       const workerPromises = [];
       for (let i = 0; i < concurrency; i++) {
         workerPromises.push(runWorker());
@@ -3956,20 +4700,24 @@ function setupDragAndDrop() {
         // Init Upload với retry tự động
         let initData = null;
         const MAX_INIT_RETRIES = 3;
-        for (let initAttempt = 1; initAttempt <= MAX_INIT_RETRIES; initAttempt++) {
+        for (
+          let initAttempt = 1;
+          initAttempt <= MAX_INIT_RETRIES;
+          initAttempt++
+        ) {
           try {
             const initResponse = await fetch(`${baseUrl}/uploads/init`, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`
+                Authorization: `Bearer ${token}`,
               },
               body: JSON.stringify({
                 fileName: file.name,
                 totalSizeBytes: file.size,
                 totalChunks: totalChunks,
-                targetFolderId: targetFolderId
-              })
+                targetFolderId: targetFolderId,
+              }),
             });
 
             if (initResponse.ok) {
@@ -3986,7 +4734,7 @@ function setupDragAndDrop() {
               try {
                 const errJson = await initResponse.json();
                 if (errJson && errJson.message) msg = errJson.message;
-              } catch (_) { }
+              } catch (_) {}
               if (initAttempt === MAX_INIT_RETRIES) throw new Error(msg);
             }
           } catch (initErr) {
@@ -4002,13 +4750,19 @@ function setupDragAndDrop() {
         sessionId = initData.sessionId;
 
         // Khôi phục các chunk đã tồn tại trên máy chủ từ trước (Resume session)
-        const serverIndices = parseIndicesArrayOrString(initData.uploadedChunkIndices);
+        const serverIndices = parseIndicesArrayOrString(
+          initData.uploadedChunkIndices,
+        );
         if (serverIndices.size > 0) {
           serverIndices.forEach((idx) => uploadedIndices.add(idx));
-          const remaining = chunksToUpload.filter((idx) => !uploadedIndices.has(idx));
+          const remaining = chunksToUpload.filter(
+            (idx) => !uploadedIndices.has(idx),
+          );
           chunksToUpload.length = 0;
           chunksToUpload.push(...remaining);
-          updateProgressUI(`Khôi phục ${uploadedIndices.size}/${totalChunks} phần...`);
+          updateProgressUI(
+            `Khôi phục ${uploadedIndices.size}/${totalChunks} phần...`,
+          );
         }
 
         await startWorkers();
@@ -4050,7 +4804,7 @@ async function getOrCreateFolderIdOnBackend(relPath) {
 
   for (let i = 0; i < folderNames.length; i++) {
     const fName = folderNames[i];
-    const cacheKey = `${currentParentId || 'root'}_${fName}`;
+    const cacheKey = `${currentParentId || "root"}_${fName}`;
 
     if (!folderPromiseCache.has(cacheKey)) {
       const parentIdForCall = currentParentId;
@@ -4084,9 +4838,15 @@ async function getOrCreateFolderIdOnBackend(relPath) {
 }
 
 window.updateMinimizedUploadUI = function () {
-  const minTitle = document.getElementById("minimizedTitle") || document.querySelector(".upload-minimized .minimized-title");
-  const minSubtitle = document.getElementById("minimizedSubtitle") || document.querySelector(".upload-minimized .minimized-subtitle");
-  const minProgressText = document.querySelector(".upload-minimized .progress-text");
+  const minTitle =
+    document.getElementById("minimizedTitle") ||
+    document.querySelector(".upload-minimized .minimized-title");
+  const minSubtitle =
+    document.getElementById("minimizedSubtitle") ||
+    document.querySelector(".upload-minimized .minimized-subtitle");
+  const minProgressText = document.querySelector(
+    ".upload-minimized .progress-text",
+  );
   const modalSubtitle = document.getElementById("modalUploadSubtitle");
 
   const noun = currentUploadMode === "folder" ? "thư mục" : "tệp";
@@ -4094,48 +4854,73 @@ window.updateMinimizedUploadUI = function () {
   if (!minTitle || !minSubtitle || !minProgressText) return;
 
   if (!window.uploadGlobalState || window.uploadGlobalState.totalFiles === 0) {
-    minTitle.textContent = currentUploadMode === "folder" ? "Không có thư mục nào đang tải" : "Không có tệp nào đang tải";
+    minTitle.textContent =
+      currentUploadMode === "folder"
+        ? "Không có thư mục nào đang tải"
+        : "Không có tệp nào đang tải";
     minSubtitle.innerHTML = "0 hoàn thành &middot; Nhấn để xem";
     minProgressText.textContent = "0%";
-    const minProgressRing = document.getElementById("minProgressRing") || document.querySelector(".upload-minimized .progress-ring");
+    const minProgressRing =
+      document.getElementById("minProgressRing") ||
+      document.querySelector(".upload-minimized .progress-ring");
     if (minProgressRing) {
       minProgressRing.style.setProperty("--progress", "0%");
     }
-    if (modalSubtitle) modalSubtitle.textContent = currentUploadMode === "folder" ? "Chưa có thư mục nào đang tải" : "Chưa có tệp nào đang tải";
+    if (modalSubtitle)
+      modalSubtitle.textContent =
+        currentUploadMode === "folder"
+          ? "Chưa có thư mục nào đang tải"
+          : "Chưa có tệp nào đang tải";
     return;
   }
 
   let percent = 0;
   if (window.uploadGlobalState.totalSize > 0) {
-    percent = Math.round((window.uploadGlobalState.uploadedSize / window.uploadGlobalState.totalSize) * 100);
+    percent = Math.round(
+      (window.uploadGlobalState.uploadedSize /
+        window.uploadGlobalState.totalSize) *
+        100,
+    );
   }
   percent = Math.min(percent, 100);
 
-  const isAllCompleted = window.uploadGlobalState.totalFiles > 0 &&
-    (window.uploadGlobalState.completedFiles >= window.uploadGlobalState.totalFiles || percent === 100);
+  const isAllCompleted =
+    window.uploadGlobalState.totalFiles > 0 &&
+    (window.uploadGlobalState.completedFiles >=
+      window.uploadGlobalState.totalFiles ||
+      percent === 100);
 
-  const completedCount = isAllCompleted && window.uploadGlobalState.completedFiles === 0
-    ? window.uploadGlobalState.totalFiles
-    : Math.max(window.uploadGlobalState.completedFiles, isAllCompleted ? window.uploadGlobalState.totalFiles : 0);
+  const completedCount =
+    isAllCompleted && window.uploadGlobalState.completedFiles === 0
+      ? window.uploadGlobalState.totalFiles
+      : Math.max(
+          window.uploadGlobalState.completedFiles,
+          isAllCompleted ? window.uploadGlobalState.totalFiles : 0,
+        );
 
   if (isAllCompleted) {
     minTitle.textContent = `Đã tải lên ${completedCount} ${noun}`;
     minSubtitle.innerHTML = `${completedCount} hoàn thành &middot; Nhấn để xem`;
-    if (modalSubtitle) modalSubtitle.textContent = `Đã tải lên ${completedCount} ${noun}`;
+    if (modalSubtitle)
+      modalSubtitle.textContent = `Đã tải lên ${completedCount} ${noun}`;
   } else {
     minTitle.textContent = `Đang tải ${window.uploadGlobalState.totalFiles} ${noun}`;
     minSubtitle.innerHTML = `${window.uploadGlobalState.completedFiles} hoàn thành &middot; Nhấn để xem`;
-    if (modalSubtitle) modalSubtitle.innerHTML = `${window.uploadGlobalState.totalFiles} đang tải &middot; ${window.uploadGlobalState.completedFiles} hoàn thành`;
+    if (modalSubtitle)
+      modalSubtitle.innerHTML = `${window.uploadGlobalState.totalFiles} đang tải &middot; ${window.uploadGlobalState.completedFiles} hoàn thành`;
   }
 
-  const minProgressRing = document.getElementById("minProgressRing") || document.querySelector(".upload-minimized .progress-ring");
+  const minProgressRing =
+    document.getElementById("minProgressRing") ||
+    document.querySelector(".upload-minimized .progress-ring");
   if (minProgressRing) {
     minProgressRing.style.setProperty("--progress", `${percent}%`);
   }
 
   if (isAllCompleted || percent === 100) {
     // Khi đạt 100% hoàn tất: Đổi chữ 100% thành icon dấu tích xanh lá (#10B981)
-    minProgressText.innerHTML = '<i class="ph-bold ph-check" style="color: #10b981; font-size: 15px;"></i>';
+    minProgressText.innerHTML =
+      '<i class="ph-bold ph-check" style="color: #10b981; font-size: 15px;"></i>';
     if (minProgressRing) minProgressRing.classList.add("completed");
   } else {
     minProgressText.textContent = `${percent}%`;
@@ -4154,7 +4939,9 @@ function setupUploadDropdowns() {
 
   const containers = document.querySelectorAll(".upload-dropdown-container");
   containers.forEach((container) => {
-    const trigger = container.querySelector(".btn-upload-main, .btn-upload-outline");
+    const trigger = container.querySelector(
+      ".btn-upload-main, .btn-upload-outline",
+    );
     const menu = container.querySelector(".upload-dropdown-menu");
     if (!trigger || !menu) return;
 
@@ -4162,7 +4949,9 @@ function setupUploadDropdowns() {
       e.preventDefault();
       e.stopPropagation();
       const isShow = menu.classList.contains("show");
-      document.querySelectorAll(".upload-dropdown-menu.show").forEach((m) => m.classList.remove("show"));
+      document
+        .querySelectorAll(".upload-dropdown-menu.show")
+        .forEach((m) => m.classList.remove("show"));
       if (!isShow) menu.classList.add("show");
     };
 
@@ -4217,8 +5006,9 @@ function setupUploadModal() {
 
   if (header) {
     header.addEventListener("mousedown", (e) => {
-      // Bỏ qua nếu bấm vào nút Đóng
+      // Bỏ qua nếu bấm vào nút Đóng hoặc đang ở giao diện mobile/tablet
       if (e.target.closest(".close-btn")) return;
+      if (window.innerWidth <= 768) return;
 
       isDragging = true;
       const rect = uploadModal.getBoundingClientRect();
@@ -4259,8 +5049,6 @@ function setupUploadModal() {
   const fileInput = document.getElementById("fileInput");
   const folderInput = document.getElementById("folderInput");
   const uploadMinimized = document.getElementById("uploadMinimized");
-
-
 
   if (addFileBtn) {
     addFileBtn.addEventListener("click", (e) => {
@@ -4368,7 +5156,7 @@ window.openFolder = function (folderId, folderName) {
   }
 
   const existingIdx = window.folderPathTrail.findIndex(
-    (item) => item.id === folderId
+    (item) => item.id === folderId,
   );
   if (existingIdx !== -1) {
     window.folderPathTrail = window.folderPathTrail.slice(0, existingIdx + 1);
@@ -4391,13 +5179,21 @@ function updateBreadcrumbUI() {
   const container = document.getElementById("breadcrumb-container");
   if (!container) return;
 
-  const rootName = window.currentViewType === "shared" ? "Được chia sẻ" :
-    window.currentViewType === "trash" ? "Thùng rác" :
-      window.currentViewType === "recent" ? "Gần đây" : "Tệp của tôi";
+  const rootName =
+    window.currentViewType === "shared"
+      ? "Được chia sẻ"
+      : window.currentViewType === "trash"
+        ? "Thùng rác"
+        : window.currentViewType === "recent"
+          ? "Gần đây"
+          : "Tệp của tôi";
 
   if (!window.folderPathTrail || window.folderPathTrail.length === 0) {
     window.folderPathTrail = [{ id: null, name: rootName }];
-  } else if (window.folderPathTrail.length > 0 && window.folderPathTrail[0].id === null) {
+  } else if (
+    window.folderPathTrail.length > 0 &&
+    window.folderPathTrail[0].id === null
+  ) {
     window.folderPathTrail[0].name = rootName;
   }
 
@@ -4422,7 +5218,9 @@ function getInitials(name) {
   const parts = clean.split(/\s+/);
   if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
   if (parts.length >= 2) {
-    return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
+    return (
+      parts[parts.length - 2][0] + parts[parts.length - 1][0]
+    ).toUpperCase();
   }
   return clean.substring(0, 2).toUpperCase();
 }
@@ -4482,21 +5280,25 @@ function renderSharedView(sharedList) {
     items = [...f1, ...f2];
   }
   // Tách riêng Thư mục chia sẻ & Tệp tin chia sẻ từ CSDDL
-  const sharedFolders = items.filter(item => item.folderId != null || (item.folderName && item.fileId == null));
-  const sharedFiles = items.filter(item => item.fileId != null || (item.fileName && item.folderId == null));
+  const sharedFolders = items.filter(
+    (item) => item.folderId != null || (item.folderName && item.fileId == null),
+  );
+  const sharedFiles = items.filter(
+    (item) => item.fileId != null || (item.fileName && item.folderId == null),
+  );
 
-  sharedFiles.forEach(f => {
+  sharedFiles.forEach((f) => {
     if (!f.id && f.fileId) f.id = f.fileId;
     if (!f.fileName && f.name) f.fileName = f.name;
   });
-  sharedFolders.forEach(f => {
+  sharedFolders.forEach((f) => {
     if (!f.id && f.folderId) f.id = f.folderId;
     if (!f.folderName && f.name) f.folderName = f.name;
   });
 
   window.currentLoadedData = {
     folders: sharedFolders,
-    files: sharedFiles
+    files: sharedFiles,
   };
 
   // Render hoặc cập nhật Hero Banner
@@ -4509,21 +5311,30 @@ function renderSharedView(sharedList) {
 
   const totalItems = sharedFolders.length + sharedFiles.length;
   const userMap = {};
-  items.forEach(item => {
+  items.forEach((item) => {
     const name = formatSharerName(item);
     userMap[name] = true;
   });
   const totalUsers = Object.keys(userMap).length;
 
-  const avatarColors = ["avatar-bg-blue", "avatar-bg-pink", "avatar-bg-orange", "avatar-bg-emerald", "avatar-bg-purple", "avatar-bg-cyan"];
+  const avatarColors = [
+    "avatar-bg-blue",
+    "avatar-bg-pink",
+    "avatar-bg-orange",
+    "avatar-bg-emerald",
+    "avatar-bg-purple",
+    "avatar-bg-cyan",
+  ];
   let avatarIndex = 0;
   let stackHtml = "";
-  Object.keys(userMap).slice(0, 5).forEach(name => {
-    const initials = getInitials(name);
-    const colorClass = avatarColors[avatarIndex % avatarColors.length];
-    stackHtml += `<div class="stack-avatar ${colorClass}">${initials}</div>`;
-    avatarIndex++;
-  });
+  Object.keys(userMap)
+    .slice(0, 5)
+    .forEach((name) => {
+      const initials = getInitials(name);
+      const colorClass = avatarColors[avatarIndex % avatarColors.length];
+      stackHtml += `<div class="stack-avatar ${colorClass}">${initials}</div>`;
+      avatarIndex++;
+    });
 
   heroBanner.innerHTML = `
     <div class="shared-hero-info">
@@ -4537,15 +5348,20 @@ function renderSharedView(sharedList) {
   heroBanner.style.display = "flex";
 
   // Cập nhật số lượng tệp chia sẻ lên Sidebar (Thanh menu bên trái)
-  const sidebarBadge = document.querySelector('.nav-item[data-view="shared"] .badge');
+  const sidebarBadge = document.querySelector(
+    '.nav-item[data-view="shared"] .badge',
+  );
   if (sidebarBadge) {
     sidebarBadge.textContent = totalItems;
   }
 
   // Hiển thị lại các tiêu đề section mặc định (THƯ MỤC, TỆP TIN) vì giờ ta dùng chung
   const sectionTitles = contentScroll.querySelectorAll(".section-title");
-  sectionTitles.forEach(t => {
-    if (t.textContent.includes("THƯ MỤC") || t.textContent.includes("TỆP TIN")) {
+  sectionTitles.forEach((t) => {
+    if (
+      t.textContent.includes("THƯ MỤC") ||
+      t.textContent.includes("TỆP TIN")
+    ) {
       t.style.display = "block";
     }
   });
@@ -4555,7 +5371,10 @@ function renderSharedView(sharedList) {
   const gridFiles = contentScroll.querySelector(".grid-files");
   if (gridFiles) {
     gridFiles.style.display = "";
-    if (!gridFiles.classList.contains("list-view") && !contentScroll.classList.contains("list-view")) {
+    if (
+      !gridFiles.classList.contains("list-view") &&
+      !contentScroll.classList.contains("list-view")
+    ) {
       gridFiles.style.display = "grid";
     } else {
       gridFiles.style.display = "flex";
@@ -4576,20 +5395,35 @@ async function loadDashboardData(viewType = "home") {
     window.currentFolderId = null;
   }
   if (!window.folderPathTrail) {
-    const rootName = viewType === "shared" ? "Được chia sẻ" :
-      viewType === "trash" ? "Thùng rác" :
-        viewType === "recent" ? "Gần đây" : "Tệp của tôi";
+    const rootName =
+      viewType === "shared"
+        ? "Được chia sẻ"
+        : viewType === "trash"
+          ? "Thùng rác"
+          : viewType === "recent"
+            ? "Gần đây"
+            : "Tệp của tôi";
     window.folderPathTrail = [{ id: null, name: rootName }];
   }
 
   // Cập nhật document.title nếu không ở chế độ xem trước file
   const previewOverlay = document.getElementById("previewModalOverlay");
-  const isPreviewOpen = previewOverlay && previewOverlay.style.display === "flex";
-  if (!isPreviewOpen && !document.documentElement.classList.contains("preview-only-mode")) {
-    const rootName = viewType === "shared" ? "Được chia sẻ" :
-      viewType === "trash" ? "Thùng rác" :
-        viewType === "settings" ? "Cài đặt" :
-          viewType === "recent" ? "Gần đây" : "Tệp của tôi";
+  const isPreviewOpen =
+    previewOverlay && previewOverlay.style.display === "flex";
+  if (
+    !isPreviewOpen &&
+    !document.documentElement.classList.contains("preview-only-mode")
+  ) {
+    const rootName =
+      viewType === "shared"
+        ? "Được chia sẻ"
+        : viewType === "trash"
+          ? "Thùng rác"
+          : viewType === "settings"
+            ? "Cài đặt"
+            : viewType === "recent"
+              ? "Gần đây"
+              : "Tệp của tôi";
     document.title = `${rootName} - VaultDrive`;
   }
 
@@ -4598,29 +5432,59 @@ async function loadDashboardData(viewType = "home") {
   // Reset UI elements when switching away from shared view
   const contentScroll = document.querySelector(".content-scroll");
   if (contentScroll) {
+    contentScroll.classList.toggle("view-trash", viewType === "trash");
+    contentScroll.classList.toggle("view-settings", viewType === "settings");
+    contentScroll.classList.toggle("view-shared", viewType === "shared");
+
     const heroBanner = contentScroll.querySelector(".shared-hero-banner");
-    if (heroBanner) heroBanner.style.display = viewType === "shared" ? "flex" : "none";
+    if (heroBanner)
+      heroBanner.style.display = viewType === "shared" ? "flex" : "none";
 
     const trashContainer = document.getElementById("trash-view-container");
-    if (trashContainer) trashContainer.style.display = viewType === "trash" ? "block" : "none";
+    if (trashContainer)
+      trashContainer.style.setProperty("display", viewType === "trash" ? "block" : "none", "important");
 
-    const settingsContainer = document.getElementById("settings-view-container");
-    if (settingsContainer) settingsContainer.style.display = viewType === "settings" ? "block" : "none";
+    const settingsContainer = document.getElementById(
+      "settings-view-container",
+    );
+    if (settingsContainer)
+      settingsContainer.style.setProperty("display", viewType === "settings" ? "block" : "none", "important");
 
     // Xóa tiêu đề chia sẻ động để không bị lặp 2 chữ THƯ MỤC / TỆP TIN
-    const sharedTitles = contentScroll.querySelectorAll(".shared-folder-title, .shared-file-title");
-    sharedTitles.forEach(t => t.remove());
+    const sharedTitles = contentScroll.querySelectorAll(
+      ".shared-folder-title, .shared-file-title",
+    );
+    sharedTitles.forEach((t) => t.remove());
 
     const sectionTitles = contentScroll.querySelectorAll(".section-title");
-    sectionTitles.forEach(t => t.style.display = (viewType === "trash" || viewType === "settings") ? "none" : "block");
+    sectionTitles.forEach((t) => {
+      if (viewType === "trash" || viewType === "settings") {
+        t.style.setProperty("display", "none", "important");
+      } else {
+        t.style.display = "block";
+      }
+    });
 
     const gridFolders = contentScroll.querySelector(".grid-folders");
-    if (gridFolders) gridFolders.style.display = (viewType === "trash" || viewType === "settings") ? "none" : "grid";
+    if (gridFolders) {
+      if (viewType === "trash" || viewType === "settings") {
+        gridFolders.style.setProperty("display", "none", "important");
+      } else {
+        gridFolders.style.display = "grid";
+      }
+    }
 
     const gridFiles = contentScroll.querySelector(".grid-files");
     if (gridFiles) {
-      gridFiles.style.display = (viewType === "trash" || viewType === "settings") ? "none" : "";
-      gridFiles.className = "grid-files";
+      if (viewType === "trash" || viewType === "settings") {
+        gridFiles.style.setProperty("display", "none", "important");
+      } else {
+        gridFiles.style.display = "";
+        gridFiles.className = "grid-files";
+        if (contentScroll.classList.contains("list-view")) {
+          gridFiles.classList.add("list-view");
+        }
+      }
     }
   }
 
@@ -4668,8 +5532,12 @@ async function loadDashboardData(viewType = "home") {
 
         // Nếu đang ở "Tệp của tôi", lọc bỏ những file được người khác chia sẻ (permission khác OWNER)
         if (viewType === "home") {
-          folders = folders.filter(f => !f.permission || f.permission === "OWNER");
-          files = files.filter(f => !f.permission || f.permission === "OWNER");
+          folders = folders.filter(
+            (f) => !f.permission || f.permission === "OWNER",
+          );
+          files = files.filter(
+            (f) => !f.permission || f.permission === "OWNER",
+          );
         }
 
         renderFolders(folders);
@@ -4723,7 +5591,7 @@ function renderTrashItems(folders, files) {
 
   trashHeader.innerHTML = `${totalItems} mục &middot; Tự động xóa sau 30 ngày`;
 
-  let html = '';
+  let html = "";
 
   const calculateDaysLeft = (dateString) => {
     if (!dateString) return 30;
@@ -4740,33 +5608,41 @@ function renderTrashItems(folders, files) {
     if (!date) return String(dateString);
     const now = new Date();
 
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
     const timeString = `${hours}:${minutes}`;
 
     // Kiểm tra xem có phải hôm nay không (chỉ hiện giờ để vừa khít 1 dòng, không bị tràn thành ...)
-    if (now.getDate() === date.getDate() && now.getMonth() === date.getMonth() && now.getFullYear() === date.getFullYear()) {
+    if (
+      now.getDate() === date.getDate() &&
+      now.getMonth() === date.getMonth() &&
+      now.getFullYear() === date.getFullYear()
+    ) {
       return timeString;
     }
 
     // Kiểm tra xem có phải hôm qua không
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
-    if (yesterday.getDate() === date.getDate() && yesterday.getMonth() === date.getMonth() && yesterday.getFullYear() === date.getFullYear()) {
+    if (
+      yesterday.getDate() === date.getDate() &&
+      yesterday.getMonth() === date.getMonth() &&
+      yesterday.getFullYear() === date.getFullYear()
+    ) {
       return `Hôm qua, ${timeString}`;
     }
 
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
     return `${day}/${month}`;
   };
 
   // Render Folders
-  folders.forEach(folder => {
+  folders.forEach((folder) => {
     const daysLeft = calculateDaysLeft(folder.updatedAt);
-    const isUrgent = daysLeft <= 15 ? 'urgent' : '';
+    const isUrgent = daysLeft <= 15 ? "urgent" : "";
     const formattedDate = formatTrashDate(folder.updatedAt);
-    const user = folder.userEmail ? folder.userEmail.split('@')[0] : 'Tôi';
+    const user = folder.userEmail ? folder.userEmail.split("@")[0] : "Tôi";
 
     html += `
       <div class="trash-item">
@@ -4790,13 +5666,16 @@ function renderTrashItems(folders, files) {
   });
 
   // Render Files
-  files.forEach(file => {
+  files.forEach((file) => {
     const daysLeft = calculateDaysLeft(file.updatedAt);
-    const isUrgent = daysLeft <= 15 ? 'urgent' : '';
-    const size = typeof formatSizeGlobal === "function" ? formatSizeGlobal(file.sizeBytes) : file.sizeBytes;
+    const isUrgent = daysLeft <= 15 ? "urgent" : "";
+    const size =
+      typeof formatSizeGlobal === "function"
+        ? formatSizeGlobal(file.sizeBytes)
+        : file.sizeBytes;
     const fileName = file.fileName || "Tệp không tên";
     const formattedDate = formatTrashDate(file.updatedAt);
-    const user = file.userEmail ? file.userEmail.split('@')[0] : 'Tôi';
+    const user = file.userEmail ? file.userEmail.split("@")[0] : "Tôi";
     const { iconClass, colorClass } = getFileCategoryAndIcon(fileName);
 
     html += `
@@ -4825,16 +5704,17 @@ function renderTrashItems(folders, files) {
 
 window.toggleTrashSelection = function (el, e) {
   if (e && e.stopPropagation) e.stopPropagation();
-  el.classList.toggle('selected');
-  const card = el.closest('.trash-item');
+  el.classList.toggle("selected");
+  const card = el.closest(".trash-item");
   if (card) {
-    card.classList.toggle('selected', el.classList.contains('selected'));
+    card.classList.toggle("selected", el.classList.contains("selected"));
   }
 };
 
 window.restoreTrashItem = async function (id, type) {
   try {
-    const endpoint = type === 'folder' ? `/folders/${id}/restore` : `/files/${id}/restore`;
+    const endpoint =
+      type === "folder" ? `/folders/${id}/restore` : `/files/${id}/restore`;
     const response = await fetchWithAuth(endpoint, { method: "PATCH" });
     if (response && response.ok) {
       // Reload trash data
@@ -4848,9 +5728,15 @@ window.restoreTrashItem = async function (id, type) {
 };
 
 window.permanentDeleteTrashItem = async function (id, type) {
-  if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Thao tác không thể hoàn tác!")) return;
+  if (
+    !confirm(
+      "Bạn có chắc chắn muốn xóa vĩnh viễn mục này không? Thao tác không thể hoàn tác!",
+    )
+  )
+    return;
   try {
-    const endpoint = type === 'folder' ? `/folders/${id}/permanent` : `/files/${id}/permanent`;
+    const endpoint =
+      type === "folder" ? `/folders/${id}/permanent` : `/files/${id}/permanent`;
     const response = await fetchWithAuth(endpoint, { method: "DELETE" });
     if (response && response.ok) {
       // Reload trash data

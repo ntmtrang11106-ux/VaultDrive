@@ -26,6 +26,7 @@ function getFileIconForTrash(fileName) {
 
 window.renderTrashItems = function(folders, files) {
   const container = document.getElementById("trash-view-container");
+  const trashHeaderRow = document.getElementById("trash-header-row");
   const trashHeader = document.getElementById("trash-header-info");
   const trashList = document.getElementById("trash-list");
   const emptyState = document.getElementById("trash-empty-state");
@@ -35,12 +36,14 @@ window.renderTrashItems = function(folders, files) {
   const totalItems = folders.length + files.length;
 
   if (totalItems === 0) {
+    if (trashHeaderRow) trashHeaderRow.style.display = "none";
     trashHeader.style.display = "none";
     trashList.style.display = "none";
     emptyState.style.display = "flex";
     return;
   }
 
+  if (trashHeaderRow) trashHeaderRow.style.display = "flex";
   trashHeader.style.display = "block";
   trashList.style.display = "";
   emptyState.style.display = "none";
@@ -96,6 +99,11 @@ window.renderTrashItems = function(folders, files) {
 
     if (folderTemplate) {
       const clone = folderTemplate.content.cloneNode(true);
+      const itemEl = clone.querySelector('.trash-item');
+      if (itemEl) {
+        itemEl.dataset.id = folder.id;
+        itemEl.dataset.type = 'folder';
+      }
       const iconBox = clone.querySelector('.trash-icon-box');
       if (iconBox) {
         iconBox.className = 'trash-icon-box blue';
@@ -129,6 +137,11 @@ window.renderTrashItems = function(folders, files) {
 
     if (fileTemplate) {
       const clone = fileTemplate.content.cloneNode(true);
+      const itemEl = clone.querySelector('.trash-item');
+      if (itemEl) {
+        itemEl.dataset.id = file.id;
+        itemEl.dataset.type = 'file';
+      }
       const iconBox = clone.querySelector('.trash-icon-box');
       if (iconBox) {
         iconBox.className = `trash-icon-box ${colorClass}`;
@@ -155,6 +168,11 @@ window.renderTrashItems = function(folders, files) {
       trashList.appendChild(clone);
     }
   });
+
+  // Cập nhật trạng thái nút hành động hàng loạt sau khi render xong
+  if (typeof window.updateTrashBatchActionsUI === 'function') {
+    window.updateTrashBatchActionsUI();
+  }
 }
 
 window.toggleTrashSelection = function(el, e) {
@@ -163,6 +181,95 @@ window.toggleTrashSelection = function(el, e) {
   const card = el.closest('.trash-item');
   if (card) {
     card.classList.toggle('selected', el.classList.contains('selected'));
+  }
+  if (typeof window.updateTrashBatchActionsUI === 'function') {
+    window.updateTrashBatchActionsUI();
+  }
+};
+
+window.updateTrashBatchActionsUI = function() {
+  const selectedCards = document.querySelectorAll('.trash-item.selected');
+  const count = selectedCards ? selectedCards.length : 0;
+  const deleteBtn = document.getElementById("btnBatchDelete");
+  const restoreBtn = document.getElementById("btnBatchRestore");
+
+  if (deleteBtn) {
+    const textSpan = deleteBtn.querySelector(".btn-text");
+    if (count > 0) {
+      deleteBtn.classList.add("active");
+      deleteBtn.classList.remove("disabled");
+      if (textSpan) textSpan.textContent = `Xóa (${count})`;
+    } else {
+      deleteBtn.classList.remove("active");
+      deleteBtn.classList.add("disabled");
+      if (textSpan) textSpan.textContent = "Xóa";
+    }
+  }
+
+  if (restoreBtn) {
+    const textSpan = restoreBtn.querySelector(".btn-text");
+    if (count > 0) {
+      restoreBtn.style.display = "inline-flex";
+      if (textSpan) textSpan.textContent = `Khôi phục (${count})`;
+    } else {
+      restoreBtn.style.display = "none";
+    }
+  }
+};
+
+window.deleteSelectedTrashItems = async function() {
+  const selectedCards = document.querySelectorAll('.trash-item.selected');
+  if (!selectedCards || selectedCards.length === 0) {
+    alert("Vui lòng tích chọn ít nhất một mục để xóa!");
+    return;
+  }
+
+  const count = selectedCards.length;
+  if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${count} mục đã chọn không? Thao tác không thể hoàn tác!`)) return;
+
+  const btn = document.getElementById("btnBatchDelete");
+  if (btn) btn.disabled = true;
+
+  try {
+    for (const card of selectedCards) {
+      const id = card.dataset.id;
+      const type = card.dataset.type;
+      if (!id || !type) continue;
+      const endpoint = type === 'folder' ? `/folders/${id}/permanent` : `/files/${id}/permanent`;
+      await fetchWithAuth(endpoint, { method: "DELETE" });
+    }
+  } catch (err) {
+    console.error("Lỗi khi xóa các mục đã chọn:", err);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (typeof loadDashboardData === "function") loadDashboardData("trash");
+    if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
+  }
+};
+
+window.restoreSelectedTrashItems = async function() {
+  const selectedCards = document.querySelectorAll('.trash-item.selected');
+  if (!selectedCards || selectedCards.length === 0) {
+    alert("Vui lòng tích chọn ít nhất một mục để khôi phục!");
+    return;
+  }
+
+  const btn = document.getElementById("btnBatchRestore");
+  if (btn) btn.disabled = true;
+
+  try {
+    for (const card of selectedCards) {
+      const id = card.dataset.id;
+      const type = card.dataset.type;
+      if (!id || !type) continue;
+      const endpoint = type === 'folder' ? `/folders/${id}/restore` : `/files/${id}/restore`;
+      await fetchWithAuth(endpoint, { method: "PATCH" });
+    }
+  } catch (err) {
+    console.error("Lỗi khi khôi phục các mục đã chọn:", err);
+  } finally {
+    if (btn) btn.disabled = false;
+    if (typeof loadDashboardData === "function") loadDashboardData("trash");
   }
 };
 

@@ -57,12 +57,6 @@
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
 
-.soc-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 /* Bộ chọn thời gian giống nút Last 5 minutes nhưng sắc nét */
 .soc-timepicker {
   display: inline-flex;
@@ -104,7 +98,7 @@
 .soc-tp-select-box select {
   border: none;
   background: transparent;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 13px;
   font-weight: 600;
   color: #0f172a;
@@ -122,7 +116,7 @@
   border: 1px solid #cbd5e1;
   background: #ffffff;
   color: #1e293b;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -429,7 +423,9 @@ body.admin-mode #content-area {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 10px 25px -5px rgba(15, 23, 42, 0.12),
+    0 8px 10px -6px rgba(15, 23, 42, 0.08);
   padding: 8px 0;
   display: none;
   flex-direction: column;

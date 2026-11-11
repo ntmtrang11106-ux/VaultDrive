@@ -211,6 +211,14 @@ body {
   margin-bottom: 36px;
 }
 
+/* Thông báo trạng thái trống (Không có thư mục / tệp tin nào): Luôn trải rộng toàn bộ hàng ngang */
+.grid-folders > p,
+.grid-files > p {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  white-space: nowrap !important;
+}
+
 /* Thẻ thư mục dạng khối chữ nhật, bo góc 12px-16px, padding 12px */
 .folder-card {
   position: relative;
@@ -500,85 +508,242 @@ body {
 
 /* ================= LIST VIEW STYLES =================
    Khi người dùng bật List View (.list-view được add vào .content-scroll),
-   CSS này ghi đè layout Grid → thành bảng nằm ngang.
+   CSS này chuyển layout Grid → thành danh sách bảng nằm ngang chuẩn Flexbox cân đối 100%.
   =====================================================*/
 
-/* Container chính: chuyển từ grid → flex dọc */
-/* Vùng bọc danh sách tệp: Chuyển từ dạng lưới (grid) sang dạng cột dọc (column) để các thẻ xếp chồng lên nhau */
-.list-view .grid-files {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* Mặc định ở chế độ Grid (lưới), ẩn thanh tiêu đề cột của List View */
+.list-header {
+  display: none !important;
 }
 
-/* Chuyển thẻ tệp tin từ hộp hình vuông đứng thành một dòng ngang (như dòng excel) */
+/* Chỉ hiển thị thanh tiêu đề cột khi đang ở chế độ List View (Cấu trúc 6 cột đối xứng 1-1 với dòng tệp) */
+.list-view .list-header,
+.content-scroll.list-view .list-header {
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 16px !important;
+  gap: 12px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  color: var(--text-muted, #64748b) !important;
+  letter-spacing: 0.5px !important;
+  user-select: none !important;
+  border: 1px solid transparent !important;
+  border-bottom: 1px solid var(--border-color, #e2e8f0) !important;
+  margin-bottom: 4px !important;
+}
+
+/* Cột 1: Icon spacer */
+.list-header .col-icon {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  flex: 0 0 36px !important;
+}
+
+/* Cột 2: Tên tệp */
+.list-header .col-name {
+  flex: 4 1 0% !important;
+  min-width: 140px !important;
+  padding-left: 0 !important;
+  text-align: left !important;
+}
+
+/* Cột 3: Ngày sửa */
+.list-header .col-date {
+  flex: 2 1 0% !important;
+  min-width: 110px !important;
+  text-align: left !important;
+}
+
+/* Cột 4: Kích thước */
+.list-header .col-size {
+  flex: 1.2 1 0% !important;
+  min-width: 75px !important;
+  text-align: left !important;
+}
+
+/* Cột 5: Chia sẻ */
+.list-header .col-shared {
+  flex: 1.5 1 0% !important;
+  min-width: 90px !important;
+  text-align: left !important;
+}
+
+/* Cột 6: Nút hành động spacer */
+.list-header .col-actions {
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  flex: 0 0 32px !important;
+}
+
+/* Container chính: chuyển từ grid → flex dọc */
+.list-view .grid-files {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+/* Khi đang ở View Thùng rác hoặc Cài đặt, ẩn triệt để danh sách file/thư mục và list-header của Dashboard */
+.content-scroll.view-trash > .grid-files,
+.content-scroll.view-trash > .grid-folders,
+.content-scroll.view-trash > .section-title,
+.content-scroll.view-trash .list-header,
+.content-scroll.view-settings > .grid-files,
+.content-scroll.view-settings > .grid-folders,
+.content-scroll.view-settings > .section-title,
+.content-scroll.view-settings .list-header {
+  display: none !important;
+}
+
+/* Chuyển thẻ tệp tin từ hộp hình vuông đứng thành dòng ngang chuẩn Flexbox đối xứng */
 .list-view .file-card {
-  flex-direction: row;
-  align-items: center;
-  padding: 12px 20px;
-  gap: 12px;
-  height: 60px;
-  min-height: 60px;
-  justify-content: flex-start;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  padding: 0 16px !important;
+  gap: 12px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  justify-content: flex-start !important;
   transform: none !important;
+  position: relative !important;
 }
 
 .list-view .file-card:hover {
   transform: none !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  border-color: #cbd5e1 !important;
 }
 
-/* Thu nhỏ icon lại để vừa vặn với dòng ngang trong List View (chỉ áp dụng cho tệp tin, giữ nguyên kích thước thư mục như chế độ 4 ô vuông) */
+/* Cột 1: Icon tệp tin */
 .list-view .file-icon-box {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  font-size: 18px;
-  margin-bottom: 0;
-  flex-shrink: 0;
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+  font-size: 20px !important;
+  margin-bottom: 0 !important;
+  flex: 0 0 36px !important;
 }
 
-/* Nhóm phần tên file và thông tin cơ bản chung một khối */
+/* Cột 2: Tên tệp tin và thông tin tệp */
 .list-view .file-card .file-info-main {
-  flex: 2;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  flex: 4 1 0% !important;
+  min-width: 140px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  overflow: hidden !important;
 }
 
 .list-view .shared-user-meta {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
-  flex-shrink: 0;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: none !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
 }
 
-/* Bỏ giới hạn hiển thị 2 dòng của tên file, cho hiển thị 1 dòng ngang */
+.list-view .grid-shared-badge {
+  display: none !important;
+}
+
 .list-view .file-name {
-  margin-bottom: 0;
-  white-space: nowrap;
-  -webkit-line-clamp: unset;
-  line-clamp: unset;
+  margin-bottom: 0 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--text-main, #0f172a) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
 }
 
 .list-view .file-card .file-meta-mobile {
-  display: none;
+  display: none !important;
 }
 
-/* Khung căn chỉnh cho các cột thông tin mô tả (size, ngày sửa) trong list view */
+/* Khung căn chỉnh cho các cột thông tin mô tả trong list view */
 .list-view .file-meta-col {
-  flex: 1;
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: 13px !important;
+  color: var(--text-muted, #64748b) !important;
+  white-space: nowrap !important;
+  display: block !important;
 }
 
+/* Cột 3: Ngày sửa */
+.list-view .file-date {
+  flex: 2 1 0% !important;
+  min-width: 110px !important;
+  text-align: left !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Cột 4: Kích thước */
 .list-view .file-size {
-  flex: 1;
+  flex: 1.2 1 0% !important;
+  min-width: 75px !important;
+  text-align: left !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
+/* Cột 5: Chia sẻ */
 .list-view .file-shared {
-  flex: 1;
+  flex: 1.5 1 0% !important;
+  min-width: 90px !important;
+  display: flex !important;
+  align-items: center !important;
+  text-align: left !important;
+}
+
+/* Cột 6: Nút hành động 3 chấm - Luôn căn chính giữa hàng ngang */
+.list-view .file-card .more-options,
+.content-scroll.list-view .file-card .more-options,
+.content-scroll.list-view .grid-files .file-card .more-options {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: none !important;
+  align-self: center !important;
+  margin: auto 0 !important;
+  margin-left: 0 !important;
+  padding: 0 !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+  flex: 0 0 32px !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.list-view .file-card .more-options i,
+.content-scroll.list-view .file-card .more-options i {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 16px !important;
 }
 
 /* Huy hiệu (Badge) mô tả trạng thái chia sẻ: 11px – 12px, Medium (500), Line-height 1-1.2, padding 4px 8px, bo tròn 999px */
@@ -648,4 +813,1008 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ================================================================
+   RESPONSIVE DESIGN CHO DASHBOARD (TỆP VÀ THƯ MỤC THEO KÍCH CỠ MÀN HÌNH)
+   ================================================================ */
+
+/* 1. Màn hình Laptop nhỏ & Màn hình phụ (1025px - 1280px) */
+@media (max-width: 1280px) {
+  .grid-folders {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
+  }
+
+  .grid-files:not(.list-view) {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 16px;
+  }
+
+  .file-icon-box {
+    height: 125px;
+    font-size: 38px;
+  }
+
+  .folder-icon-box {
+    height: 75px;
+  }
+}
+
+/* 2. Màn hình Tablet ngang & iPad Pro (769px - 1024px) */
+@media (max-width: 1024px) {
+  .content-scroll {
+    padding: 20px 22px;
+  }
+
+  .grid-folders {
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .folder-card {
+    padding: 10px 10px 12px 10px;
+  }
+
+  .folder-icon-box {
+    height: 68px;
+  }
+
+  .folder-icon {
+    font-size: 32px;
+  }
+
+  .folder-name {
+    font-size: 13.5px;
+  }
+
+  .grid-files:not(.list-view) {
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    gap: 14px;
+  }
+
+  .file-card {
+    padding: 10px 10px 12px 10px;
+  }
+
+  .file-icon-box {
+    height: 110px;
+    font-size: 34px;
+  }
+
+  .file-name {
+    font-size: 13.5px;
+  }
+
+  /* Banner Được chia sẻ trên Tablet ngang & Laptop nhỏ */
+  .shared-hero-banner {
+    padding: 18px 22px !important;
+    border-radius: 14px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .shared-hero-title {
+    font-size: 18px !important;
+  }
+
+  .shared-hero-subtitle {
+    font-size: 13px !important;
+  }
+
+  .shared-avatar-stack .stack-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 11px !important;
+    margin-left: -8px !important;
+  }
+
+  /* List View trên Tablet ngang & Laptop nhỏ */
+  .list-view .grid-files {
+    gap: 6px !important;
+  }
+
+  .list-view .list-header,
+  .content-scroll.list-view .list-header {
+    display: flex !important;
+    align-items: center !important;
+    padding: 6px 14px !important;
+    font-size: 11px !important;
+    gap: 10px !important;
+  }
+
+  .list-header .col-icon {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    flex: 0 0 32px !important;
+  }
+
+  .list-header .col-name {
+    flex: 4 1 0% !important;
+    min-width: 130px !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-date {
+    flex: 2 1 0% !important;
+    min-width: 100px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-size {
+    flex: 1.2 1 0% !important;
+    min-width: 70px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-shared {
+    flex: 1.5 1 0% !important;
+    min-width: 85px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-actions {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    flex: 0 0 28px !important;
+  }
+
+  .list-view .file-card {
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 14px !important;
+    gap: 10px !important;
+    border-radius: 10px !important;
+  }
+
+  .list-view .file-icon-box {
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    height: 32px !important;
+    font-size: 18px !important;
+    flex: 0 0 32px !important;
+  }
+
+  .list-view .file-card .file-info-main {
+    flex: 4 1 0% !important;
+    min-width: 130px !important;
+  }
+
+  .list-view .file-name {
+    font-size: 13.5px !important;
+  }
+
+  .list-view .file-date {
+    flex: 2 1 0% !important;
+    min-width: 100px !important;
+    font-size: 12px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-size {
+    flex: 1.2 1 0% !important;
+    min-width: 70px !important;
+    font-size: 12px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-shared {
+    flex: 1.5 1 0% !important;
+    min-width: 85px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-card .more-options {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    align-self: center !important;
+    margin: auto 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 28px !important;
+    flex: 0 0 28px !important;
+    font-size: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* 3. Màn hình Điện thoại ngang & Tablet dọc (481px - 768px) */
+@media (max-width: 768px) {
+  .content-scroll {
+    padding: 16px 14px !important;
+  }
+
+  .section-title {
+    font-size: 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  /* Grid thư mục linh hoạt trên tablet dọc / mobile lớn */
+  .grid-folders {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+    gap: 12px !important;
+    margin-bottom: 22px !important;
+  }
+
+  .folder-card {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .folder-icon-box {
+    height: 60px !important;
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
+  }
+
+  .folder-icon {
+    font-size: 28px !important;
+  }
+
+  .folder-name {
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Grid tệp tin dạng lưới */
+  .grid-files:not(.list-view) {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .file-card {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .file-icon-box {
+    height: 98px !important;
+    font-size: 32px !important;
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
+  }
+
+  .file-name {
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+  }
+
+  /* Luôn hiển thị nút 3 chấm trên màn hình cảm ứng để người dùng chạm thao tác */
+  .folder-card .more-options,
+  .content-scroll:not(.list-view) .file-card .more-options {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    top: 6px !important;
+    right: 6px !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+    background-color: rgba(255, 255, 255, 0.92) !important;
+  }
+
+  /* Chế độ Danh sách (List View) trên Tablet dọc - Giữ trọn vẹn cả 4 cột: Tên, Ngày, Kích thước, Chia sẻ */
+  .list-view .grid-files {
+    gap: 6px !important;
+  }
+
+  .list-view .list-header,
+  .content-scroll.list-view .list-header {
+    display: flex !important;
+    align-items: center !important;
+    padding: 6px 12px !important;
+    font-size: 11px !important;
+    gap: 8px !important;
+  }
+
+  .list-header .col-icon {
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    flex: 0 0 30px !important;
+  }
+
+  .list-header .col-name {
+    flex: 3.5 1 0% !important;
+    min-width: 110px !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-date {
+    flex: 2 1 0% !important;
+    min-width: 90px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-size {
+    flex: 1.2 1 0% !important;
+    min-width: 65px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-shared {
+    flex: 1.5 1 0% !important;
+    min-width: 80px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-actions {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    flex: 0 0 28px !important;
+  }
+
+  .list-view .file-card {
+    height: 50px !important;
+    min-height: 50px !important;
+    padding: 0 12px !important;
+    gap: 8px !important;
+    border-radius: 10px !important;
+  }
+
+  .list-view .file-icon-box {
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+    height: 30px !important;
+    font-size: 16px !important;
+    border-radius: 6px !important;
+    flex: 0 0 30px !important;
+  }
+
+  .list-view .file-card .file-info-main {
+    flex: 3.5 1 0% !important;
+    min-width: 110px !important;
+  }
+
+  .list-view .file-name {
+    font-size: 13px !important;
+  }
+
+  .list-view .file-date {
+    flex: 2 1 0% !important;
+    min-width: 90px !important;
+    font-size: 11.5px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-size {
+    flex: 1.2 1 0% !important;
+    min-width: 65px !important;
+    font-size: 11.5px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-shared {
+    flex: 1.5 1 0% !important;
+    min-width: 80px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-shared .shared-badge {
+    font-size: 10.5px !important;
+    padding: 3px 6px !important;
+  }
+
+  .list-view .file-card .more-options {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    align-self: center !important;
+    margin: auto 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 28px !important;
+    flex: 0 0 28px !important;
+    font-size: 14px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Banner Được chia sẻ trên Tablet dọc / Mobile ngang */
+  .shared-hero-banner {
+    padding: 16px 18px !important;
+    border-radius: 14px !important;
+    margin-bottom: 18px !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .shared-hero-title {
+    font-size: 17px !important;
+  }
+
+  .shared-hero-subtitle {
+    font-size: 12.5px !important;
+  }
+
+  .shared-avatar-stack .stack-avatar {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 10.5px !important;
+    margin-left: -7px !important;
+  }
+
+  /* Rút gọn tên người chia sẻ trong List view trên tablet để không chèn ép tên file */
+  .list-view .shared-user-name {
+    max-width: 90px !important;
+  }
+}
+
+/* 4. Màn hình Điện thoại dọc phổ thông (360px - 480px: iPhone, Samsung Galaxy) */
+@media (max-width: 480px) {
+  /* Khóa cứng chuẩn 2 cột đều nhau */
+  .grid-folders {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .folder-card {
+    padding: 8px 10px 10px 10px !important;
+  }
+
+  .folder-icon-box {
+    height: 52px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .folder-icon {
+    font-size: 26px !important;
+  }
+
+  .folder-name {
+    font-size: 12.5px !important;
+  }
+
+  .grid-files:not(.list-view) {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .file-card {
+    padding: 8px 10px 10px 10px !important;
+  }
+
+  .file-icon-box {
+    height: 84px !important;
+    font-size: 28px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .file-name {
+    font-size: 12.5px !important;
+  }
+
+  .file-meta-mobile {
+    font-size: 11px !important;
+  }
+
+  .folder-card .more-options,
+  .content-scroll:not(.list-view) .file-card .more-options {
+    width: 25px !important;
+    height: 25px !important;
+    font-size: 13px !important;
+    top: 5px !important;
+    right: 5px !important;
+  }
+
+  /* Banner Được chia sẻ trên Điện thoại phổ thông (<= 480px) */
+  .shared-hero-banner {
+    padding: 14px 16px !important;
+    border-radius: 12px !important;
+    margin-bottom: 16px !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  .shared-hero-info {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .shared-hero-title {
+    font-size: 15.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+  }
+
+  .shared-hero-subtitle {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .shared-avatar-stack {
+    flex-shrink: 0 !important;
+  }
+
+  .shared-avatar-stack .stack-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 10px !important;
+    margin-left: -6px !important;
+    border-width: 1.5px !important;
+  }
+
+  /* Thông tin người chia sẻ trên thẻ tệp/thư mục ở Mobile */
+  .shared-user-meta {
+    padding-top: 6px !important;
+    gap: 6px !important;
+  }
+
+  .shared-user-avatar {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 9.5px !important;
+  }
+
+  .shared-user-name {
+    font-size: 11.5px !important;
+  }
+
+  /* Trong List View ở mobile, chỉ hiển thị avatar tròn người chia sẻ để không lấn tên file */
+  .list-view .shared-user-name {
+    display: none !important;
+  }
+
+  .list-view .shared-user-avatar {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 9.5px !important;
+  }
+
+  /* Chế độ Danh sách (List View) trên Mobile - Giữ ĐẦY ĐỦ 4 CỘT: TÊN, NGÀY, KÍCH THƯỚC, CHIA SẺ (cuộn ngang mượt) */
+  .list-view .grid-files {
+    gap: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 8px !important;
+  }
+
+  .list-view .grid-files::-webkit-scrollbar {
+    height: 4px !important;
+  }
+
+  .list-view .grid-files::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 4px !important;
+  }
+
+  .list-view .list-header,
+  .content-scroll.list-view .list-header {
+    display: flex !important;
+    align-items: center !important;
+    min-width: 480px !important;
+    padding: 6px 10px !important;
+    font-size: 10.5px !important;
+    gap: 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .list-header .col-icon {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    flex: 0 0 28px !important;
+  }
+
+  .list-header .col-name {
+    flex: 3 1 0% !important;
+    min-width: 120px !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-date {
+    flex: 1.8 1 0% !important;
+    min-width: 85px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-size {
+    flex: 1.2 1 0% !important;
+    min-width: 60px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-shared {
+    flex: 1.5 1 0% !important;
+    min-width: 75px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-actions {
+    width: 26px !important;
+    min-width: 26px !important;
+    max-width: 26px !important;
+    flex: 0 0 26px !important;
+  }
+
+  .list-view .file-card {
+    min-width: 480px !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    padding: 0 10px !important;
+    gap: 8px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+
+  .list-view .file-icon-box {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    height: 28px !important;
+    font-size: 16px !important;
+    border-radius: 6px !important;
+    flex: 0 0 28px !important;
+  }
+
+  .list-view .file-card .file-info-main {
+    flex: 3 1 0% !important;
+    min-width: 120px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .list-view .file-name {
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .list-view .file-card .file-meta-mobile {
+    display: none !important;
+  }
+
+  .list-view .file-date {
+    flex: 1.8 1 0% !important;
+    min-width: 85px !important;
+    font-size: 11px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-size {
+    flex: 1.2 1 0% !important;
+    min-width: 60px !important;
+    font-size: 11px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-shared {
+    flex: 1.5 1 0% !important;
+    min-width: 75px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-shared .shared-badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+  }
+
+  .list-view .file-card .more-options {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    align-self: center !important;
+    margin: auto 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 26px !important;
+    min-width: 26px !important;
+    max-width: 26px !important;
+    height: 26px !important;
+    flex: 0 0 26px !important;
+    font-size: 14px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* 5. Màn hình điện thoại cực nhỏ (Mobile S <= 360px như Galaxy Fold, iPhone SE) */
+@media (max-width: 360px) {
+  .content-scroll {
+    padding: 12px 10px !important;
+  }
+
+  .section-title {
+    font-size: 11px !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Khóa cứng chuẩn 2 cột đều nhau trên Mobile S */
+  .grid-folders {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .grid-folders > p,
+  .grid-files > p {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+
+  .folder-card {
+    padding: 8px !important;
+    border-radius: 10px !important;
+  }
+
+  .folder-icon-box {
+    height: 48px !important;
+    margin-bottom: 6px !important;
+    border-radius: 8px !important;
+  }
+
+  .folder-icon {
+    font-size: 24px !important;
+  }
+
+  .folder-name {
+    font-size: 11.5px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .folder-meta {
+    font-size: 10px !important;
+  }
+
+  .folder-card .more-options,
+  .content-scroll:not(.list-view) .file-card .more-options {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 12px !important;
+    top: 4px !important;
+    right: 4px !important;
+  }
+
+  .grid-files:not(.list-view) {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .file-card {
+    padding: 8px !important;
+    border-radius: 10px !important;
+  }
+
+  .file-icon-box {
+    height: 72px !important;
+    font-size: 26px !important;
+    margin-bottom: 6px !important;
+    border-radius: 8px !important;
+  }
+
+  .file-name {
+    font-size: 11.5px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 2px !important;
+  }
+
+  .file-meta-mobile {
+    font-size: 10px !important;
+    line-height: 1.25 !important;
+  }
+
+  .grid-shared-badge .shared-badge {
+    font-size: 9.5px !important;
+    padding: 2px 5px !important;
+  }
+
+  /* Banner Được chia sẻ trên Mobile S (<= 360px) */
+  .shared-hero-banner {
+    padding: 12px 12px !important;
+    border-radius: 10px !important;
+    margin-bottom: 12px !important;
+    gap: 8px !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .shared-hero-title {
+    font-size: 14px !important;
+  }
+
+  .shared-hero-subtitle {
+    font-size: 11px !important;
+  }
+
+  .shared-avatar-stack .stack-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 9px !important;
+    margin-left: -5px !important;
+    border-width: 1.5px !important;
+  }
+
+  .shared-user-meta {
+    padding-top: 5px !important;
+    gap: 4px !important;
+  }
+
+  .shared-user-avatar {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 8.5px !important;
+  }
+
+  .shared-user-name {
+    font-size: 10.5px !important;
+  }
+
+  /* Chế độ Danh sách (List View) trên Mobile S - Giữ đủ 4 cột và cuộn ngang */
+  .list-view .grid-files {
+    gap: 5px !important;
+  }
+
+  .list-view .list-header,
+  .content-scroll.list-view .list-header,
+  .list-view .file-card {
+    min-width: 440px !important;
+    padding: 0 8px !important;
+    gap: 6px !important;
+  }
+
+  .list-view .list-header,
+  .content-scroll.list-view .list-header {
+    padding: 5px 8px !important;
+  }
+
+  .list-header .col-icon {
+    width: 26px !important;
+    min-width: 26px !important;
+    max-width: 26px !important;
+    flex: 0 0 26px !important;
+  }
+
+  .list-header .col-name {
+    flex: 3 1 0% !important;
+    min-width: 110px !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-date {
+    flex: 1.8 1 0% !important;
+    min-width: 78px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-size {
+    flex: 1.2 1 0% !important;
+    min-width: 55px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-shared {
+    flex: 1.5 1 0% !important;
+    min-width: 70px !important;
+    text-align: left !important;
+  }
+
+  .list-header .col-actions {
+    width: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+    flex: 0 0 24px !important;
+  }
+
+  .list-view .file-card {
+    min-height: 46px !important;
+    height: 46px !important;
+  }
+
+  .list-view .file-icon-box {
+    width: 26px !important;
+    min-width: 26px !important;
+    max-width: 26px !important;
+    height: 26px !important;
+    font-size: 14px !important;
+    flex: 0 0 26px !important;
+  }
+
+  .list-view .file-card .file-info-main {
+    flex: 3 1 0% !important;
+    min-width: 110px !important;
+  }
+
+  .list-view .file-name {
+    font-size: 12px !important;
+  }
+
+  .list-view .file-card .file-meta-mobile {
+    display: none !important;
+  }
+
+  .list-view .file-date {
+    flex: 1.8 1 0% !important;
+    min-width: 78px !important;
+    font-size: 10.5px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-size {
+    flex: 1.2 1 0% !important;
+    min-width: 55px !important;
+    font-size: 10.5px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-shared {
+    flex: 1.5 1 0% !important;
+    min-width: 70px !important;
+    text-align: left !important;
+  }
+
+  .list-view .file-shared .shared-badge {
+    font-size: 9.5px !important;
+    padding: 2px 4px !important;
+  }
+
+  .list-view .file-card .more-options {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    align-self: center !important;
+    margin: auto 0 !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+    height: 24px !important;
+    flex: 0 0 24px !important;
+    font-size: 13px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
 }

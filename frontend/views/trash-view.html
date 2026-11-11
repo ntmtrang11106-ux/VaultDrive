@@ -1,5 +1,17 @@
-<!-- Thông tin tổng quan (VD: "6 tệp · Tự động xóa sau 30 ngày") - JS sẽ điền vào -->
-<div class="trash-header-info" id="trash-header-info">
+<!-- Thanh tiêu đề Thùng rác: Thông tin tổng quan bên trái + Nút Xóa/Khôi phục theo lô bên phải -->
+<div class="trash-header-row" id="trash-header-row">
+  <div class="trash-header-info" id="trash-header-info">
+  </div>
+  <div class="trash-header-actions" id="trash-header-actions">
+    <button type="button" class="btn-trash-batch-restore" id="btnBatchRestore" style="display: none;" onclick="restoreSelectedTrashItems()">
+      <i class="ph-bold ph-arrow-counter-clockwise"></i>
+      <span class="btn-text">Khôi phục</span>
+    </button>
+    <button type="button" class="btn-trash-batch-delete disabled" id="btnBatchDelete" onclick="deleteSelectedTrashItems()">
+      <i class="ph-bold ph-trash"></i>
+      <span class="btn-text">Xóa</span>
+    </button>
+  </div>
 </div>
 <div class="trash-list" id="trash-list">
 </div>

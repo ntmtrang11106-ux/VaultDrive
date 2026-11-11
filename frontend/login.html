@@ -12,6 +12,23 @@
     <link rel="stylesheet" href="css/auth.css" />
     <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Tự động chuyển thẳng vào Dashboard nếu trình duyệt đã đăng nhập tài khoản -->
+    <script>
+      (function () {
+        try {
+          var token = localStorage.getItem("jwt_token");
+          if (token) {
+            var role = localStorage.getItem("user_role");
+            var target =
+              role === "ROLE_ADMIN"
+                ? "dashboard.html?tab=soc"
+                : "dashboard.html";
+            window.location.replace(target);
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
 
   <body>
@@ -29,7 +46,7 @@
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
-                  d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.1325 20.176 10.2077 17.8596 10.0116C17.4326 6.64368 14.5683 4 11 4C7.13401 4 4 7.13401 4 11C4 11.2372 4.01174 11.4716 4.03454 11.7027C2.29063 12.1818 1 13.784 1 15.6667C1 17.8758 2.79086 19.6667 5 19.6667H17.5Z"
+                  d="M17.5 19C19.9853 19 22 16.9853 22 14.5C22 12.1325 20.176 10.2077 17.8596 10.0116C17.4326 6.64368 14.5683 4 11 4C7.13401 4 4 7.13401 4 11C4 11.2372 4.01174 11.4716 4.03454 11.7027C2.29063 12.1818 1 13.784 1 15.6667C1 17.5076 2.79086 19 5 19H17.5Z"
                   stroke="white"
                   stroke-width="2"
                   stroke-linecap="round"
@@ -72,7 +89,10 @@
                 required
                 placeholder="Nhập mật khẩu của bạn"
               />
-              <i class="ph ph-eye password-toggle" onclick="togglePasswordVisibility('password', this)"></i>
+              <i
+                class="ph ph-eye password-toggle"
+                onclick="togglePasswordVisibility('password', this)"
+              ></i>
             </div>
             <span class="field-error" id="passwordError"></span>
           </div>

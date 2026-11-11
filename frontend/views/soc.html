@@ -1,5 +1,4 @@
 <div class="soc-wrapper">
-  
   <!-- 1. THANH ĐIỀU KHIỂN TRÊN CÙNG -->
   <div class="soc-toolbar">
     <div class="soc-toolbar-left">
@@ -8,47 +7,21 @@
         <span class="soc-status-dot"></span> WAF 2 Lớp: Đang bảo vệ
       </span>
     </div>
-
-    <div class="soc-toolbar-right">
-      <div class="soc-timepicker">
-        <button type="button" class="soc-tp-btn" id="socTimePrevBtn" title="Mở rộng khoảng thời gian">
-          <i class="ph-bold ph-caret-double-left"></i>
-        </button>
-        <div class="soc-tp-select-box">
-          <i class="ph-bold ph-clock" style="color: #2563eb;"></i>
-          <select id="socTimeRangeSelect">
-            <option value="now-5m" selected>Last 5 minutes</option>
-            <option value="now-15m">Last 15 minutes</option>
-            <option value="now-30m">Last 30 minutes</option>
-            <option value="now-1h">Last 1 hour</option>
-            <option value="now-6h">Last 6 hours</option>
-            <option value="now-24h">Last 24 hours</option>
-          </select>
-        </div>
-        <button type="button" class="soc-tp-btn" id="socTimeNextBtn" title="Thu hẹp khoảng thời gian">
-          <i class="ph-bold ph-caret-double-right"></i>
-        </button>
-      </div>
-
-      <button type="button" class="soc-refresh-btn" id="socRefreshBtn">
-        <i class="ph-bold ph-arrows-clockwise"></i>
-        <span>Làm mới (5s)</span>
-      </button>
-    </div>
   </div>
 
   <!-- 2. DẢI 4 THẺ KPI NẰM THẲNG 1 HÀNG NGANG -->
   <div class="soc-kpi-row">
-    
     <!-- Card 1: Tổng tấn công đã chặn -->
     <div class="soc-kpi-card danger">
       <div class="soc-kpi-header">
         <span class="soc-kpi-title">Tấn công đã chặn</span>
-        <div class="soc-kpi-icon" style="background: #fef2f2; color: #ef4444;">
+        <div class="soc-kpi-icon" style="background: #fef2f2; color: #ef4444">
           <i class="ph-fill ph-shield-warning"></i>
         </div>
       </div>
-      <div class="soc-kpi-num" id="socTotalBlocked" style="color: #dc2626;">0</div>
+      <div class="soc-kpi-num" id="socTotalBlocked" style="color: #dc2626">
+        0
+      </div>
       <div class="soc-tag-group">
         <span class="soc-mini-tag">SQLi: <b id="socCntSqli">0</b></span>
         <span class="soc-mini-tag">XSS: <b id="socCntXss">0</b></span>
@@ -61,23 +34,29 @@
     <div class="soc-kpi-card warning">
       <div class="soc-kpi-header">
         <span class="soc-kpi-title">IP Bị khóa (Blacklist)</span>
-        <div class="soc-kpi-icon" style="background: #fffbeb; color: #f59e0b;">
+        <div class="soc-kpi-icon" style="background: #fffbeb; color: #f59e0b">
           <i class="ph-fill ph-prohibit"></i>
         </div>
       </div>
-      <div class="soc-kpi-num" id="socBlacklistedIps" style="color: #d97706;">0 IP</div>
-      <div class="soc-kpi-desc">Khóa tự động khi <b>&ge; 5 lần</b> gửi mã độc</div>
+      <div class="soc-kpi-num" id="socBlacklistedIps" style="color: #d97706">
+        0 IP
+      </div>
+      <div class="soc-kpi-desc">
+        Khóa tự động khi <b>&ge; 5 lần</b> gửi mã độc
+      </div>
     </div>
 
     <!-- Card 3: Kiểm tra mã băm SHA-256 -->
     <div class="soc-kpi-card primary">
       <div class="soc-kpi-header">
         <span class="soc-kpi-title">Toàn vẹn File (SHA-256)</span>
-        <div class="soc-kpi-icon" style="background: #eff6ff; color: #2563eb;">
+        <div class="soc-kpi-icon" style="background: #eff6ff; color: #2563eb">
           <i class="ph-fill ph-file-lock"></i>
         </div>
       </div>
-      <div class="soc-kpi-num" id="socIntegrityRate" style="color: #2563eb;">100%</div>
+      <div class="soc-kpi-num" id="socIntegrityRate" style="color: #2563eb">
+        100%
+      </div>
       <div class="soc-kpi-desc">Luồng Chunk Upload: <b>5.000 req/10s</b></div>
     </div>
 
@@ -85,24 +64,25 @@
     <div class="soc-kpi-card success">
       <div class="soc-kpi-header">
         <span class="soc-kpi-title">Lưu lượng &amp; Hệ thống</span>
-        <div class="soc-kpi-icon" style="background: #ecfdf5; color: #10b981;">
+        <div class="soc-kpi-icon" style="background: #ecfdf5; color: #10b981">
           <i class="ph-fill ph-activity"></i>
         </div>
       </div>
-      <div class="soc-kpi-num" id="socTotalRequests" style="color: #059669;">0 req</div>
+      <div class="soc-kpi-num" id="socTotalRequests" style="color: #059669">
+        0 req
+      </div>
       <div class="soc-kpi-desc">Nginx (Lớp 1) &bull; Spring WAF (Lớp 2)</div>
     </div>
-
   </div>
 
   <!-- 3. BIỂU ĐỒ GRAFANA NỀN SÁNG (ĐÃ SỬA ĐÚNG URL UID: vaultdrive-soc-main HOẶC prometheus) -->
   <div class="soc-grafana-box">
-    <iframe 
+    <iframe
       id="socGrafanaIframe"
       class="soc-grafana-iframe"
       src="/soc/d/vaultdrive-soc-main/vaultdrive-soc-and-performance-dashboard?orgId=1&from=now-5m&to=now&timezone=browser&refresh=5s&theme=light&kiosk"
-      title="VaultDrive SOC Grafana">
+      title="VaultDrive SOC Grafana"
+    >
     </iframe>
   </div>
-
 </div>

@@ -15,12 +15,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- === CÁC FILE CSS: Tải theo thứ tự ưu tiên từ chung → cụ thể === -->
-  <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/dashboard.css" />
-  <link rel="stylesheet" href="css/file-actions.css" />
-  <link rel="stylesheet" href="css/trash.css?v=2.3" />
+  <link rel="stylesheet" href="css/layout.css?v=3.2" />
+  <link rel="stylesheet" href="css/dashboard.css?v=3.8" />
+  <link rel="stylesheet" href="css/file-actions.css?v=3.7" />
+  <link rel="stylesheet" href="css/trash.css?v=2.7" />
   <link rel="stylesheet" href="css/soc.css" />
-  <link rel="stylesheet" href="css/settings.css" />
+  <link rel="stylesheet" href="css/settings.css?v=2.2" />
 
   <!-- Kích hoạt ngay chế độ xem trước độc lập (không hiện dashboard phía dưới) nếu URL có token hoặc fileId -->
   <script>
@@ -58,10 +58,12 @@
 
           <!-- Header dạng danh sách 3 sọc ngang (List View) -->
           <div class="list-header">
+            <div class="col-icon"></div>
             <div class="col-name">TÊN</div>
             <div class="col-date">NGÀY SỬA</div>
             <div class="col-size">KÍCH THƯỚC</div>
             <div class="col-shared">CHIA SẺ</div>
+            <div class="col-actions"></div>
           </div>
         </div>
 
@@ -107,6 +109,10 @@
         <p id="dropzoneSubtitle">
           hoặc <a href="#" id="browseFileBtn">duyệt từ máy tính</a>
         </p>
+        <div class="upload-limit-note" id="uploadLimitNote">
+          <i class="ph-bold ph-info"></i>
+          <span>Tệp tối đa: <strong>4 GB</strong> &middot; Thư mục theo dung lượng trống tài khoản</span>
+        </div>
         <!-- Input file ẩn (multiple: cho chọn nhiều file cùng lúc) -->
         <input type="file" id="fileInput" multiple style="display: none" />
         <!-- Input folder ẩn (webkitdirectory: cho chọn cả thư mục) -->
@@ -496,28 +502,18 @@
     </div>
   </template>
 
-  <!-- Template: Xem & Chỉnh sửa Text & Mã nguồn (TXT, MD, JSON, JS, HTML, CSS, PY...) -->
+  <!-- Template: Xem Text & Mã nguồn (TXT, MD, JSON, JS, HTML, CSS, PY...) -->
   <template id="tmpl-preview-text">
     <div class="preview-media-wrapper preview-text-wrapper">
       <div class="preview-text-header">
         <div class="preview-text-header-left">
           <span class="preview-text-badge" id="previewTextBadge">TXT</span>
           <span class="preview-text-stats" id="previewTextStats">0 dòng</span>
-          <span class="preview-text-dirty-badge" id="previewTextDirty" style="display: none;">• Chưa lưu</span>
         </div>
         <div class="preview-text-header-actions">
           <button class="btn-preview-text-tool" id="previewCopyCodeBtn" type="button">
             <i class="ph-bold ph-copy"></i>
             <span>Sao chép</span>
-          </button>
-          <button class="btn-preview-text-tool btn-preview-text-edit" id="previewToggleEditBtn" type="button">
-            <i class="ph-bold ph-pencil-simple"></i>
-            <span id="previewEditModeText">Chỉnh sửa</span>
-          </button>
-          <button class="btn-preview-text-tool btn-preview-text-save" id="previewSaveCodeBtn" type="button"
-            style="display: none;">
-            <i class="ph-bold ph-floppy-disk"></i>
-            <span>Lưu thay đổi</span>
           </button>
         </div>
       </div>
@@ -525,8 +521,6 @@
         <div class="preview-code-lines" id="previewCodeLines"></div>
         <pre class="preview-text-pre"
           id="previewTextPre"><code class="preview-text-code" id="previewTextCode"></code></pre>
-        <textarea class="preview-text-editor" id="previewTextEditor" spellcheck="false" style="display: none;"
-          placeholder="Nhập nội dung văn bản..."></textarea>
       </div>
     </div>
   </template>
@@ -554,9 +548,6 @@
   <!-- Template: Thẻ tệp tin (File Card) -->
   <template id="tmpl-file-card">
     <div class="file-card">
-      <div class="more-options">
-        <i class="ph-bold ph-dots-three-vertical"></i>
-      </div>
       <div class="file-icon-box">
         <i class="ph-fill"></i>
       </div>
@@ -572,6 +563,9 @@
       <div class="file-meta-col file-size"></div>
       <div class="file-meta-col file-shared">
         <span class="shared-badge"></span>
+      </div>
+      <div class="more-options">
+        <i class="ph-bold ph-dots-three-vertical"></i>
       </div>
     </div>
   </template>
@@ -600,11 +594,11 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
-  <script src="js/layout.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/file-actions.js?v=2.2"></script>
-  <script src="js/trash.js"></script>
-  <script src="js/settings.js"></script>
+  <script src="js/layout.js?v=2.7"></script>
+  <script src="js/dashboard.js?v=2.6"></script>
+  <script src="js/file-actions.js?v=3.5"></script>
+  <script src="js/trash.js?v=2.5"></script>
+  <script src="js/settings.js?v=2.4"></script>
   <script src="js/soc.js"></script>
 </body>
 

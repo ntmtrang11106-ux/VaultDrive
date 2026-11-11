@@ -17,6 +17,11 @@
       <span class="brand">VaultDrive</span>
       <span class="sub">LƯU TRỮ BẢO MẬT</span>
     </h1>
+
+    <!-- Nút đóng Sidebar trên mobile -->
+    <button class="mobile-sidebar-close" id="mobileSidebarClose" type="button" title="Đóng menu">
+      <i class="ph-bold ph-x"></i>
+    </button>
   </header>
 
   <!-- === NÚT TẢI LÊN (có dropdown chọn file hoặc thư mục) === -->
@@ -117,11 +122,19 @@
   <div class="sidebar-resizer" id="sidebarResizer"></div>
 </aside>
 
+<!-- Lớp phủ mờ (Backdrop overlay) khi mở Sidebar trên mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- ================================================================
      HEADER - Thanh tiêu đề trên cùng (top bar)
 ================================================================ -->
 <header class="top-header" id="top-header">
   <div class="header-left">
+    <!-- Nút Menu 3 gạch mở Sidebar trên mobile -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" title="Mở danh mục" type="button">
+      <i class="ph-bold ph-list"></i>
+    </button>
+
     <!-- === KHU VỰC LOGO ADMIN (Chỉ hiển thị khi đăng nhập quyền ROLE_ADMIN) === -->
     <div class="admin-logo-area" id="adminLogoArea" title="Bấm để quay lại Quản trị SOC">
       <div class="logo-icon">
@@ -145,7 +158,7 @@
     <!-- Thanh tìm kiếm file -->
     <div class="search-bar">
       <i class="ph ph-magnifying-glass"></i><!-- Icon kính lúp -->
-      <input type="text" id="searchInput" name="search" autocomplete="off" placeholder="Tìm kiếm tệp..." />
+      <input type="search" id="searchInput" name="vaultdrive_search" autocomplete="off" placeholder="Tìm kiếm tệp..." />
     </div>
 
     <!-- Nút chuyển đổi chế độ hiển thị: Grid View ⟷ List View -->

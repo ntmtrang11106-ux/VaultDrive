@@ -1,4 +1,9 @@
-/* Khai báo các biến màu sắc, nền và chữ dùng chung cho toàn dự án để dễ dàng đồng bộ */
+/* ==========================================================================
+   VaultDrive - Authentication Stylesheet (Login, Register, Forgot Password)
+   Hỗ trợ hoàn hảo Responsive đa màn hình (Desktop, Laptop, Tablet, Mobile)
+   ========================================================================== */
+
+/* Khai báo các biến màu sắc, nền và chữ dùng chung cho toàn dự án */
 :root {
   --primary-color: #1a73e8;
   /* Màu xanh dương chủ đạo của Google/VaultDrive */
@@ -22,48 +27,53 @@
   /* Màu nền của ô nhập liệu */
 }
 
-/* Reset CSS cơ bản: xóa padding/margin mặc định của trình duyệt để dễ thiết kế */
+/* Reset CSS cơ bản */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Tùy chỉnh thẻ body: chiếm toàn bộ màn hình, căn giữa nội dung */
+/* Tùy chỉnh thẻ body: hỗ trợ cuộn mượt và căn giữa an toàn cho mọi màn hình */
 body {
   font-family: "Inter", sans-serif;
   background: var(--bg-color);
   color: var(--text-main);
   min-height: 100vh;
-  /* Chiều cao tối thiểu 100% màn hình */
+  min-height: 100dvh; /* Chiều cao thích ứng trên mobile Safari/Chrome khi có thanh công cụ */
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  padding: 28px 16px;
+  overflow-x: hidden;
 }
 
 /* Khung chứa giới hạn chiều rộng tối đa */
 .auth-container {
   width: 100%;
-  max-width: 420px;
-  padding: 20px;
+  max-width: 440px;
+  margin: auto; /* Căn giữa hoàn hảo và chống bị cắt đầu khi nội dung dài hơn màn hình */
+  padding: 0;
+  transition: max-width 0.3s ease;
 }
 
 /* Khung trắng hiển thị form đăng nhập/đăng ký */
 .auth-box {
   background: var(--box-bg);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 40px 30px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-  animation: slideUp 0.5s ease-out;
+  border-radius: 18px;
+  padding: 38px 32px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -71,7 +81,7 @@ body {
 }
 
 .auth-header {
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 /* --- PHẦN LOGO --- */
@@ -83,18 +93,20 @@ body {
 }
 
 .logo-icon {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   background-color: var(--primary-color);
-  border-radius: 14px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(26, 115, 232, 0.25);
 }
 
 .logo-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 .logo-text {
@@ -102,7 +114,7 @@ body {
 }
 
 .logo-text h1 {
-  font-size: 24px;
+  font-size: 23px;
   font-weight: 700;
   color: #1f2937;
   margin: 0;
@@ -110,101 +122,128 @@ body {
 }
 
 .logo-text p {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: #60a5fa;
+  color: var(--primary-color);
   margin: 0;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
 /* --- PHẦN FORM NHẬP LIỆU --- */
+.auth-form {
+  width: 100%;
+}
+
 /* Khoảng cách giữa các ô nhập */
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-group label {
   display: block;
   font-size: 13px;
-  font-weight: 500;
-  /* In đậm chữ */
-  margin-bottom: 8px;
-  color: #000000;
-  /* Màu đen tuyền */
+  font-weight: 600;
+  margin-bottom: 7px;
+  color: #1e293b;
+  line-height: 1.3;
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
-  padding: 12px 16px;
+  height: 44px;
+  padding: 10px 14px;
   background: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   color: var(--text-main);
   font-size: 14px;
   font-family: inherit;
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  line-height: normal;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Style riêng cho trường ngày sinh (input type="date") */
+.form-group input[type="date"] {
+  min-height: 44px;
+  cursor: pointer;
+  color: #1e293b;
+}
+
+/* Style riêng cho trường lựa chọn (select) có icon mũi tên đồng bộ */
+.form-group select {
+  cursor: pointer;
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 256 256'%3E%3Cpath d='M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px 14px;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
   border-color: var(--primary-color);
-  /* Chuyển sang màu xanh dương nhạt (giống màu chủ đạo)*/
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18);
 }
 
 /* --- PHẦN NÚT BẤM (BUTTON) --- */
 .btn-primary {
   width: 100%;
-  padding: 12px;
+  height: 46px;
+  padding: 0 16px;
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 9px;
   font-size: 15px;
   font-weight: 600;
-  /* Chuột đổi thành hình bàn tay khi di chuột vào */
   cursor: pointer;
-  /* Hiệu ứng chuyển động mượt mà */
-  transition:
-    background 0.3s ease,
-    transform 0.1s ease;
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
   overflow: hidden;
+  margin-top: 6px;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.25);
 }
 
 .btn-primary:hover {
   background: var(--primary-hover);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.35);
 }
 
 .btn-primary:active {
-  transform: scale(0.98);
+  transform: translateY(1px);
+  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.2);
 }
 
 .btn-primary:disabled {
-  opacity: 0.7;
+  opacity: 0.65;
   cursor: not-allowed;
+  transform: none;
 }
 
 .auth-footer {
-  margin-top: 24px;
+  margin-top: 22px;
   text-align: center;
-  font-size: 14px;
+  font-size: 13.5px;
   color: var(--text-muted);
 }
 
-/* Định dạng chữ "Đăng nhập tại đây" là thẻ link <a> */
 .auth-footer a {
   color: var(--primary-color);
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.3s ease;
+  font-weight: 600;
+  transition: color 0.2s ease;
 }
 
 .auth-footer a:hover {
@@ -212,15 +251,17 @@ body {
   text-decoration: underline;
 }
 
+/* Nút "Quên mật khẩu?" */
 .forgot-link {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--primary-color);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.3s ease;
+  transition: color 0.2s ease;
   position: absolute;
   right: 0;
   top: 0;
+  line-height: 1.3;
 }
 
 .forgot-link:hover {
@@ -238,17 +279,24 @@ body {
   padding-right: 44px;
 }
 
+/* Nút con mắt ẩn hiện mật khẩu - mở rộng diện tích chạm (Hit area) để bấm trên điện thoại dễ dàng */
 .password-toggle {
   position: absolute;
-  right: 14px;
+  right: 4px;
   top: 50%;
   transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #94a3b8;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 19px;
   transition: color 0.2s ease;
   z-index: 2;
   user-select: none;
+  border-radius: 50%;
 }
 
 .password-toggle:hover {
@@ -256,43 +304,57 @@ body {
 }
 
 /* --- PHẦN HIỂN THỊ THÔNG BÁO VÀ LOADING --- */
-/* Chữ thông báo lỗi màu đỏ */
 .error-message {
   color: var(--error-color);
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 13px;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   text-align: center;
   display: none;
+  line-height: 1.4;
 }
 
-/* Chữ thông báo lỗi ngay dưới từng ô nhập */
 .field-error {
   color: var(--error-color);
   font-size: 12px;
-  margin-top: 6px;
+  margin-top: 5px;
   display: none;
   text-align: left;
+  line-height: 1.3;
 }
 
-/* Đổi màu viền và nền ô nhập khi có lỗi */
-.form-group input.input-error {
+.form-group input.input-error,
+.form-group select.input-error {
   border-color: var(--error-color);
   background-color: #fef2f2;
 }
 
+.form-group input.input-error:focus,
+.form-group select.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+}
+
 .success-message {
   color: var(--success-color);
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 10px 14px;
   font-size: 13px;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   text-align: center;
   display: none;
+  line-height: 1.4;
 }
 
 .loader {
   display: none;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-radius: 50%;
   border-top-color: white;
   animation: spin 0.8s ease-in-out infinite;
@@ -311,4 +373,155 @@ body {
 
 .loading .loader {
   display: block;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN BREAKPOINTS CHO TỪNG LOẠI THIẾT BỊ
+   ========================================================================== */
+
+/* 1. Màn hình Tablet & Thiết bị di động vừa (max-width: 768px) */
+@media (max-width: 768px) {
+  body {
+    padding: 20px 14px;
+  }
+
+  /* Đảm bảo cỡ chữ trong ô input >= 16px trên mobile để Safari iOS không tự động phóng to (auto-zoom) */
+  .form-group input,
+  .form-group select {
+    font-size: 16px;
+    height: 46px;
+  }
+
+  .auth-box {
+    padding: 32px 24px;
+    border-radius: 16px;
+  }
+}
+
+/* 2. Màn hình Điện thoại di động tiêu chuẩn (max-width: 480px) */
+@media (max-width: 480px) {
+  body {
+    padding: 16px 12px;
+  }
+
+  .auth-box {
+    padding: 26px 18px;
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+
+  .auth-header {
+    margin-bottom: 22px;
+  }
+
+  .logo-container {
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+
+  .logo-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .logo-text h1 {
+    font-size: 21px;
+  }
+
+  .logo-text p {
+    font-size: 11px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .forgot-link {
+    font-size: 12.5px;
+  }
+
+  .btn-primary {
+    height: 45px;
+    font-size: 14.5px;
+  }
+
+  .auth-footer {
+    font-size: 13px;
+    margin-top: 20px;
+  }
+}
+
+/* 3. Màn hình Điện thoại nhỏ / Màn hình gập hẹp (max-width: 360px)
+   (VD: Galaxy Z Fold cover screen 320px, iPhone SE 1st gen 320px) */
+@media (max-width: 360px) {
+  body {
+    padding: 10px 8px;
+  }
+
+  .auth-box {
+    padding: 20px 14px;
+    border-radius: 12px;
+  }
+
+  .auth-header {
+    margin-bottom: 18px;
+  }
+
+  .logo-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+  }
+
+  .logo-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .logo-text h1 {
+    font-size: 19px;
+  }
+
+  .logo-text p {
+    font-size: 10px;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    font-size: 12.5px;
+  }
+
+  .forgot-link {
+    font-size: 12px;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 8px 12px;
+    height: 42px;
+  }
+
+  .btn-primary {
+    height: 42px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  .auth-footer {
+    font-size: 12.5px;
+    margin-top: 16px;
+  }
 }

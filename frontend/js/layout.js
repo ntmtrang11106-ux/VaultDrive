@@ -81,12 +81,74 @@ function initLayoutEvents() {
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-      // Xóa token và chuyển hướng về trang đăng nhập
+      // Xóa toàn bộ token và thông tin phiên làm việc
       localStorage.removeItem("jwt_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("user_role");
+      localStorage.removeItem("user_fullname");
       localStorage.removeItem("mock_user_profile");
       window.location.href = "login.html";
     });
   }
+
+  // --- ĐỒNG BỘ TRẠNG THÁI PHIÊN GIỮA CÁC TAB (Cross-Tab Synchronization) ---
+  window.addEventListener("storage", function (e) {
+    // 1. Nếu một tab khác vừa bấm Đăng xuất -> tab này cũng chuyển về login ngay lập tức
+    if (e.key === "jwt_token" && !e.newValue) {
+      window.location.href = "login.html";
+    }
+    // 2. Nếu một tab khác đổi tài khoản -> tab này tải lại để cập nhật đồng bộ
+    else if (e.key === "jwt_token" && e.newValue && e.newValue !== e.oldValue) {
+      window.location.reload();
+    }
+  });
+
+  // --- CHỨC NĂNG MỞ / ĐÓNG SIDEBAR TRÊN MOBILE ---
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const sidebarEl = document.querySelector('.sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const mobileSidebarClose = document.getElementById('mobileSidebarClose');
+
+  function openMobileSidebar() {
+    if (sidebarEl) sidebarEl.classList.add('mobile-open');
+    if (sidebarOverlay) sidebarOverlay.classList.add('active');
+    document.body.classList.add('sidebar-mobile-active');
+  }
+
+  function closeMobileSidebar() {
+    if (sidebarEl) sidebarEl.classList.remove('mobile-open');
+    if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+    document.body.classList.remove('sidebar-mobile-active');
+  }
+
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openMobileSidebar();
+    });
+  }
+
+  if (mobileSidebarClose) {
+    mobileSidebarClose.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeMobileSidebar();
+    });
+  }
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', function () {
+      closeMobileSidebar();
+    });
+  }
+
+  // Tự động đóng sidebar khi người dùng chọn một mục trong menu trên mobile
+  document.querySelectorAll('#main-nav-menu .nav-item').forEach(function (item) {
+    item.addEventListener('click', function () {
+      if (window.innerWidth <= 768) {
+        closeMobileSidebar();
+      }
+    });
+  });
 
   // --- CHỨC NĂNG RESIZE SIDEBAR & CON TRỎ CHUỘT MÀU ĐEN ---
   const sidebar = document.querySelector('.sidebar');
@@ -179,35 +241,89 @@ function initLayoutEvents() {
   // Thực thi hàm vẽ storage ngay khi layout load xong
   if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
 
-  // Đọc thông tin user từ localStorage và cập nhật lên Sidebar
-  function renderUserInfo() {
+  // Đọc thông tin user từ localStorage / backend và cập nhật lên Sidebar & Header
+  window.renderUserInfo = async function renderUserInfo() {
     const userNameEl = document.getElementById("userName");
     const userEmailEl = document.getElementById("userEmail");
     const userAvatarEl = document.getElementById("userAvatar");
 
-    if (!userNameEl || !userEmailEl || !userAvatarEl) return;
-
     const savedProfileStr = localStorage.getItem("mock_user_profile");
+    const savedFullName = localStorage.getItem("user_fullname");
     const fallbackEmail = localStorage.getItem("user_email") || "nguoidung@congty.vn";
-    let fullName = "Người dùng";
+    let fullName = savedFullName || "Người dùng";
     let email = fallbackEmail;
 
     if (savedProfileStr) {
       try {
         const profile = JSON.parse(savedProfileStr);
-        fullName = profile.fullName || fullName;
+        fullName = profile.fullName || savedFullName || fullName;
         email = profile.email || email;
       } catch (e) { }
-    } else {
+    } else if (!savedFullName) {
       fullName = email.split('@')[0];
     }
 
-    userNameEl.textContent = fullName;
-    userEmailEl.textContent = email;
-    userAvatarEl.textContent = fullName.substring(0, 2).toUpperCase();
-  }
+    const applyUI = (name, mail) => {
+      const initials = (
+        name.includes(" ")
+          ? name
+              .split(" ")
+              .filter(Boolean)
+              .map((w) => w[0])
+              .join("")
+              .slice(0, 2)
+          : name.substring(0, 2)
+      ).toUpperCase() || "U";
 
-  renderUserInfo();
+      if (userNameEl) userNameEl.textContent = name;
+      if (userEmailEl) userEmailEl.textContent = mail;
+      if (userAvatarEl) userAvatarEl.textContent = initials;
+
+      // Cập nhật Header Admin nếu có
+      const topNameEl = document.getElementById("adminTopName");
+      const dropNameEl = document.getElementById("adminDropdownName");
+      const topAvatarEl = document.getElementById("adminTopAvatar");
+      const dropAvatarEl = document.getElementById("adminDropdownAvatar");
+      if (topNameEl) topNameEl.textContent = name;
+      if (dropNameEl) dropNameEl.textContent = "Quản trị viên (" + name + ")";
+      if (topAvatarEl) topAvatarEl.textContent = initials;
+      if (dropAvatarEl) dropAvatarEl.textContent = initials;
+    };
+
+    // 1. Áp dụng ngay thông tin đang có trong bộ nhớ
+    applyUI(fullName, email);
+
+    // 2. Tự động đồng bộ với Backend API /users/me để lấy Họ và tên thật mới nhất
+    const token = localStorage.getItem("jwt_token");
+    if (token) {
+      try {
+        let res = null;
+        if (typeof window.fetchWithAuth === "function") {
+          res = await window.fetchWithAuth("/users/me");
+        } else {
+          res = await fetch("http://localhost:8080/api/users/me", {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          });
+        }
+        if (res && res.ok) {
+          const uData = await res.json();
+          if (uData && uData.fullName) {
+            localStorage.setItem("user_fullname", uData.fullName);
+            const curProfile = JSON.parse(localStorage.getItem("mock_user_profile") || "{}");
+            localStorage.setItem("mock_user_profile", JSON.stringify({ ...curProfile, ...uData }));
+            applyUI(uData.fullName, uData.email || email);
+          }
+        }
+      } catch (err) {
+        // Bỏ qua lỗi kết nối
+      }
+    }
+  };
+
+  window.renderUserInfo();
 
   // --- CHỨC NĂNG TÌM KIẾM FILE & FOLDER (Search Bar) ---
   const searchInput = document.getElementById("searchInput") || document.querySelector(".search-bar input");
@@ -215,6 +331,11 @@ function initLayoutEvents() {
     let searchDebounceTimer = null;
 
     searchInput.addEventListener("input", function (e) {
+      // Khi đang ở tab Cài đặt hoặc Thùng rác, không kích hoạt tìm kiếm file
+      if (window.currentViewType === "settings" || window.currentViewType === "trash") {
+        return;
+      }
+
       clearTimeout(searchDebounceTimer);
       const query = e.target.value.trim();
 
@@ -261,10 +382,9 @@ function initLayoutEvents() {
               if (gridFiles) gridFiles.style.display = "";
             }
 
-            // Cập nhật Breadcrumb thông báo kết quả tìm kiếm
-            const breadcrumbContainer = document.getElementById("breadcrumb-container");
-            if (breadcrumbContainer) {
-              breadcrumbContainer.innerHTML = `<span class="current">Kết quả tìm kiếm cho: "${query}"</span>`;
+            // Giữ nguyên Breadcrumb vị trí hiện tại, không hiển thị dòng "Kết quả tìm kiếm cho: ..."
+            if (typeof updateBreadcrumbUI === "function") {
+              updateBreadcrumbUI();
             }
 
             // Render kết quả tìm kiếm
@@ -282,11 +402,19 @@ function initLayoutEvents() {
         searchInput.value = "";
         window.isSearching = false;
         window.lastSearchResults = null;
+        searchInput.blur();
         if (typeof loadDashboardData === "function") {
           loadDashboardData(window.currentViewType || "home");
         }
       }
     });
+
+    const searchBar = document.querySelector(".search-bar");
+    if (searchBar) {
+      searchBar.addEventListener("click", function () {
+        searchInput.focus();
+      });
+    }
   }
 
   // Nếu dashboard.js đã load xong và có hàm initDashboardUI, gọi luôn
@@ -335,6 +463,12 @@ if (!isPreviewLayoutMode) {
         headerContainer.replaceWith(headerElement);
       }
 
+      // Đưa lớp phủ overlay vào body nếu có trong template
+      const overlayElement = tempDiv.querySelector('.sidebar-overlay');
+      if (overlayElement && !document.getElementById('sidebarOverlay')) {
+        document.body.appendChild(overlayElement);
+      }
+
       // Đảm bảo nếu đang là Admin thì hiển thị ngay lập tức Avatar Admin trên Header
       const currentRole = localStorage.getItem('user_role');
       const isSocUrl = window.location.search.includes('tab=soc');
@@ -354,6 +488,97 @@ if (!isPreviewLayoutMode) {
     });
 }
 
+
+// ================================================================
+// HÀM MỞ XEM TỆP HOẶC THƯ MỤC TỪ THÔNG BÁO (100% Client-side & API có sẵn)
+// Không cần sửa Entity / DTO hay Database
+// ================================================================
+async function openNotificationTarget(notif) {
+  if (!notif) return;
+
+  const content = notif.content || notif.message || '';
+  let extractedName = null;
+
+  // 1. Trích xuất tên tệp/thư mục từ nội dung thông báo
+  // Mẫu 1: File 'tên.ext' đã được tải lên... hoặc "tên.ext"
+  const quoteMatch = content.match(/['"‘“]([^'"’“”]+)['"’”]/);
+  if (quoteMatch && quoteMatch[1]) {
+    extractedName = quoteMatch[1].trim();
+  } else {
+    // Mẫu 2: "... đã chia sẻ [Tên tệp] với bạn"
+    const shareMatch = content.match(/đã chia sẻ\s+(.*?)\s+với bạn/i);
+    if (shareMatch && shareMatch[1]) {
+      extractedName = shareMatch[1].trim();
+    }
+  }
+
+  if (!extractedName) return;
+
+  // 2. Tìm ngay trong bộ nhớ cache frontend hiện tại (không cần gọi mạng)
+  const allFiles = [
+    ...(window.currentLoadedData?.files || []),
+    ...(Array.isArray(window.lastSharedData) ? window.lastSharedData : []),
+    ...(window.lastSharedData?.files || []),
+    ...(window.mockData?.files || [])
+  ];
+
+  let matchedFile = allFiles.find(f => {
+    const name = f.fileName || f.name || f.originalName;
+    return name && name.trim().toLowerCase() === extractedName.toLowerCase();
+  });
+
+  if (matchedFile && typeof window.openFilePreview === 'function') {
+    window.openFilePreview(matchedFile.fileId || matchedFile.id, matchedFile);
+    return;
+  }
+
+  // Kiểm tra nếu là thư mục trong bộ nhớ cache
+  const allFolders = [
+    ...(window.currentLoadedData?.folders || []),
+    ...(window.currentLoadedData?.subfolders || []),
+    ...(window.lastSharedData?.folders || []),
+    ...(window.mockData?.folders || [])
+  ];
+
+  let matchedFolder = allFolders.find(f => {
+    const name = f.folderName || f.name;
+    return name && name.trim().toLowerCase() === extractedName.toLowerCase();
+  });
+
+  if (matchedFolder && typeof window.openFolder === 'function') {
+    window.openFolder(matchedFolder.folderId || matchedFolder.id, matchedFolder.folderName || matchedFolder.name);
+    return;
+  }
+
+  // 3. Nếu chưa có trong cache: Sử dụng API tìm kiếm chuẩn có sẵn (/api/files/search)
+  try {
+    if (typeof fetchWithAuth === 'function') {
+      const res = await fetchWithAuth(`/files/search?q=${encodeURIComponent(extractedName)}`);
+      if (res && res.ok) {
+        const searchData = await res.json();
+        const files = searchData.files || [];
+        const folders = searchData.folders || [];
+
+        // Tìm file có tên khớp nhất
+        const targetFile = files.find(f => (f.fileName || f.name || '').trim().toLowerCase() === extractedName.toLowerCase()) || files[0];
+        if (targetFile && typeof window.openFilePreview === 'function') {
+          window.openFilePreview(targetFile.fileId || targetFile.id, targetFile);
+          return;
+        }
+
+        // Hoặc thư mục nếu là thông báo thư mục
+        const targetFolder = folders.find(f => (f.name || f.folderName || '').trim().toLowerCase() === extractedName.toLowerCase()) || folders[0];
+        if (targetFolder && typeof window.openFolder === 'function') {
+          window.openFolder(targetFolder.id || targetFolder.folderId, targetFolder.name || targetFolder.folderName);
+          return;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Lỗi khi tìm kiếm tệp từ thông báo:", err);
+  }
+}
+window.openNotificationTarget = openNotificationTarget;
 
 // ================================================================
 // HÀM LẤY THÔNG BÁO TỪ BACKEND VÀ RENDER VÀO DROPDOWN
@@ -455,38 +680,42 @@ window.fetchNotifications = async function () {
     const formatTimeFn = window.formatSmartDate || (typeof formatSmartDate === 'function' ? formatSmartDate : null);
     itemNode.querySelector('.notif-time').textContent = formatTimeFn ? formatTimeFn(notif.createdAt) : (notif.createdAt || 'Vừa xong');
 
-    // Xử lý sự kiện click từng thông báo để đánh dấu đã đọc
+    // Xử lý sự kiện click từng thông báo để đánh dấu đã đọc và chuyển đến xem tệp
     itemNode.addEventListener('click', async (e) => {
-      // Nếu là thông báo chưa đọc
+      // 1. Đánh dấu đã đọc nếu là thông báo chưa đọc
       if (itemNode.classList.contains('unread')) {
         try {
-          const res = await fetchWithAuth(`/notifications/${notif.id}/read`, { method: "PATCH" });
-          if (res && res.ok) {
-            // Cập nhật UI cho thông báo này
-            itemNode.classList.remove('unread');
-            const dot = itemNode.querySelector('.unread-dot');
-            if (dot) dot.remove();
+          fetchWithAuth(`/notifications/${notif.id}/read`, { method: "PATCH" });
+          itemNode.classList.remove('unread');
+          const dot = itemNode.querySelector('.unread-dot');
+          if (dot) dot.remove();
 
-            // Cập nhật số lượng trên chuông
-            const indicatorEl = document.querySelector('#notificationBtn .indicator');
-            const badgeEl = document.querySelector('.notif-badge');
+          // Cập nhật số lượng trên chuông
+          const indicatorEl = document.querySelector('#notificationBtn .indicator');
+          const badgeEl = document.querySelector('.notif-badge');
 
-            let currentCount = parseInt(indicatorEl?.textContent || '0', 10);
-            if (currentCount > 0) {
-              currentCount--;
-              if (currentCount === 0) {
-                if (indicatorEl) indicatorEl.style.display = 'none';
-                if (badgeEl) badgeEl.style.display = 'none';
-              } else {
-                if (indicatorEl) indicatorEl.textContent = currentCount;
-                if (badgeEl) badgeEl.textContent = currentCount;
-              }
+          let currentCount = parseInt(indicatorEl?.textContent || '0', 10);
+          if (currentCount > 0) {
+            currentCount--;
+            if (currentCount === 0) {
+              if (indicatorEl) indicatorEl.style.display = 'none';
+              if (badgeEl) badgeEl.style.display = 'none';
+            } else {
+              if (indicatorEl) indicatorEl.textContent = currentCount;
+              if (badgeEl) badgeEl.textContent = currentCount;
             }
           }
         } catch (err) {
           console.error("Lỗi khi đánh dấu đã đọc 1 thông báo:", err);
         }
       }
+
+      // 2. Tự động đóng dropdown thông báo khi click
+      const notifDropdown = document.getElementById('notificationDropdown');
+      if (notifDropdown) notifDropdown.classList.remove('show');
+
+      // 3. Chuyển đến xem tệp đó luôn
+      await openNotificationTarget(notif);
     });
 
     // Ẩn các thông báo từ vị trí thứ 6 trở đi
