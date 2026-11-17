@@ -18,11 +18,13 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -31,17 +33,25 @@ public class SecurityMetricsFilter extends OncePerRequestFilter {
     private final MeterRegistry meterRegistry;
     private final SecurityLogRepository securityLogRepository;
 
-    // Tách riêng 2 bộ đếm tần suất trong khung 10 giây:
-    // 1. Bộ đếm cho các API thông thường (Ngưỡng: 60 req / 10s)
+    // Bộ đếm DDoS (Rate Limiting)
     private final Map<String, AtomicInteger> normalRequestCounts = new ConcurrentHashMap<>();
-    // 2. Bộ đếm riêng cho luồng Upload Chunk / Thư mục lớn (Ngưỡng: 3000 req / 10s)
     private final Map<String, AtomicInteger> uploadRequestCounts = new ConcurrentHashMap<>();
     private volatile long windowStart = System.currentTimeMillis();
 
-    // Danh sách đen động (Chỉ đếm các lỗi tấn công cố ý: SQLi, XSS, Path Traversal)
-    private final Map<String, AtomicInteger> maliciousViolationCounts = new ConcurrentHashMap<>();
-    private final Set<String> blacklistedIps = ConcurrentHashMap.newKeySet();
-    private static final int BLACKLIST_THRESHOLD = 5;
+    // Đồng bộ ID Grafana
+    private final Set<Long> syncedIds = ConcurrentHashMap.newKeySet();
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    // Regex tối ưu (Chống bắt nhầm tên file)
+    private static final Pattern SQLI_PATTERN = Pattern.compile(
+            "(?i)('|\"|%27)\\s*(or|and)\\s*('|\"|%27|\\d+\\s*=\\s*\\d+)|union\\s+(all\\s+)?select\\b|;\\s*(drop|delete|update|insert)\\b|'\\s*--|xp_cmdshell"
+    );
+    private static final Pattern XSS_PATTERN = Pattern.compile(
+            "(?i)<\\s*script\\b|javascript\\s*:|on(error|load|click|mouseover|submit|focus)\\s*=|<\\s*iframe\\b|<\\s*svg\\b[^>]*onload|document\\.cookie|alert\\s*\\(\\s*['\"\\d]"
+    );
+    private static final Pattern PATH_TRAVERSAL_PATTERN = Pattern.compile(
+            "(?i)(\\.\\./|\\.\\.\\\\|/etc/passwd|c:\\\\windows|boot\\.ini)"
+    );
 
     public SecurityMetricsFilter(MeterRegistry meterRegistry, SecurityLogRepository securityLogRepository) {
         this.meterRegistry = meterRegistry;
@@ -53,26 +63,15 @@ public class SecurityMetricsFilter extends OncePerRequestFilter {
         try {
             List<SecurityLog> logs = securityLogRepository.findAll();
             for (SecurityLog log : logs) {
+                if (log.getId() != null && !syncedIds.add(log.getId())) continue;
+                String tStr = log.getDetectedAt() != null ? log.getDetectedAt().format(TIME_FMT) : LocalDateTime.now().format(TIME_FMT);
                 Counter.builder("vaultdrive_security_events_total")
-                        .tag("ip", log.getIp())
-                        .tag("type", log.getType())
-                        .tag("action", log.getAction())
-                        .tag("severity", log.getSeverity())
-                        .register(meterRegistry)
-                        .increment();
-
-                // Chỉ khôi phục vào Blacklist nếu là tấn công mã độc (Không khóa vĩnh viễn lỗi 429)
-                if (!"HTTP Flood (DDoS)".equals(log.getType())) {
-                    int violations = maliciousViolationCounts
-                            .computeIfAbsent(log.getIp(), k -> new AtomicInteger(0))
-                            .incrementAndGet();
-                    if (violations >= BLACKLIST_THRESHOLD) {
-                        blacklistedIps.add(log.getIp());
-                    }
-                }
+                        .tag("detected_at", tStr).tag("ip", log.getIp())
+                        .tag("type", log.getType()).tag("action", log.getAction()).tag("severity", log.getSeverity())
+                        .register(meterRegistry).increment();
             }
         } catch (Exception e) {
-            System.err.println("Không thể khôi phục log an ninh từ DB: " + e.getMessage());
+            System.err.println("Không thể khôi phục log: " + e.getMessage());
         }
     }
 
@@ -81,23 +80,15 @@ public class SecurityMetricsFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String uri = request.getRequestURI();
-
-        // Bỏ qua endpoint nội bộ của Prometheus
         if (uri.startsWith("/actuator")) {
+            restoreLogsFromDatabase();
             filterChain.doFilter(request, response);
             return;
         }
 
         String clientIp = extractClientIp(request);
 
-        // 0. KIỂM TRA BLACKLIST ĐỘNG (Khóa vĩnh viễn kẻ tấn công SQLi/XSS/Path Traversal)
-        if (blacklistedIps.contains(clientIp)) {
-            blockRequest(response, HttpServletResponse.SC_FORBIDDEN,
-                    "IP của bạn (" + clientIp + ") đã bị khóa bởi Tường lửa SOC do gửi mã độc nhiều lần!");
-            return;
-        }
-
-        // 1. KIỂM TRA RATE LIMITING PHÂN TẦNG (Tránh chặn nhầm khi tải thư mục lớn như Longman)
+        // 1. KIỂM TRA CHỐNG TẤN CÔNG DDOS
         long now = System.currentTimeMillis();
         if (now - windowStart > 10_000) {
             normalRequestCounts.clear();
@@ -106,28 +97,22 @@ public class SecurityMetricsFilter extends OncePerRequestFilter {
         }
 
         if (isHighFrequencyUploadEndpoint(uri)) {
-            // Luồng Upload (init / chunk / complete): Cho phép 3.000 request / 10 giây
             int uploadReqs = uploadRequestCounts.computeIfAbsent(clientIp, k -> new AtomicInteger(0)).incrementAndGet();
             if (uploadReqs > 3000) {
-                if (uploadReqs == 3001) {
-                    recordSecurityEvent(clientIp, "HTTP Flood (DDoS)", "Giới hạn tốc độ", "TRUNG BÌNH", false);
-                }
+                if (uploadReqs == 3001) recordSecurityEvent(clientIp, "HTTP Flood (DDoS)", "Giới hạn tốc độ", "TRUNG BÌNH");
                 blockRequest(response, 429, "Cảnh báo: Tốc độ tải tệp vượt ngưỡng tối đa (3000 req/10s)!");
                 return;
             }
         } else {
-            // Luồng API thông thường (Login, xem danh sách...): Giới hạn 40 request / 10 giây
             int normalReqs = normalRequestCounts.computeIfAbsent(clientIp, k -> new AtomicInteger(0)).incrementAndGet();
             if (normalReqs > 40) {
-                if (normalReqs == 41) {
-                    recordSecurityEvent(clientIp, "HTTP Flood (DDoS)", "Giới hạn tốc độ", "TRUNG BÌNH", false);
-                }
-                blockRequest(response, 429, "Cảnh báo: Phát hiện truy cập bất thường (HTTP Flood - 429 Too Many Requests)!");
+                if (normalReqs == 41) recordSecurityEvent(clientIp, "HTTP Flood (DDoS)", "Giới hạn tốc độ", "TRUNG BÌNH");
+                blockRequest(response, 429, "Cảnh báo: Phát hiện truy cập bất thường (HTTP Flood)!");
                 return;
             }
         }
 
-        // 2. BỌC REQUEST ĐỂ QUÉT BODY JSON (Tuyệt đối KHÔNG bọc luồng gửi dữ liệu chunk/multipart)
+        // 2. BỌC REQUEST JSON (Không bọc chunk)
         HttpServletRequest requestToProcess = request;
         String bodyPayload = "";
         String contentType = request.getContentType();
@@ -135,7 +120,7 @@ public class SecurityMetricsFilter extends OncePerRequestFilter {
 
         if (!uri.contains("/chunk") && contentType != null &&
                 (contentType.contains("application/json") || contentType.contains("application/x-www-form-urlencoded")) &&
-                contentLength > 0 && contentLength < 65536) { // Chỉ đọc JSON nhỏ hơn 64KB
+                contentLength > 0 && contentLength < 65536) {
             CachedBodyHttpServletRequest wrappedRequest = new CachedBodyHttpServletRequest(request);
             bodyPayload = wrappedRequest.getCachedBodyAsString();
             requestToProcess = wrappedRequest;
@@ -145,115 +130,63 @@ public class SecurityMetricsFilter extends OncePerRequestFilter {
         String combinedRaw = uri + "?" + rawQuery + " " + bodyPayload;
         String decodedPayload;
         try {
-            decodedPayload = URLDecoder.decode(combinedRaw, StandardCharsets.UTF_8).toLowerCase();
+            decodedPayload = URLDecoder.decode(combinedRaw, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            decodedPayload = combinedRaw.toLowerCase();
+            decodedPayload = combinedRaw;
         }
 
-        // 3. QUÉT PATH TRAVERSAL
-        if (containsPathTraversal(decodedPayload)) {
-            recordSecurityEvent(clientIp, "Path Traversal", "Chặn IP tạm thời", "NGHIÊM TRỌNG", true);
-            blockRequest(response, HttpServletResponse.SC_FORBIDDEN,
-                    "Cảnh báo: Phát hiện hành vi truy cập tệp tin trái phép (Path Traversal)!");
+        // 3. WAF: BẮT MÃ ĐỘC VÀ CHẶN REQUEST (Nhưng không khóa IP vĩnh viễn)
+        if (PATH_TRAVERSAL_PATTERN.matcher(decodedPayload).find()) {
+            recordSecurityEvent(clientIp, "Path Traversal", "Chặn gói tin", "NGHIÊM TRỌNG");
+            blockRequest(response, HttpServletResponse.SC_FORBIDDEN, "Cảnh báo SOC: Phát hiện truy cập tệp tin trái phép (Path Traversal)!");
             return;
         }
-
-        // 4. QUÉT SQL INJECTION
-        if (containsSqlInjection(decodedPayload)) {
-            recordSecurityEvent(clientIp, "SQLi", "Chặn bởi tường lửa", "CAO", true);
-            blockRequest(response, HttpServletResponse.SC_FORBIDDEN,
-                    "Cảnh báo: Phát hiện mã độc SQL Injection!");
+        if (SQLI_PATTERN.matcher(decodedPayload).find()) {
+            recordSecurityEvent(clientIp, "SQLi", "Chặn bởi tường lửa", "CAO");
+            blockRequest(response, HttpServletResponse.SC_FORBIDDEN, "Cảnh báo SOC: Phát hiện mã độc SQL Injection!");
             return;
         }
-
-        // 5. QUÉT XSS
-        if (containsXss(decodedPayload)) {
-            recordSecurityEvent(clientIp, "XSS", "Chặn bởi tường lửa", "CAO", true);
-            blockRequest(response, HttpServletResponse.SC_FORBIDDEN,
-                    "Cảnh báo: Phát hiện mã độc Cross-Site Scripting (XSS)!");
+        if (XSS_PATTERN.matcher(decodedPayload).find()) {
+            recordSecurityEvent(clientIp, "XSS", "Chặn bởi tường lửa", "CAO");
+            blockRequest(response, HttpServletResponse.SC_FORBIDDEN, "Cảnh báo SOC: Phát hiện mã độc XSS!");
             return;
         }
 
         filterChain.doFilter(requestToProcess, response);
     }
 
-    /**
-     * Nhận diện các API thuộc luồng tải lên nhiều tệp / chia nhỏ chunk
-     * (init, chunk, complete, folders/create-batch...)
-     */
     private boolean isHighFrequencyUploadEndpoint(String uri) {
-        return uri.startsWith("/api/uploads")
-                || uri.startsWith("/api/files/upload")
-                || uri.startsWith("/api/folders")
-                || uri.contains("/chunk");
+        return uri.startsWith("/api/uploads") || uri.startsWith("/api/files/upload") || uri.startsWith("/api/folders") || uri.contains("/chunk");
     }
 
-    private void recordSecurityEvent(String ip, String type, String action, String severity, boolean countTowardsBlacklist) {
-        if (countTowardsBlacklist) {
-            int totalMalicious = maliciousViolationCounts
-                    .computeIfAbsent(ip, k -> new AtomicInteger(0))
-                    .incrementAndGet();
-            if (totalMalicious >= BLACKLIST_THRESHOLD) {
-                blacklistedIps.add(ip);
-            }
-        }
-
-        Counter.builder("vaultdrive_security_events_total")
-                .tag("ip", ip)
-                .tag("type", type)
-                .tag("action", action)
-                .tag("severity", severity)
-                .register(meterRegistry)
-                .increment();
-
+    private void recordSecurityEvent(String ip, String type, String action, String severity) {
+        LocalDateTime now = LocalDateTime.now();
         try {
-            SecurityLog log = new SecurityLog();
-            log.setIp(ip);
-            log.setType(type);
-            log.setAction(action);
-            log.setSeverity(severity);
-            log.setDetectedAt(LocalDateTime.now());
-            securityLogRepository.save(log);
+            SecurityLog log = new SecurityLog(ip, type, action, severity);
+            log.setDetectedAt(now);
+            SecurityLog saved = securityLogRepository.save(log);
+            if (saved.getId() != null) syncedIds.add(saved.getId());
         } catch (Exception e) {
-            System.err.println("Lỗi lưu SecurityLog vào DB: " + e.getMessage());
+            System.err.println("Lỗi lưu DB: " + e.getMessage());
         }
+        Counter.builder("vaultdrive_security_events_total")
+                .tag("detected_at", now.format(TIME_FMT)).tag("ip", ip)
+                .tag("type", type).tag("action", action).tag("severity", severity)
+                .register(meterRegistry).increment();
     }
 
     private void blockRequest(HttpServletResponse response, int statusCode, String message) throws IOException {
         response.setStatus(statusCode);
         response.setContentType("application/json;charset=UTF-8");
-        String json = String.format("{\"status\": %d, \"error\": \"%s\"}", statusCode, message);
-        response.getWriter().write(json);
+        response.getWriter().write(String.format("{\"status\": %d, \"error\": \"%s\"}", statusCode, message));
         response.getWriter().flush();
     }
 
     private String extractClientIp(HttpServletRequest request) {
         String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
-        }
+        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
         String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp.trim();
-        }
+        if (realIp != null && !realIp.isBlank()) return realIp.trim();
         return request.getRemoteAddr();
-    }
-
-    private boolean containsPathTraversal(String s) {
-        return s.contains("../") || s.contains("..\\") || s.contains("/etc/passwd")
-                || s.contains("c:\\windows") || s.contains("boot.ini");
-    }
-
-    private boolean containsSqlInjection(String s) {
-        return s.contains("' or ") || s.contains("'or ") || s.contains("1=1")
-                || s.contains("union select") || s.contains("drop table")
-                || s.contains("insert into") || s.contains("xp_cmdshell")
-                || s.contains("'--") || s.contains("\" or \"");
-    }
-
-    private boolean containsXss(String s) {
-        return s.contains("<script") || s.contains("javascript:")
-                || s.contains("onerror=") || s.contains("onload=")
-                || s.contains("alert(") || s.contains("document.cookie");
     }
 }

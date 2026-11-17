@@ -34,4 +34,5 @@ dist/
 .project
 .settings
 .DS_Store
-Thumbs.db
+Thumbs.dbnginx_logs/
+nginx_logs/

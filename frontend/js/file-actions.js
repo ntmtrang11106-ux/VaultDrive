@@ -106,10 +106,7 @@ async function downloadItem(id, type, name) {
     typeof checkAuth === "function"
       ? checkAuth()
       : localStorage.getItem("jwt_token");
-  const baseUrl =
-    typeof API_BASE_URL !== "undefined"
-      ? API_BASE_URL
-      : "http://localhost:8080/api";
+  const baseUrl = typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "/api";
 
   // Stream directly via browser native download manager to avoid loading up to 4GB into browser RAM
   if (token) {
@@ -402,7 +399,7 @@ function closeFilePreview() {
     }
     try {
       window.close();
-    } catch (e) { }
+    } catch (e) {}
 
     // Nếu trình duyệt chặn window.close() (do gõ/dán link trực tiếp): giữ nguyên màn hình tối và hiện thông báo đã đóng sạch sẽ
     const container = document.getElementById("previewModalContainer");
@@ -967,9 +964,7 @@ async function openFilePreview(fileId, fileData = null) {
       const token =
         localStorage.getItem("jwt_token") || localStorage.getItem("token");
       const baseUrl =
-        typeof API_BASE_URL !== "undefined"
-          ? API_BASE_URL
-          : "http://localhost:8080/api";
+        typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "/api";
       const response = await fetch(`${baseUrl}/files/${fileId}/preview`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -1113,10 +1108,7 @@ async function openPublicFilePreview(token) {
   }
 
   try {
-    const baseUrl =
-      typeof API_BASE_URL !== "undefined"
-        ? API_BASE_URL
-        : "http://localhost:8080/api";
+    const baseUrl = typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "/api";
     const res = await fetch(`${baseUrl}/public/share-links/${token}`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -1860,8 +1852,8 @@ document.addEventListener("DOMContentLoaded", () => {
             itemType === "file"
               ? window.currentLoadedData.files || []
               : window.currentLoadedData.subfolders ||
-              window.currentLoadedData.folders ||
-              [];
+                window.currentLoadedData.folders ||
+                [];
           const currentItem = list.find((i) => (i.fileId || i.id) == itemId);
           if (currentItem && currentItem.userEmail) {
             ownerEmail = currentItem.userEmail;
@@ -2490,10 +2482,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   // 3b. Logic Create Folder Modal (Tạo thư mục mới)
-  const createFolderOverlay = document.getElementById("createFolderModalOverlay");
+  const createFolderOverlay = document.getElementById(
+    "createFolderModalOverlay",
+  );
   const createFolderInputEl = document.getElementById("createFolderInput");
   const createFolderErrorEl = document.getElementById("createFolderErrorMsg");
-  const confirmCreateFolderBtn = document.getElementById("confirmCreateFolderBtn");
+  const confirmCreateFolderBtn = document.getElementById(
+    "confirmCreateFolderBtn",
+  );
 
   function showCreateFolderError(msg) {
     if (createFolderErrorEl) {
@@ -2963,7 +2959,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (errData && errData.message) {
                 errorMsg = errData.message;
               }
-            } catch (e) { }
+            } catch (e) {}
           }
           showShareError(errorMsg);
         }
@@ -3145,7 +3141,7 @@ function applyCardShareDisplay(
           }
         }
       })
-      .catch(() => { });
+      .catch(() => {});
   }
 }
 
@@ -3535,7 +3531,7 @@ function setupDragAndDrop() {
                     value: path + file.name,
                     writable: false,
                   });
-                } catch (err) { }
+                } catch (err) {}
                 filesList.push(file);
                 resolve();
               });
@@ -3851,10 +3847,7 @@ function setupDragAndDrop() {
     const pauseBtn = itemCard.querySelector(".pause-btn");
     const cancelBtn = itemCard.querySelector(".cancel-btn");
 
-    const baseUrl =
-      typeof API_BASE_URL !== "undefined"
-        ? API_BASE_URL
-        : "http://localhost:8080/api";
+    const baseUrl = typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "/api";
 
     let isPaused = false;
     let isCancelled = false;
@@ -4304,10 +4297,7 @@ function setupDragAndDrop() {
     const pauseBtn = itemCard.querySelector(".pause-btn");
     const cancelBtn = itemCard.querySelector(".cancel-btn");
 
-    const baseUrl =
-      typeof API_BASE_URL !== "undefined"
-        ? API_BASE_URL
-        : "http://localhost:8080/api";
+    const baseUrl = typeof API_BASE_URL !== "undefined" ? API_BASE_URL : "/api";
     const CHUNK_SIZE = getOptimalChunkSize(file.size);
     const totalChunks =
       file.size === 0 ? 1 : Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
@@ -4444,7 +4434,7 @@ function setupDragAndDrop() {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
-        } catch (_) { }
+        } catch (_) {}
       } else {
         icon.classList.remove("ph-play-circle");
         icon.classList.add("ph-pause-circle");
@@ -4469,7 +4459,7 @@ function setupDragAndDrop() {
               });
             }
           }
-        } catch (_) { }
+        } catch (_) {}
 
         isPaused = false;
         if (activeThreadsCount === 0) {
@@ -4492,7 +4482,7 @@ function setupDragAndDrop() {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
-        } catch (_) { }
+        } catch (_) {}
       }
     });
 
@@ -4524,7 +4514,7 @@ function setupDragAndDrop() {
         try {
           const errData = await response.json();
           if (errData && errData.message) errorMsg = errData.message;
-        } catch (_) { }
+        } catch (_) {}
         throw new Error(errorMsg);
       }
 
@@ -4619,7 +4609,7 @@ function setupDragAndDrop() {
           try {
             const errJson = await completeRes.json();
             if (errJson && errJson.message) msg = errJson.message;
-          } catch (_) { }
+          } catch (_) {}
           throw new Error(msg);
         }
 
@@ -4765,7 +4755,7 @@ function setupDragAndDrop() {
               try {
                 const errJson = await initResponse.json();
                 if (errJson && errJson.message) msg = errJson.message;
-              } catch (_) { }
+              } catch (_) {}
               if (initAttempt === MAX_INIT_RETRIES) throw new Error(msg);
             }
           } catch (initErr) {
@@ -4920,7 +4910,7 @@ window.updateMinimizedUploadUI = function () {
     percent = Math.round(
       (window.uploadGlobalState.uploadedSize /
         window.uploadGlobalState.totalSize) *
-      100,
+        100,
     );
   }
   percent = Math.min(percent, 100);
@@ -4935,9 +4925,9 @@ window.updateMinimizedUploadUI = function () {
     isAllCompleted && window.uploadGlobalState.completedFiles === 0
       ? window.uploadGlobalState.totalFiles
       : Math.max(
-        window.uploadGlobalState.completedFiles,
-        isAllCompleted ? window.uploadGlobalState.totalFiles : 0,
-      );
+          window.uploadGlobalState.completedFiles,
+          isAllCompleted ? window.uploadGlobalState.totalFiles : 0,
+        );
 
   if (isAllCompleted) {
     minTitle.textContent = `Đã tải lên ${completedCount} ${noun}`;
@@ -4992,9 +4982,11 @@ function updateUploadButtonState() {
     ? getFolderWritePermissionError("tải tệp lên hoặc tạo thư mục")
     : "";
 
-  document.querySelectorAll(".upload-dropdown-container").forEach((container) => {
-    container.style.display = "";
-  });
+  document
+    .querySelectorAll(".upload-dropdown-container")
+    .forEach((container) => {
+      container.style.display = "";
+    });
 
   document
     .querySelectorAll(
@@ -5346,7 +5338,7 @@ window.openFolder = function (folderId, folderName) {
 
   const isKnownShared = Boolean(
     window.sharedByMeFolderIds &&
-      window.sharedByMeFolderIds.has(String(folderId)),
+    window.sharedByMeFolderIds.has(String(folderId)),
   );
   const existingIdx = window.folderPathTrail.findIndex(
     (item) => item.id == folderId,
@@ -5650,13 +5642,21 @@ async function loadDashboardData(viewType = "home") {
 
     const trashContainer = document.getElementById("trash-view-container");
     if (trashContainer)
-      trashContainer.style.setProperty("display", viewType === "trash" ? "block" : "none", "important");
+      trashContainer.style.setProperty(
+        "display",
+        viewType === "trash" ? "block" : "none",
+        "important",
+      );
 
     const settingsContainer = document.getElementById(
       "settings-view-container",
     );
     if (settingsContainer)
-      settingsContainer.style.setProperty("display", viewType === "settings" ? "block" : "none", "important");
+      settingsContainer.style.setProperty(
+        "display",
+        viewType === "settings" ? "block" : "none",
+        "important",
+      );
 
     // Xóa tiêu đề chia sẻ động để không bị lặp 2 chữ THƯ MỤC / TỆP TIN
     const sharedTitles = contentScroll.querySelectorAll(
@@ -5741,7 +5741,8 @@ async function loadDashboardData(viewType = "home") {
       window.currentLoadedData = data;
       if (viewType === "trash") {
         window.isInsideSharedFolderContext = false;
-        if (contentScroll) contentScroll.classList.remove("inside-shared-folder");
+        if (contentScroll)
+          contentScroll.classList.remove("inside-shared-folder");
         window.currentFolderPermission = null;
         updateUploadButtonState();
         renderTrashItems(data.folders || [], data.files || []);

@@ -1,5 +1,5 @@
 // Cấu hình đường dẫn gốc đến Backend API của phần đăng nhập/đăng ký
-const API_BASE_URL = "http://localhost:8080/api/auth";
+const API_BASE_URL = "/api/auth";
 
 // Hàm bật/tắt hiển thị mật khẩu (Icon con mắt)
 function togglePasswordVisibility(inputId, iconEl) {

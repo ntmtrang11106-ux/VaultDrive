@@ -24,7 +24,7 @@ public class ShareLinkService {
     private final FolderRepository folderRepository;
     private final AccessControlService accessControlService;
 
-    @Value("${app.base-url:http://localhost:8080}")
+    @Value("${app.base-url:http://172.198.70.182}")
     private String baseUrl;
 
     public ShareLinkService(ShareLinkRepository shareLinkRepository,
