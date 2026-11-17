@@ -231,7 +231,7 @@
       if (settingsContainer) {
         if (settingsContainer.innerHTML.trim() === '') {
           try {
-            const res = await fetch('views/settings-view.html');
+            const res = await fetch('views/settings-view.html?v=2.5');
             if (res.ok) {
               settingsContainer.innerHTML = await res.text();
             }

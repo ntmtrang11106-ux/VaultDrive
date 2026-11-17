@@ -196,10 +196,12 @@ window.updateTrashBatchActionsUI = function() {
   if (deleteBtn) {
     const textSpan = deleteBtn.querySelector(".btn-text");
     if (count > 0) {
+      deleteBtn.disabled = false;
       deleteBtn.classList.add("active");
       deleteBtn.classList.remove("disabled");
       if (textSpan) textSpan.textContent = `Xóa (${count})`;
     } else {
+      deleteBtn.disabled = true;
       deleteBtn.classList.remove("active");
       deleteBtn.classList.add("disabled");
       if (textSpan) textSpan.textContent = "Xóa";
@@ -219,10 +221,7 @@ window.updateTrashBatchActionsUI = function() {
 
 window.deleteSelectedTrashItems = async function() {
   const selectedCards = document.querySelectorAll('.trash-item.selected');
-  if (!selectedCards || selectedCards.length === 0) {
-    alert("Vui lòng tích chọn ít nhất một mục để xóa!");
-    return;
-  }
+  if (!selectedCards || selectedCards.length === 0) return;
 
   const count = selectedCards.length;
   if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${count} mục đã chọn không? Thao tác không thể hoàn tác!`)) return;
@@ -249,10 +248,7 @@ window.deleteSelectedTrashItems = async function() {
 
 window.restoreSelectedTrashItems = async function() {
   const selectedCards = document.querySelectorAll('.trash-item.selected');
-  if (!selectedCards || selectedCards.length === 0) {
-    alert("Vui lòng tích chọn ít nhất một mục để khôi phục!");
-    return;
-  }
+  if (!selectedCards || selectedCards.length === 0) return;
 
   const btn = document.getElementById("btnBatchRestore");
   if (btn) btn.disabled = true;
@@ -281,7 +277,7 @@ window.restoreTrashItem = async function(id, type) {
       // Reload trash data
       if (typeof loadDashboardData === "function") loadDashboardData("trash");
     } else {
-      alert("Lỗi khôi phục mục!");
+      if (typeof showToast === "function") showToast("Lỗi khi khôi phục mục!", "error");
     }
   } catch (error) {
     console.error(error);
@@ -299,7 +295,7 @@ window.permanentDeleteTrashItem = async function(id, type) {
       // Update storage info if available
       if (typeof window.renderStorageInfo === "function") window.renderStorageInfo();
     } else {
-      alert("Lỗi xóa mục!");
+      if (typeof showToast === "function") showToast("Lỗi khi xóa vĩnh viễn mục!", "error");
     }
   } catch (error) {
     console.error(error);

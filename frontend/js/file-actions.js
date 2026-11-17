@@ -130,7 +130,7 @@ async function downloadItem(id, type, name) {
   try {
     const response = await fetchWithAuth(endpoint);
     if (!response || !response.ok) {
-      alert("Không thể tải xuống mục này!");
+      showToast("Không thể tải xuống mục này!", "error");
       return;
     }
 
@@ -190,7 +190,7 @@ async function downloadItem(id, type, name) {
     setTimeout(() => window.URL.revokeObjectURL(url), 10000);
   } catch (err) {
     console.error("Lỗi khi tải xuống:", err);
-    alert("Có lỗi xảy ra khi tải xuống!");
+    showToast("Có lỗi xảy ra khi tải xuống!", "error");
   }
 }
 window.downloadItem = downloadItem;
@@ -402,7 +402,7 @@ function closeFilePreview() {
     }
     try {
       window.close();
-    } catch (e) {}
+    } catch (e) { }
 
     // Nếu trình duyệt chặn window.close() (do gõ/dán link trực tiếp): giữ nguyên màn hình tối và hiện thông báo đã đóng sạch sẽ
     const container = document.getElementById("previewModalContainer");
@@ -673,16 +673,9 @@ function renderAudioPreview(container, url, fileName, sizeText) {
   container.appendChild(fragment);
 }
 
-async function renderTextPreview(
-  container,
-  blob,
-  ext,
-  fileId = null,
-  fileName = "",
-) {
+async function renderTextPreview(container, blob, ext) {
   try {
-    let currentText = await blob.text();
-    let initialText = currentText;
+    const currentText = await blob.text();
     const fragment = cloneTemplate("tmpl-preview-text");
     if (!fragment) return;
 
@@ -694,7 +687,6 @@ async function renderTextPreview(
     const statsEl =
       fragment.querySelector("#previewTextStats") ||
       fragment.querySelector(".preview-text-stats");
-    const dirtyBadge = fragment.querySelector("#previewTextDirty");
     const linesEl = fragment.querySelector("#previewCodeLines");
     const preEl =
       fragment.querySelector("#previewTextPre") ||
@@ -702,199 +694,37 @@ async function renderTextPreview(
     const codeEl =
       fragment.querySelector("#previewTextCode") ||
       fragment.querySelector(".preview-text-code");
-    const editorEl = fragment.querySelector("#previewTextEditor");
     const copyBtn = fragment.querySelector("#previewCopyCodeBtn");
-    const toggleEditBtn = fragment.querySelector("#previewToggleEditBtn");
-    const editModeText = fragment.querySelector("#previewEditModeText");
-    const saveBtn = fragment.querySelector("#previewSaveCodeBtn");
 
-    let isEditing = false;
+    // Cập nhật số dòng và số ký tự
+    const lines = currentText.split("\n");
+    if (statsEl) {
+      statsEl.textContent = `${lines.length} dòng · ${currentText.length.toLocaleString("vi-VN")} ký tự`;
+    }
+    if (linesEl) {
+      linesEl.innerHTML = lines.map((_, i) => `<div>${i + 1}</div>`).join("");
+    }
 
-    // Hàm cập nhật số dòng và số ký tự
-    const updateStatsAndLines = (textVal) => {
-      const lines = textVal.split("\n");
-      if (statsEl) {
-        statsEl.textContent = `${lines.length} dòng · ${textVal.length.toLocaleString("vi-VN")} ký tự`;
-      }
-      if (linesEl) {
-        linesEl.innerHTML = lines.map((_, i) => `<div>${i + 1}</div>`).join("");
-      }
-    };
-
-    // Khởi tạo hiển thị ban đầu
     if (codeEl) codeEl.textContent = currentText;
-    if (editorEl) editorEl.value = currentText;
-    updateStatsAndLines(currentText);
 
-    // 1. Chức năng sao chép nội dung (Giữ nguyên trạng thái "Đã sao chép")
-    let isCopied = false;
-    const setCopiedStatus = (copied) => {
-      isCopied = copied;
-      if (!copyBtn) return;
-      if (copied) {
-        copyBtn.innerHTML =
-          '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã sao chép</span>';
-        copyBtn.classList.add("copied");
-      } else {
-        copyBtn.innerHTML =
-          '<i class="ph-bold ph-copy"></i> <span>Sao chép</span>';
-        copyBtn.classList.remove("copied");
-      }
-    };
-
+    // Chức năng sao chép nội dung
     copyBtn?.addEventListener("click", () => {
-      const textToCopy =
-        isEditing && editorEl
-          ? editorEl.value
-          : codeEl?.textContent || currentText;
+      const textToCopy = codeEl?.textContent || currentText;
       navigator.clipboard
         .writeText(textToCopy)
         .then(() => {
-          setCopiedStatus(true);
+          copyBtn.innerHTML =
+            '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã sao chép</span>';
+          copyBtn.classList.add("copied");
         })
-        .catch(() => alert("Không thể tự động sao chép!"));
+        .catch(() => showToast("Không thể tự động sao chép!", "error"));
     });
-
-    // 3. Chức năng chuyển đổi Chế độ Xem / Chỉnh sửa
-    toggleEditBtn?.addEventListener("click", () => {
-      isEditing = !isEditing;
-      if (isEditing) {
-        // Vào chế độ chỉnh sửa
-        if (preEl) preEl.style.display = "none";
-        if (editorEl) {
-          editorEl.style.display = "block";
-          editorEl.value = currentText;
-          editorEl.focus();
-        }
-        if (saveBtn) saveBtn.style.display = "inline-flex";
-        if (editModeText) editModeText.textContent = "Xem";
-        toggleEditBtn.classList.add("active");
-      } else {
-        // Trở về chế độ xem
-        if (preEl) preEl.style.display = "block";
-        if (editorEl) editorEl.style.display = "none";
-        if (saveBtn) saveBtn.style.display = "none";
-        if (editModeText) editModeText.textContent = "Chỉnh sửa";
-        toggleEditBtn.classList.remove("active");
-        if (codeEl && editorEl) codeEl.textContent = editorEl.value;
-      }
-    });
-
-    // 4. Lắng nghe gõ phím khi sửa nội dung
-    if (editorEl) {
-      editorEl.addEventListener("input", () => {
-        const val = editorEl.value;
-        updateStatsAndLines(val);
-        // Khi người dùng gõ sửa văn bản mới, nút tự chuyển lại thành "Sao chép"
-        if (isCopied) {
-          setCopiedStatus(false);
-        }
-        // Hiển thị trạng thái chưa lưu nếu có thay đổi
-        if (dirtyBadge) {
-          dirtyBadge.style.display =
-            val !== initialText ? "inline-block" : "none";
-        }
-      });
-
-      // Hỗ trợ phím Tab thụt đầu dòng (2 dấu cách) và Ctrl + S để Lưu
-      editorEl.addEventListener("keydown", (e) => {
-        if (e.key === "Tab") {
-          e.preventDefault();
-          const start = editorEl.selectionStart;
-          const end = editorEl.selectionEnd;
-          editorEl.value =
-            editorEl.value.substring(0, start) +
-            "  " +
-            editorEl.value.substring(end);
-          editorEl.selectionStart = editorEl.selectionEnd = start + 2;
-          updateStatsAndLines(editorEl.value);
-          if (dirtyBadge) dirtyBadge.style.display = "inline-block";
-        } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-          e.preventDefault();
-          saveContent();
-        }
-      });
-
-      // Cuộn đồng bộ số dòng với nội dung text
-      editorEl.addEventListener("scroll", () => {
-        if (linesEl) linesEl.scrollTop = editorEl.scrollTop;
-      });
-    }
 
     if (preEl) {
       preEl.addEventListener("scroll", () => {
         if (linesEl) linesEl.scrollTop = preEl.scrollTop;
       });
     }
-
-    // 5. Hàm lưu nội dung (Chuẩn bị sẵn để gọi API Backend PUT /api/files/{id}/content)
-    async function saveContent() {
-      if (!editorEl) return;
-      const newText = editorEl.value;
-
-      if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.innerHTML =
-          '<i class="ph-bold ph-spinner"></i> <span>Đang lưu...</span>';
-      }
-
-      try {
-        if (!fileId) throw new Error("Không có fileId để lưu");
-
-        // Gọi API Backend chuẩn bị sẵn: PUT /api/files/{id}/content
-        const response = await fetchWithAuth(`/files/${fileId}/content`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-          },
-          body: newText,
-        });
-
-        if (response && response.ok) {
-          currentText = newText;
-          initialText = newText;
-          if (codeEl) codeEl.textContent = newText;
-          if (dirtyBadge) dirtyBadge.style.display = "none";
-          if (saveBtn)
-            saveBtn.innerHTML =
-              '<i class="ph-bold ph-check" style="color:#22c55e;"></i> <span style="color:#22c55e;">Đã lưu!</span>';
-        } else {
-          // Trường hợp Backend chưa có endpoint PUT /files/{id}/content
-          currentText = newText;
-          initialText = newText;
-          if (codeEl) codeEl.textContent = newText;
-          if (dirtyBadge) dirtyBadge.style.display = "none";
-          if (saveBtn)
-            saveBtn.innerHTML =
-              '<i class="ph-bold ph-check" style="color:#38bdf8;"></i> <span style="color:#38bdf8;">Đã lưu tạm!</span>';
-          console.info(
-            `[Frontend] Đã chuẩn bị sẵn API PUT /api/files/${fileId}/content. Hiện tại Backend chưa triển khai nên nội dung được cập nhật trên giao diện.`,
-          );
-        }
-      } catch (err) {
-        // Fallback lưu giao diện tạm thời khi chưa có Backend
-        currentText = newText;
-        initialText = newText;
-        if (codeEl) codeEl.textContent = newText;
-        if (dirtyBadge) dirtyBadge.style.display = "none";
-        if (saveBtn)
-          saveBtn.innerHTML =
-            '<i class="ph-bold ph-check" style="color:#38bdf8;"></i> <span style="color:#38bdf8;">Đã lưu tạm!</span>';
-      } finally {
-        setTimeout(() => {
-          if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.innerHTML =
-              '<i class="ph-bold ph-floppy-disk"></i> <span>Lưu thay đổi</span>';
-          }
-        }, 2000);
-      }
-    }
-
-    // Gắn sự kiện click cho nút Lưu
-    saveBtn?.addEventListener("click", () => {
-      saveContent();
-    });
 
     container.innerHTML = "";
     container.appendChild(fragment);
@@ -1718,6 +1548,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (ctxRestore) ctxRestore.style.display = "none";
       if (ctxDeletePerm) ctxDeletePerm.style.display = "none";
     }
+
+    const ctxShareWrap = document.getElementById("ctxShareWrap");
+    if (ctxShareWrap) {
+      const hideShareMenu =
+        Boolean(window.isInsideSharedFolderContext) ||
+        window.currentViewType === "trash";
+      ctxShareWrap.style.display = hideShareMenu ? "none" : "flex";
+    }
   };
 
   // Xử lý chống tràn màn hình cho các submenu
@@ -1788,7 +1626,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ─── KIỂM TRA QUYỀN SỞ HỮU & ĐIỀU KHIỂN GIAO DIỆN CHIA SẺ ───
   function isCurrentItemOwner(itemId, itemType, sharedUsers = null) {
-    if (window.currentViewType === "shared") return false;
+    if (window.currentViewType === "shared" && !window.currentFolderId)
+      return false;
 
     const currentPerm = String(
       window.currentTargetPermission || "",
@@ -2001,6 +1840,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       if (!Array.isArray(sharedUsers)) sharedUsers = [];
 
+      if (itemType === "folder" && window.sharedByMeFolderIds) {
+        const hasRecipients = sharedUsers.some(
+          (s) => String(s.permission || "").toUpperCase() !== "OWNER",
+        );
+        if (hasRecipients) {
+          window.sharedByMeFolderIds.add(String(itemId));
+        } else {
+          window.sharedByMeFolderIds.delete(String(itemId));
+        }
+      }
+
       // Tự động kiểm tra và bổ sung dòng Chủ sở hữu (OWNER) ở vị trí đầu tiên
       const hasOwnerInList = sharedUsers.some((s) => s.permission === "OWNER");
       if (!hasOwnerInList) {
@@ -2010,8 +1860,8 @@ document.addEventListener("DOMContentLoaded", () => {
             itemType === "file"
               ? window.currentLoadedData.files || []
               : window.currentLoadedData.subfolders ||
-                window.currentLoadedData.folders ||
-                [];
+              window.currentLoadedData.folders ||
+              [];
           const currentItem = list.find((i) => (i.fileId || i.id) == itemId);
           if (currentItem && currentItem.userEmail) {
             ownerEmail = currentItem.userEmail;
@@ -2181,7 +2031,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (error) {
       console.error(error);
-      alert("Lỗi cập nhật quyền.");
+      if (typeof showShareError === "function") {
+        showShareError("Lỗi cập nhật quyền người dùng!", false);
+      } else {
+        showToast("Lỗi cập nhật quyền người dùng!", "error");
+      }
     }
   };
 
@@ -2229,7 +2083,10 @@ document.addEventListener("DOMContentLoaded", () => {
         );
         if (f) targetName = f.fileName || f.name || f.originalName;
       } else {
-        const list = window.currentLoadedData?.folders || [];
+        const list =
+          window.currentLoadedData?.subfolders ||
+          window.currentLoadedData?.folders ||
+          [];
         const f = list.find(
           (item) => (item.folderId || item.id) == currentTargetId,
         );
@@ -2372,7 +2229,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (triggerBtn && typeof showShareError === "function") {
           showShareError(errMsg, false);
         } else {
-          alert(errMsg);
+          showToast(errMsg, "error");
         }
         return;
       }
@@ -2418,7 +2275,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }, 2500);
       } else {
-        alert(`Đã sao chép liên kết xem trước tệp:\n${webShareUrl}`);
+        showToast("Đã sao chép liên kết vào bộ nhớ tạm!", "success");
       }
     } catch (err) {
       console.error("Lỗi khi sao chép liên kết:", err);
@@ -2426,7 +2283,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (triggerBtn && typeof showShareError === "function") {
         showShareError(errMsg, false);
       } else {
-        alert(errMsg);
+        showToast(errMsg, "error");
       }
     } finally {
       if (triggerBtn) {
@@ -2462,7 +2319,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof window.renderStorageInfo === "function")
           window.renderStorageInfo();
       } else {
-        alert("Có lỗi xảy ra khi xóa!");
+        showToast("Có lỗi xảy ra khi chuyển mục vào thùng rác!", "error");
       }
     } catch (err) {
       console.error(err);
@@ -2632,6 +2489,120 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+  // 3b. Logic Create Folder Modal (Tạo thư mục mới)
+  const createFolderOverlay = document.getElementById("createFolderModalOverlay");
+  const createFolderInputEl = document.getElementById("createFolderInput");
+  const createFolderErrorEl = document.getElementById("createFolderErrorMsg");
+  const confirmCreateFolderBtn = document.getElementById("confirmCreateFolderBtn");
+
+  function showCreateFolderError(msg) {
+    if (createFolderErrorEl) {
+      createFolderErrorEl.textContent = msg;
+      createFolderErrorEl.style.display = "block";
+    }
+    if (createFolderInputEl) {
+      createFolderInputEl.classList.add("input-error");
+      createFolderInputEl.focus();
+    }
+  }
+
+  function clearCreateFolderError() {
+    if (createFolderErrorEl) {
+      createFolderErrorEl.textContent = "";
+      createFolderErrorEl.style.display = "none";
+    }
+    if (createFolderInputEl) {
+      createFolderInputEl.classList.remove("input-error");
+    }
+  }
+
+  function closeCreateFolderModal() {
+    clearCreateFolderError();
+    if (createFolderOverlay) createFolderOverlay.style.display = "none";
+  }
+
+  if (createFolderInputEl) {
+    createFolderInputEl.addEventListener("input", clearCreateFolderError);
+    createFolderInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        confirmCreateFolderBtn?.click();
+      }
+    });
+  }
+
+  document
+    .getElementById("closeCreateFolderModal")
+    ?.addEventListener("click", closeCreateFolderModal);
+  document
+    .getElementById("cancelCreateFolderBtn")
+    ?.addEventListener("click", closeCreateFolderModal);
+
+  if (createFolderOverlay) {
+    createFolderOverlay.addEventListener("click", (e) => {
+      if (e.target === createFolderOverlay) {
+        closeCreateFolderModal();
+      }
+    });
+  }
+
+  if (confirmCreateFolderBtn) {
+    let isCreatingFolder = false;
+    confirmCreateFolderBtn.addEventListener("click", async () => {
+      if (isCreatingFolder) return;
+      clearCreateFolderError();
+
+      const permError = getFolderWritePermissionError("tạo thư mục mới");
+      if (permError) {
+        showCreateFolderError(permError);
+        return;
+      }
+
+      const folderName = createFolderInputEl?.value.trim();
+      if (!folderName) {
+        showCreateFolderError("Vui lòng nhập tên thư mục!");
+        return;
+      }
+      if (folderName.includes("/") || folderName.includes("\\")) {
+        showCreateFolderError("Tên thư mục không được chứa ký tự / hoặc \\!");
+        return;
+      }
+
+      isCreatingFolder = true;
+      confirmCreateFolderBtn.disabled = true;
+      try {
+        const response = await fetchWithAuth("/folders", {
+          method: "POST",
+          body: JSON.stringify({
+            name: folderName,
+            parentId: window.currentFolderId || null,
+          }),
+        });
+
+        if (response && response.ok) {
+          closeCreateFolderModal();
+          if (typeof showToast === "function") {
+            showToast(`Đã tạo thư mục "${folderName}"`, "success");
+          }
+          loadDashboardData(window.currentViewType || "home");
+        } else {
+          const errData = response
+            ? await response.json().catch(() => ({}))
+            : {};
+          showCreateFolderError(
+            errData.message || "Bạn không có quyền tạo thư mục tại đây!",
+          );
+        }
+      } catch (err) {
+        console.error("Lỗi khi tạo thư mục:", err);
+        showCreateFolderError("Lỗi kết nối khi tạo thư mục!");
+      } finally {
+        isCreatingFolder = false;
+        confirmCreateFolderBtn.disabled = false;
+      }
+    });
+  }
+
   // 4. Logic đóng mở Share Modal
   function handleCloseShareModal() {
     if (shareOverlay) shareOverlay.style.display = "none";
@@ -2721,9 +2692,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const isOwner = isCurrentItemOwner(currentTargetId, currentTargetType);
     if (!isOwner) {
-      alert(
-        "Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chung!",
-      );
       return;
     }
 
@@ -2754,17 +2722,22 @@ document.addEventListener("DOMContentLoaded", () => {
           renderGeneralAccessUI("PUBLIC");
         } else {
           const errData = await res.json().catch(() => ({}));
-          alert(
-            errData.message ||
-              "Không thể chuyển sang chế độ Bất kỳ ai có đường liên kết!",
-          );
+          if (typeof showShareError === "function") {
+            showShareError(
+              errData.message ||
+                "Không thể chuyển sang chế độ Bất kỳ ai có đường liên kết!",
+              false,
+            );
+          }
         }
       } catch (err) {
         console.error(
           "Lỗi khi chuyển quyền truy cập chung sang công khai:",
           err,
         );
-        alert("Lỗi khi kết nối đến máy chủ!");
+        if (typeof showShareError === "function") {
+          showShareError("Lỗi khi kết nối đến máy chủ!", false);
+        }
       }
     } else {
       // 2. Chuyển về HẠN CHẾ: Thu hồi link chia sẻ công khai qua DELETE /api/share-links/{id}
@@ -2856,9 +2829,6 @@ document.addEventListener("DOMContentLoaded", () => {
       e.stopPropagation();
       const isOwner = isCurrentItemOwner(currentTargetId, currentTargetType);
       if (!isOwner) {
-        alert(
-          "Chỉ chủ sở hữu (Owner) mới có quyền thay đổi quyền truy cập chung!",
-        );
         return;
       }
       const isOpen = generalAccessMenu.style.display === "block";
@@ -2993,7 +2963,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (errData && errData.message) {
                 errorMsg = errData.message;
               }
-            } catch (e) {}
+            } catch (e) { }
           }
           showShareError(errorMsg);
         }
@@ -3075,6 +3045,110 @@ function createSharedUserMetaNode(item) {
   return metaWrap;
 }
 
+function resolveItemShareBadge(permission, isSharedVal, viewType) {
+  const normalizedPerm = permission ? String(permission).toUpperCase() : "";
+  const isReceivedShare = Boolean(normalizedPerm && normalizedPerm !== "OWNER");
+
+  if (isReceivedShare || (viewType === "shared" && !normalizedPerm)) {
+    const rawPerm = normalizedPerm || "VIEW";
+    const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
+    return {
+      badgeText:
+        viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ",
+      badgeClass: "shared-badge active shared-received",
+      isReceivedShare: true,
+    };
+  }
+
+  if (isSharedVal) {
+    return {
+      badgeText: "Đã chia sẻ",
+      badgeClass: "shared-badge active",
+      isReceivedShare: false,
+    };
+  }
+
+  return {
+    badgeText: "Riêng tư",
+    badgeClass: "shared-badge",
+    isReceivedShare: false,
+  };
+}
+
+function applyCardShareDisplay(
+  card,
+  item,
+  itemId,
+  itemType,
+  perm,
+  isSharedVal,
+  badgeText,
+  badgeClass,
+  isReceivedShare,
+  viewType,
+) {
+  const insideShared = Boolean(window.isInsideSharedFolderContext);
+  const gridBadgeWrap = card.querySelector(".grid-shared-badge");
+  const badges = card.querySelectorAll(".shared-badge");
+
+  if (insideShared) {
+    if (gridBadgeWrap) gridBadgeWrap.style.display = "none";
+    badges.forEach((b) => {
+      b.textContent = "";
+      b.style.display = "none";
+    });
+  } else {
+    if (gridBadgeWrap) gridBadgeWrap.style.display = "";
+    badges.forEach((b) => {
+      b.style.display = "";
+      b.textContent = badgeText;
+      b.className = badgeClass;
+    });
+  }
+
+  // Hiện avatar và tên người đã chia sẻ / người tạo bên trong thư mục chia sẻ hoặc mục nhận chia sẻ
+  if (insideShared || (viewType === "shared" && isReceivedShare)) {
+    const slot =
+      card.querySelector(".shared-user-meta-slot") ||
+      card.querySelector(".file-info-main");
+    if (slot) {
+      slot.appendChild(createSharedUserMetaNode(item));
+    }
+  }
+
+  // Tự động kiểm tra nếu mục chính chủ ở bên ngoài đã được chia sẻ cho người khác
+  if (
+    !insideShared &&
+    (!perm || perm === "OWNER") &&
+    !isSharedVal &&
+    viewType !== "shared"
+  ) {
+    const queryParam =
+      itemType === "folder" ? `folderId=${itemId}` : `fileId=${itemId}`;
+    fetchWithAuth(`/shares/users?${queryParam}`)
+      .then(async (res) => {
+        if (res && res.ok) {
+          const users = await res.json();
+          const recipients = Array.isArray(users)
+            ? users.filter((u) => u.permission !== "OWNER")
+            : [];
+          if (recipients.length > 0) {
+            if (itemType === "folder" && window.sharedByMeFolderIds) {
+              window.sharedByMeFolderIds.add(String(itemId));
+              card.dataset.sharedByMe = "true";
+            }
+            const bList = card.querySelectorAll(".shared-badge");
+            bList.forEach((b) => {
+              b.textContent = "Đã chia sẻ";
+              b.className = "shared-badge active";
+            });
+          }
+        }
+      })
+      .catch(() => { });
+  }
+}
+
 /**
  * renderFolders(folders, viewType) - Render danh sách thư mục sử dụng HTML5 <template id="tmpl-folder-card">
  * @param {Array}  folders  - Mảng object thư mục (từ backend hoặc mockData)
@@ -3101,19 +3175,11 @@ function renderFolders(folders, viewType = "home") {
       folder.isShared !== undefined ? folder.isShared : folder.shared;
     const folderPerm = folder.permission;
 
-    let folderBadgeText = "Riêng tư";
-    let folderBadgeClass = "shared-badge";
-
-    if (viewType === "shared" || (folderPerm && folderPerm !== "OWNER")) {
-      const rawPerm = String(folderPerm || "VIEW").toUpperCase();
-      const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
-      folderBadgeText =
-        viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ";
-      folderBadgeClass = "shared-badge active shared-received";
-    } else if (isSharedVal) {
-      folderBadgeText = "Đã chia sẻ";
-      folderBadgeClass = "shared-badge active";
-    }
+    const {
+      badgeText: folderBadgeText,
+      badgeClass: folderBadgeClass,
+      isReceivedShare,
+    } = resolveItemShareBadge(folderPerm, isSharedVal, viewType);
 
     // Nhân bản từ <template id="tmpl-folder-card">
     const fragment = cloneTemplate("tmpl-folder-card");
@@ -3158,45 +3224,19 @@ function renderFolders(folders, viewType = "home") {
     const dateCol = folderCard.querySelector(".file-date");
     if (dateCol) dateCol.textContent = displayDate;
 
-    // Badges chia sẻ (cả dạng Grid và List)
-    const badges = folderCard.querySelectorAll(".shared-badge");
-    badges.forEach((b) => {
-      b.textContent = folderBadgeText;
-      b.className = folderBadgeClass;
-    });
-
-    // Thông tin người chia sẻ (tab 'shared')
-    if (viewType === "shared") {
-      const slot =
-        folderCard.querySelector(".shared-user-meta-slot") ||
-        folderCard.querySelector(".file-info-main");
-      if (slot) {
-        slot.appendChild(createSharedUserMetaNode(folder));
-      }
-    }
-
-    // Tự động kiểm tra nếu folder chính chủ đã được chia sẻ cho người khác
-    if (
-      (!folderPerm || folderPerm === "OWNER") &&
-      !isSharedVal &&
-      viewType !== "shared"
-    ) {
-      fetchWithAuth(`/shares/users?folderId=${folderId}`)
-        .then(async (res) => {
-          if (res && res.ok) {
-            const users = await res.json();
-            const recipients = users.filter((u) => u.permission !== "OWNER");
-            if (recipients.length > 0) {
-              const bList = folderCard.querySelectorAll(".shared-badge");
-              bList.forEach((b) => {
-                b.textContent = "Đã chia sẻ";
-                b.className = "shared-badge active";
-              });
-            }
-          }
-        })
-        .catch(() => {});
-    }
+    // Badges chia sẻ, avatar người chia sẻ & kiểm tra trạng thái chia sẻ
+    applyCardShareDisplay(
+      folderCard,
+      folder,
+      folderId,
+      "folder",
+      folderPerm,
+      isSharedVal,
+      folderBadgeText,
+      folderBadgeClass,
+      isReceivedShare,
+      viewType,
+    );
 
     // Sự kiện mở thư mục
     folderCard.addEventListener("click", (e) => {
@@ -3267,19 +3307,11 @@ function renderFiles(files, viewType = "home") {
     const isSharedVal =
       file.isShared !== undefined ? file.isShared : file.shared;
     const filePerm = file.permission;
-    let fileBadgeText = "Riêng tư";
-    let fileBadgeClass = "shared-badge";
-
-    if (viewType === "shared" || (filePerm && filePerm !== "OWNER")) {
-      const rawPerm = String(filePerm || "VIEW").toUpperCase();
-      const isEdit = rawPerm === "EDIT" || rawPerm === "EDITOR";
-      fileBadgeText =
-        viewType === "shared" ? (isEdit ? "Chỉnh sửa" : "Xem") : "Được chia sẻ";
-      fileBadgeClass = "shared-badge active shared-received";
-    } else if (isSharedVal) {
-      fileBadgeText = "Đã chia sẻ";
-      fileBadgeClass = "shared-badge active";
-    }
+    const {
+      badgeText: fileBadgeText,
+      badgeClass: fileBadgeClass,
+      isReceivedShare,
+    } = resolveItemShareBadge(filePerm, isSharedVal, viewType);
 
     const displayDate = formatSmartDate(file.updatedAt || file.createdAt);
 
@@ -3331,45 +3363,19 @@ function renderFiles(files, viewType = "home") {
     const sizeCol = fileCard.querySelector(".file-size");
     if (sizeCol) sizeCol.textContent = displaySize;
 
-    // Badges chia sẻ
-    const badges = fileCard.querySelectorAll(".shared-badge");
-    badges.forEach((b) => {
-      b.textContent = fileBadgeText;
-      b.className = fileBadgeClass;
-    });
-
-    // Thông tin người chia sẻ (tab 'shared')
-    if (viewType === "shared") {
-      const slot =
-        fileCard.querySelector(".shared-user-meta-slot") ||
-        fileCard.querySelector(".file-info-main");
-      if (slot) {
-        slot.appendChild(createSharedUserMetaNode(file));
-      }
-    }
-
-    // Tự động kiểm tra nếu file chính chủ đã được chia sẻ cho người khác
-    if (
-      (!filePerm || filePerm === "OWNER") &&
-      !isSharedVal &&
-      viewType !== "shared"
-    ) {
-      fetchWithAuth(`/shares/users?fileId=${fileId}`)
-        .then(async (res) => {
-          if (res && res.ok) {
-            const users = await res.json();
-            const recipients = users.filter((u) => u.permission !== "OWNER");
-            if (recipients.length > 0) {
-              const bList = fileCard.querySelectorAll(".shared-badge");
-              bList.forEach((b) => {
-                b.textContent = "Đã chia sẻ";
-                b.className = "shared-badge active";
-              });
-            }
-          }
-        })
-        .catch(() => {});
-    }
+    // Badges chia sẻ, avatar người chia sẻ & kiểm tra trạng thái chia sẻ
+    applyCardShareDisplay(
+      fileCard,
+      file,
+      fileId,
+      "file",
+      filePerm,
+      isSharedVal,
+      fileBadgeText,
+      fileBadgeClass,
+      isReceivedShare,
+      viewType,
+    );
 
     // Sự kiện mở modal xem trước
     fileCard.addEventListener("click", (e) => {
@@ -3529,7 +3535,7 @@ function setupDragAndDrop() {
                     value: path + file.name,
                     writable: false,
                   });
-                } catch (err) {}
+                } catch (err) { }
                 filesList.push(file);
                 resolve();
               });
@@ -3671,11 +3677,21 @@ function setupDragAndDrop() {
   function handleFiles(files) {
     console.log("👉 Đã chọn file thành công:", files);
     if (files.length > 0) {
+      const permError = getFolderWritePermissionError("tải tệp lên");
+      if (permError) {
+        if (typeof showToast === "function") {
+          showToast(permError, "warning");
+        }
+        return;
+      }
+
+      const uploadRootFolderId = window.currentFolderId || null;
       const validFiles = [];
       Array.from(files).forEach((file) => {
         if (file.size > MAX_ALLOWED_FILE_SIZE) {
-          alert(
+          showToast(
             `Tệp "${file.name}" (${formatSize(file.size)}) vượt quá giới hạn tối đa cho phép là 4GB! Vui lòng chọn tệp nhỏ hơn.`,
+            "error",
           );
         } else {
           validFiles.push(file);
@@ -3724,13 +3740,13 @@ function setupDragAndDrop() {
       // Process folder groups (1 card per top-level folder)
       folderGroupsMap.forEach((group) => {
         window.uploadGlobalState.totalSize += group.totalSize;
-        uploadFolderWithProgress(group);
+        uploadFolderWithProgress(group, uploadRootFolderId);
       });
 
       // Process standalone files (1 card per file)
       standaloneFiles.forEach((file) => {
         window.uploadGlobalState.totalSize += file.size;
-        uploadFileWithProgress(file);
+        uploadFileWithProgress(file, uploadRootFolderId);
       });
 
       if (typeof window.updateMinimizedUploadUI === "function") {
@@ -3780,7 +3796,10 @@ function setupDragAndDrop() {
    * Hỗ trợ: Tạm dừng, Hủy, Retry từng file, cập nhật tiến trình theo thời gian thực
    * @param {object} group - { folderName, files: [], totalSize }
    */
-  async function uploadFolderWithProgress(group) {
+  async function uploadFolderWithProgress(
+    group,
+    targetRootFolderId = window.currentFolderId || null,
+  ) {
     // Lấy JWT token để xác thực API (hỗ trợ cả 2 key token và jwt_token)
     const token =
       (typeof checkAuth === "function" ? checkAuth() : null) ||
@@ -3789,7 +3808,7 @@ function setupDragAndDrop() {
 
     if (!token) {
       console.error("❌ Không tìm thấy Token hợp lệ để upload folder!");
-      alert("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!");
+      window.location.href = "login.html";
       return;
     }
 
@@ -3960,6 +3979,7 @@ function setupDragAndDrop() {
             updateFolderUI,
             () => isPaused,
             () => isCancelled,
+            targetRootFolderId,
           )
             .then((success) => {
               activeFiles--;
@@ -3996,6 +4016,7 @@ function setupDragAndDrop() {
     onProgress, // Callback cập nhật UI tiến trình folder
     getIsPaused, // Hàm trả về trạng thái tạm dừng
     getIsCancelled, // Hàm trả về trạng thái hủy
+    targetRootFolderId = window.currentFolderId || null, // ID thư mục đích gốc lúc bắt đầu upload
   ) {
     try {
       if (file.size > MAX_ALLOWED_FILE_SIZE) {
@@ -4005,9 +4026,12 @@ function setupDragAndDrop() {
 
       // Xác định ID thư mục đích
       const relPath = file.relativePath || file.webkitRelativePath;
-      let targetFolderId = window.currentFolderId || null;
+      let targetFolderId = targetRootFolderId || null;
       if (relPath && relPath.includes("/")) {
-        targetFolderId = await getOrCreateFolderIdOnBackend(relPath);
+        targetFolderId = await getOrCreateFolderIdOnBackend(
+          relPath,
+          targetRootFolderId,
+        );
       }
 
       const CHUNK_SIZE = getOptimalChunkSize(file.size);
@@ -4214,7 +4238,10 @@ function setupDragAndDrop() {
     }
   }
 
-  async function uploadFileWithProgress(file) {
+  async function uploadFileWithProgress(
+    file,
+    targetRootFolderId = window.currentFolderId || null,
+  ) {
     const token =
       typeof checkAuth === "function"
         ? checkAuth()
@@ -4222,8 +4249,9 @@ function setupDragAndDrop() {
     if (!token) return;
 
     if (file.size > MAX_ALLOWED_FILE_SIZE) {
-      alert(
+      showToast(
         `Tệp "${file.name}" (${formatSize(file.size)}) vượt quá giới hạn tối đa cho phép là 4GB!`,
+        "error",
       );
       return;
     }
@@ -4416,7 +4444,7 @@ function setupDragAndDrop() {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
-        } catch (_) {}
+        } catch (_) { }
       } else {
         icon.classList.remove("ph-play-circle");
         icon.classList.add("ph-pause-circle");
@@ -4441,7 +4469,7 @@ function setupDragAndDrop() {
               });
             }
           }
-        } catch (_) {}
+        } catch (_) { }
 
         isPaused = false;
         if (activeThreadsCount === 0) {
@@ -4464,7 +4492,7 @@ function setupDragAndDrop() {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
-        } catch (_) {}
+        } catch (_) { }
       }
     });
 
@@ -4496,7 +4524,7 @@ function setupDragAndDrop() {
         try {
           const errData = await response.json();
           if (errData && errData.message) errorMsg = errData.message;
-        } catch (_) {}
+        } catch (_) { }
         throw new Error(errorMsg);
       }
 
@@ -4591,7 +4619,7 @@ function setupDragAndDrop() {
           try {
             const errJson = await completeRes.json();
             if (errJson && errJson.message) msg = errJson.message;
-          } catch (_) {}
+          } catch (_) { }
           throw new Error(msg);
         }
 
@@ -4691,10 +4719,13 @@ function setupDragAndDrop() {
         metaEl.innerHTML = `0 B / ${formatSize(file.size)} &middot; <span class="text-blue thread-count">Khởi tạo...</span>`;
         if (retryBtn) retryBtn.style.display = "none";
 
-        let targetFolderId = window.currentFolderId || null;
+        let targetFolderId = targetRootFolderId || null;
         const relPath = file.relativePath || file.webkitRelativePath;
         if (relPath && relPath.includes("/")) {
-          targetFolderId = await getOrCreateFolderIdOnBackend(relPath);
+          targetFolderId = await getOrCreateFolderIdOnBackend(
+            relPath,
+            targetRootFolderId,
+          );
         }
 
         // Init Upload với retry tự động
@@ -4734,7 +4765,7 @@ function setupDragAndDrop() {
               try {
                 const errJson = await initResponse.json();
                 if (errJson && errJson.message) msg = errJson.message;
-              } catch (_) {}
+              } catch (_) { }
               if (initAttempt === MAX_INIT_RETRIES) throw new Error(msg);
             }
           } catch (initErr) {
@@ -4793,8 +4824,11 @@ function setupDragAndDrop() {
 
 const folderPromiseCache = new Map();
 
-async function getOrCreateFolderIdOnBackend(relPath) {
-  let currentParentId = window.currentFolderId || null;
+async function getOrCreateFolderIdOnBackend(
+  relPath,
+  rootFolderId = window.currentFolderId || null,
+) {
+  let currentParentId = rootFolderId || null;
   if (!relPath || !relPath.includes("/")) {
     return currentParentId;
   }
@@ -4822,10 +4856,17 @@ async function getOrCreateFolderIdOnBackend(relPath) {
             const createdFolder = await response.json();
             return createdFolder.id;
           }
+
+          const errData = response
+            ? await response.json().catch(() => ({}))
+            : {};
+          throw new Error(
+            errData.message || `Không thể tạo thư mục "${fName}"!`,
+          );
         } catch (err) {
-          console.warn("Lỗi khi tạo folder trên backend:", err);
+          folderPromiseCache.delete(cacheKey);
+          throw err;
         }
-        return parentIdForCall;
       })();
 
       folderPromiseCache.set(cacheKey, promise);
@@ -4879,7 +4920,7 @@ window.updateMinimizedUploadUI = function () {
     percent = Math.round(
       (window.uploadGlobalState.uploadedSize /
         window.uploadGlobalState.totalSize) *
-        100,
+      100,
     );
   }
   percent = Math.min(percent, 100);
@@ -4894,9 +4935,9 @@ window.updateMinimizedUploadUI = function () {
     isAllCompleted && window.uploadGlobalState.completedFiles === 0
       ? window.uploadGlobalState.totalFiles
       : Math.max(
-          window.uploadGlobalState.completedFiles,
-          isAllCompleted ? window.uploadGlobalState.totalFiles : 0,
-        );
+        window.uploadGlobalState.completedFiles,
+        isAllCompleted ? window.uploadGlobalState.totalFiles : 0,
+      );
 
   if (isAllCompleted) {
     minTitle.textContent = `Đã tải lên ${completedCount} ${noun}`;
@@ -4928,6 +4969,84 @@ window.updateMinimizedUploadUI = function () {
   }
 };
 
+function getFolderWritePermissionError(actionLabel = "tải tệp lên") {
+  const viewType = window.currentViewType || "home";
+  const folderId = window.currentFolderId || null;
+
+  if (viewType === "shared" && !folderId) {
+    return `Vui lòng mở một thư mục được chia sẻ có quyền Chỉnh sửa để ${actionLabel}!`;
+  }
+
+  if (folderId && window.currentFolderPermission === "VIEW") {
+    return `Bạn chỉ có quyền Xem trong thư mục này, không thể ${actionLabel}!`;
+  }
+
+  return null;
+}
+
+function updateUploadButtonState() {
+  const isViewOnlyFolder = Boolean(
+    window.currentFolderId && window.currentFolderPermission === "VIEW",
+  );
+  const viewErr = isViewOnlyFolder
+    ? getFolderWritePermissionError("tải tệp lên hoặc tạo thư mục")
+    : "";
+
+  document.querySelectorAll(".upload-dropdown-container").forEach((container) => {
+    container.style.display = "";
+  });
+
+  document
+    .querySelectorAll(
+      ".upload-dropdown-container .btn-upload-main, .upload-dropdown-container .btn-upload-outline",
+    )
+    .forEach((btn) => {
+      btn.classList.toggle("is-view-only-disabled", isViewOnlyFolder);
+      btn.title = viewErr || "";
+      btn.style.opacity = isViewOnlyFolder ? "0.55" : "";
+      btn.style.cursor = isViewOnlyFolder ? "not-allowed" : "";
+      btn.setAttribute("aria-disabled", isViewOnlyFolder ? "true" : "false");
+    });
+
+  if (isViewOnlyFolder) {
+    document
+      .querySelectorAll(".upload-dropdown-menu.show")
+      .forEach((m) => m.classList.remove("show"));
+  }
+}
+
+function openCreateFolderModal() {
+  const permError = getFolderWritePermissionError("tạo thư mục mới");
+  if (permError) {
+    if (typeof showToast === "function") {
+      showToast(permError, "warning");
+    }
+    return;
+  }
+
+  const overlay = document.getElementById("createFolderModalOverlay");
+  const input = document.getElementById("createFolderInput");
+  const errorLabel = document.getElementById("createFolderErrorMsg");
+
+  if (errorLabel) {
+    errorLabel.textContent = "";
+    errorLabel.style.display = "none";
+  }
+  if (input) {
+    input.classList.remove("input-error");
+    input.value = "Thư mục chưa có tên";
+  }
+  if (overlay) {
+    overlay.style.display = "flex";
+  }
+  if (input) {
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 10);
+  }
+}
+
 function setupUploadDropdowns() {
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".upload-dropdown-container")) {
@@ -4948,6 +5067,15 @@ function setupUploadDropdowns() {
     trigger.onclick = (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (window.currentFolderId && window.currentFolderPermission === "VIEW") {
+        const permError = getFolderWritePermissionError(
+          "tải tệp lên hoặc tạo thư mục",
+        );
+        if (permError && typeof showToast === "function") {
+          showToast(permError, "warning");
+        }
+        return;
+      }
       const isShow = menu.classList.contains("show");
       document
         .querySelectorAll(".upload-dropdown-menu.show")
@@ -4955,8 +5083,18 @@ function setupUploadDropdowns() {
       if (!isShow) menu.classList.add("show");
     };
 
+    const createFolderBtn = menu.querySelector('[data-action="create-folder"]');
     const fileBtn = menu.querySelector('[data-action="upload-file"]');
     const folderBtn = menu.querySelector('[data-action="upload-folder"]');
+
+    if (createFolderBtn) {
+      createFolderBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        menu.classList.remove("show");
+        openCreateFolderModal();
+      };
+    }
 
     if (fileBtn) {
       fileBtn.onclick = (e) => {
@@ -4978,9 +5116,17 @@ function setupUploadDropdowns() {
       };
     }
   });
+  updateUploadButtonState();
 }
 
 function openUploadModal() {
+  const permError = getFolderWritePermissionError("tải tệp lên");
+  if (permError) {
+    if (typeof showToast === "function") {
+      showToast(permError, "warning");
+    }
+    return;
+  }
   const uploadModal = document.getElementById("uploadModal");
   if (uploadModal) {
     uploadModal.style.display = "flex";
@@ -5148,6 +5294,49 @@ function setupUploadModal() {
 
 window.currentFolderId = null;
 window.folderPathTrail = [{ id: null, name: "Tệp của tôi" }];
+window.sharedByMeFolderIds = window.sharedByMeFolderIds || new Set();
+window.isInsideSharedFolderContext = false;
+
+async function resolveInsideSharedFolderContext(viewType, data) {
+  const folderId = window.currentFolderId;
+  if (!folderId) return false;
+  if (viewType === "shared") return true;
+  if (viewType !== "home") return false;
+
+  if (data?.currentFolder?.isShared) {
+    window.sharedByMeFolderIds.add(String(folderId));
+    return true;
+  }
+
+  const trail = window.folderPathTrail || [];
+  const hasSharedAncestor = trail.some(
+    (t) =>
+      t &&
+      t.id != null &&
+      (t.isShared || window.sharedByMeFolderIds.has(String(t.id))),
+  );
+  if (hasSharedAncestor) return true;
+
+  try {
+    const res = await fetchWithAuth(`/shares/users?folderId=${folderId}`);
+    if (res && res.ok) {
+      const users = await res.json();
+      const hasRecipients =
+        Array.isArray(users) &&
+        users.some((u) => String(u.permission || "").toUpperCase() !== "OWNER");
+      if (hasRecipients) {
+        window.sharedByMeFolderIds.add(String(folderId));
+        const curTrail = trail.find((t) => t && t.id == folderId);
+        if (curTrail) curTrail.isShared = true;
+        return true;
+      }
+    }
+  } catch (_) {
+    // Ignore share lookup errors
+  }
+
+  return false;
+}
 
 window.openFolder = function (folderId, folderName) {
   window.currentFolderId = folderId;
@@ -5155,13 +5344,21 @@ window.openFolder = function (folderId, folderName) {
     window.folderPathTrail = [{ id: null, name: "Tệp của tôi" }];
   }
 
+  const isKnownShared = Boolean(
+    window.sharedByMeFolderIds &&
+      window.sharedByMeFolderIds.has(String(folderId)),
+  );
   const existingIdx = window.folderPathTrail.findIndex(
-    (item) => item.id === folderId,
+    (item) => item.id == folderId,
   );
   if (existingIdx !== -1) {
     window.folderPathTrail = window.folderPathTrail.slice(0, existingIdx + 1);
   } else {
-    window.folderPathTrail.push({ id: folderId, name: folderName });
+    window.folderPathTrail.push({
+      id: folderId,
+      name: folderName,
+      isShared: isKnownShared,
+    });
   }
 
   loadDashboardData(window.currentViewType || "home");
@@ -5252,6 +5449,10 @@ function formatSharerName(item) {
   if (item.sharedBy && item.sharedBy.email) return item.sharedBy.email;
   if (item.owner && item.owner.fullName) return item.owner.fullName;
   if (item.owner && item.owner.email) return item.owner.email;
+  if (item.userEmail) {
+    const emailStr = String(item.userEmail);
+    return emailStr.includes("@") ? emailStr.split("@")[0] : emailStr;
+  }
   if (item.sharerName) return item.sharerName;
   return "Người dùng VaultDrive";
 }
@@ -5434,11 +5635,18 @@ async function loadDashboardData(viewType = "home") {
   if (contentScroll) {
     contentScroll.classList.toggle("view-trash", viewType === "trash");
     contentScroll.classList.toggle("view-settings", viewType === "settings");
-    contentScroll.classList.toggle("view-shared", viewType === "shared");
+    contentScroll.classList.toggle(
+      "view-shared",
+      viewType === "shared" && !window.currentFolderId,
+    );
+    if (!window.currentFolderId) {
+      contentScroll.classList.remove("inside-shared-folder");
+    }
 
     const heroBanner = contentScroll.querySelector(".shared-hero-banner");
     if (heroBanner)
-      heroBanner.style.display = viewType === "shared" ? "flex" : "none";
+      heroBanner.style.display =
+        viewType === "shared" && !window.currentFolderId ? "flex" : "none";
 
     const trashContainer = document.getElementById("trash-view-container");
     if (trashContainer)
@@ -5488,7 +5696,10 @@ async function loadDashboardData(viewType = "home") {
     }
   }
 
-  if (viewType === "shared") {
+  if (viewType === "shared" && !window.currentFolderId) {
+    window.isInsideSharedFolderContext = false;
+    window.currentFolderPermission = "SHARED_ROOT";
+    updateUploadButtonState();
     try {
       const response = await fetchWithAuth("/shares/shared-with-me");
       if (response && response.ok) {
@@ -5504,6 +5715,10 @@ async function loadDashboardData(viewType = "home") {
   }
 
   if (viewType === "settings") {
+    window.isInsideSharedFolderContext = false;
+    if (contentScroll) contentScroll.classList.remove("inside-shared-folder");
+    window.currentFolderPermission = null;
+    updateUploadButtonState();
     if (typeof renderSettingsView === "function") {
       renderSettingsView();
     }
@@ -5525,13 +5740,32 @@ async function loadDashboardData(viewType = "home") {
       const data = await response.json();
       window.currentLoadedData = data;
       if (viewType === "trash") {
+        window.isInsideSharedFolderContext = false;
+        if (contentScroll) contentScroll.classList.remove("inside-shared-folder");
+        window.currentFolderPermission = null;
+        updateUploadButtonState();
         renderTrashItems(data.folders || [], data.files || []);
       } else {
+        window.currentFolderPermission = window.currentFolderId
+          ? (data.currentFolder && data.currentFolder.permission) ||
+            (viewType === "shared" ? "VIEW" : "OWNER")
+          : "OWNER";
+        updateUploadButtonState();
+
+        window.isInsideSharedFolderContext =
+          await resolveInsideSharedFolderContext(viewType, data);
+        if (contentScroll) {
+          contentScroll.classList.toggle(
+            "inside-shared-folder",
+            Boolean(window.isInsideSharedFolderContext),
+          );
+        }
+
         let folders = data.subfolders || data.folders || [];
         let files = data.files || [];
 
-        // Nếu đang ở "Tệp của tôi", lọc bỏ những file được người khác chia sẻ (permission khác OWNER)
-        if (viewType === "home") {
+        // Nếu đang ở gốc "Tệp của tôi", lọc bỏ những mục được người khác chia sẻ (permission khác OWNER)
+        if (viewType === "home" && !window.currentFolderId) {
           folders = folders.filter(
             (f) => !f.permission || f.permission === "OWNER",
           );
@@ -5540,14 +5774,29 @@ async function loadDashboardData(viewType = "home") {
           );
         }
 
-        renderFolders(folders);
-        renderFiles(files);
+        renderFolders(folders, viewType);
+        renderFiles(files, viewType);
       }
       return;
+    } else if (response && !response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      if (typeof showToast === "function") {
+        showToast(
+          errData.message || "Không thể tải nội dung thư mục!",
+          "error",
+        );
+      }
     }
   } catch (error) {
     console.warn("Lỗi khi lấy dữ liệu từ Backend API:", error.message);
   }
+
+  window.currentFolderPermission = window.currentFolderId
+    ? "VIEW"
+    : viewType === "trash" || viewType === "settings"
+      ? null
+      : "OWNER";
+  updateUploadButtonState();
 
   // Nếu gặp lỗi API hoặc dữ liệu trống, render danh sách rỗng từ CSDDL (không nảy dữ liệu giả mockData)
   // Nếu gặp lỗi API hoặc dữ liệu trống, render danh sách rỗng từ CSDDL (không nảy dữ liệu giả mockData)
@@ -5720,7 +5969,7 @@ window.restoreTrashItem = async function (id, type) {
       // Reload trash data
       loadDashboardData("trash");
     } else {
-      alert("Lỗi khôi phục mục!");
+      showToast("Lỗi khi khôi phục mục!", "error");
     }
   } catch (error) {
     console.error(error);
@@ -5744,7 +5993,7 @@ window.permanentDeleteTrashItem = async function (id, type) {
       // Update storage info if available
       if (typeof fetchStorageInfo === "function") fetchStorageInfo();
     } else {
-      alert("Lỗi xóa vĩnh viễn!");
+      showToast("Lỗi khi xóa vĩnh viễn mục!", "error");
     }
   } catch (error) {
     console.error(error);

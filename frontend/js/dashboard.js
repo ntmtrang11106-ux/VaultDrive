@@ -191,7 +191,7 @@ function setupTabNavigation() {
         const container = document.getElementById("settings-view-container");
         if (container && container.innerHTML.trim() === "") {
           try {
-            const res = await fetch("views/settings-view.html");
+            const res = await fetch("views/settings-view.html?v=2.5");
             if (res.ok) {
               container.innerHTML = await res.text();
             }
@@ -248,9 +248,8 @@ function setupViewToggle() {
         }
       });
 
-      // Nếu đang ở tab "Được chia sẻ" và KHÔNG trong trạng thái tìm kiếm → render lại theo format Grid
-      if (!window.isSearching && window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
-        renderSharedView();
+      // Nếu đang ở gốc tab "Được chia sẻ" và KHÔNG trong trạng thái tìm kiếm → render lại theo format Grid
+      if (!window.isSearching && !window.currentFolderId && window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
         renderSharedView();
       }
     });
@@ -280,9 +279,8 @@ function setupViewToggle() {
         }
       });
 
-      // Nếu đang ở tab "Được chia sẻ" và KHÔNG trong trạng thái tìm kiếm → render lại theo format List
-      if (!window.isSearching && window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
-        renderSharedView();
+      // Nếu đang ở gốc tab "Được chia sẻ" và KHÔNG trong trạng thái tìm kiếm → render lại theo format List
+      if (!window.isSearching && !window.currentFolderId && window.currentViewType === 'shared' && typeof renderSharedView === 'function') {
         renderSharedView();
       }
     });

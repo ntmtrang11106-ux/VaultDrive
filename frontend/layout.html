@@ -36,13 +36,21 @@
 
     <!-- Dropdown menu: hiện khi click vào nút Tải lên (CSS class .show) -->
     <div class="upload-dropdown-menu" id="uploadDropdownMenu">
-      <!-- Tùy chọn 1: Tải lên file (mở hộp thoại chọn file) -->
+      <!-- Tùy chọn 1: Tạo thư mục mới -->
+      <button class="upload-dropdown-item" data-action="create-folder">
+        <i class="ph ph-folder-simple-plus"></i>
+        <span>Thư mục mới</span>
+      </button>
+
+      <div style="height: 1px; background: #e2e8f0; margin: 4px 6px;"></div>
+
+      <!-- Tùy chọn 2: Tải lên file (mở hộp thoại chọn file) -->
       <button class="upload-dropdown-item" data-action="upload-file">
         <i class="ph ph-file-arrow-up"></i>
         <span>Tải lên tệp</span>
       </button>
 
-      <!-- Tùy chọn 2: Tải lên thư mục (mở hộp thoại chọn folder) -->
+      <!-- Tùy chọn 3: Tải lên thư mục (mở hộp thoại chọn folder) -->
       <button class="upload-dropdown-item" data-action="upload-folder">
         <i class="ph ph-folder-plus"></i>
         <span>Tải lên thư mục</span>

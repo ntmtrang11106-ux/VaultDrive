@@ -76,6 +76,18 @@
   color: var(--primary-color, #1a73e8);
 }
 
+.btn-upload-main.is-view-only-disabled,
+.btn-upload-main.is-view-only-disabled:hover,
+.btn-upload-main.is-view-only-disabled:active,
+.btn-upload-outline.is-view-only-disabled,
+.btn-upload-outline.is-view-only-disabled:hover,
+.btn-upload-outline.is-view-only-disabled:active {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ==========================================================================
    CONTEXT MENU & SUBMENU - RESPONSIVE TẤT CẢ KÍCH THƯỚC MÀN HÌNH
    ========================================================================== */

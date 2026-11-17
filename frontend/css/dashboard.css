@@ -705,10 +705,11 @@ body {
   text-align: left !important;
 }
 
-/* Cột 6: Nút hành động 3 chấm - Luôn căn chính giữa hàng ngang */
+/* Cột 6: Nút hành động 3 chấm - Luôn nằm cuối dòng và căn chính giữa hàng ngang */
 .list-view .file-card .more-options,
 .content-scroll.list-view .file-card .more-options,
 .content-scroll.list-view .grid-files .file-card .more-options {
+  order: 99 !important;
   position: static !important;
   top: auto !important;
   right: auto !important;
@@ -776,6 +777,17 @@ body {
   background-color: rgba(240, 253, 244, 0.95);
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
+}
+
+/* Bên trong thư mục được chia sẻ / đã chia sẻ: ẩn nhãn trạng thái chia sẻ ở cả Grid và List View */
+.content-scroll.inside-shared-folder .grid-shared-badge,
+.content-scroll.inside-shared-folder .file-shared,
+.content-scroll.inside-shared-folder .list-header .col-shared {
+  display: none !important;
+}
+
+.content-scroll:not(.list-view) .shared-user-meta {
+  margin-top: 10px;
 }
 
 /* Ẩn bớt thông tin dạng cột nếu không bật chế độ list-view (và luôn ẩn trên folder-card) */

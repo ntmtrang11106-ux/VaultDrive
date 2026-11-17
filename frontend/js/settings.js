@@ -13,6 +13,10 @@ function renderSettingsView() {
 function switchSettingsTab(tab) {
   clearSettingsProfileErrors();
   clearSettingsPasswordErrors();
+  const profSuccess = document.getElementById("profileSuccessMsg");
+  if (profSuccess) profSuccess.style.display = "none";
+  const pwdSuccess = document.getElementById("passwordSuccessMsg");
+  if (pwdSuccess) pwdSuccess.style.display = "none";
   document.getElementById("tab-profile").classList.remove("active");
   document.getElementById("tab-password").classList.remove("active");
   document.getElementById("settings-content-profile").style.display = "none";
@@ -55,6 +59,8 @@ function toggleEditProfile() {
 
   if (isEditingProfile) {
     clearSettingsProfileErrors();
+    const profSuccess = document.getElementById("profileSuccessMsg");
+    if (profSuccess) profSuccess.style.display = "none";
     if (btnEdit) {
       btnEdit.innerHTML = `<i class="ph ph-x"></i> Hủy`;
       btnEdit.classList.add("cancel-mode");
@@ -220,6 +226,13 @@ document.addEventListener("input", function (e) {
       errorEl.textContent = "";
       errorEl.style.display = "none";
     }
+    const genErr = document.getElementById("profileGeneralError");
+    if (genErr) {
+      genErr.textContent = "";
+      genErr.style.display = "none";
+    }
+    const pwdSuccess = document.getElementById("passwordSuccessMsg");
+    if (pwdSuccess) pwdSuccess.style.display = "none";
   }
 });
 
@@ -291,7 +304,17 @@ async function saveProfile() {
     });
 
     if (response && response.ok) {
-      alert("Cập nhật thông tin cá nhân thành công!");
+      const profSuccess = document.getElementById("profileSuccessMsg");
+      if (profSuccess) {
+        profSuccess.textContent = "Cập nhật thông tin cá nhân thành công!";
+        profSuccess.style.display = "block";
+        setTimeout(() => {
+          profSuccess.style.display = "none";
+        }, 3500);
+      }
+      if (typeof showToast === "function") {
+        showToast("Cập nhật thông tin cá nhân thành công!", "success");
+      }
 
       // Lưu cache local
       localStorage.setItem(
@@ -354,12 +377,15 @@ async function saveProfile() {
       } else if (lower.includes("name") || lower.includes("tên")) {
         showSettingsFieldError("inputFullName", msg);
       } else {
-        alert(msg);
+        showSettingsFieldError("profileGeneral", msg);
       }
     }
   } catch (error) {
     console.error("Lỗi khi cập nhật profile:", error);
-    alert("Có lỗi xảy ra khi cập nhật thông tin!");
+    showSettingsFieldError(
+      "profileGeneral",
+      "Có lỗi xảy ra khi cập nhật thông tin!",
+    );
   }
 }
 
@@ -447,11 +473,21 @@ async function savePassword() {
     });
 
     if (response && response.ok) {
-      alert("Cập nhật mật khẩu thành công!");
       if (currentPasswordInput) currentPasswordInput.value = "";
       if (newPasswordInput) newPasswordInput.value = "";
       if (confirmPasswordInput) confirmPasswordInput.value = "";
       clearSettingsPasswordErrors();
+      const pwdSuccess = document.getElementById("passwordSuccessMsg");
+      if (pwdSuccess) {
+        pwdSuccess.textContent = "Cập nhật mật khẩu thành công!";
+        pwdSuccess.style.display = "block";
+        setTimeout(() => {
+          pwdSuccess.style.display = "none";
+        }, 3500);
+      }
+      if (typeof showToast === "function") {
+        showToast("Cập nhật mật khẩu thành công!", "success");
+      }
     } else {
       const errData = await response.json().catch(() => ({}));
       const msg = errData.message || "Cập nhật mật khẩu thất bại!";
