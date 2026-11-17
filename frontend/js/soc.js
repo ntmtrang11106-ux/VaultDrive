@@ -16,7 +16,7 @@
   // Hỗ trợ cả khi chạy trực tiếp qua VS Code Live Server (port 5500) lẫn Nginx Reverse Proxy (port 80)
   var isLiveServer = window.location.port === "5500";
   var GRAFANA_BASE = isLiveServer ? "http://localhost:3000" : "";
-  var PROMETHEUS_BASE = isLiveServer ? "http://localhost:8080" : "";
+  var PROMETHEUS_BASE = isLiveServer ? "" : "";
   var resolvedDashboardPath = `${GRAFANA_BASE}/soc/d/vaultdrive-soc-main/vaultdrive-soc-and-performance-dashboard`;
 
   // 1. Tự động hỏi Grafana đường dẫn thực tế của Dashboard để không bao giờ bị "Dashboard not found"

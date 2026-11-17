@@ -45,7 +45,7 @@ public class SecurityLog {
     public String getIp() { return ip; }
     public void setIp(String ip) { this.ip = ip; }
     public String getType() { return type; }
-    public void setType(String type) { this.ip = type; this.type = type; }
+    public void setType(String type) { this.type = type; }
     public String getAction() { return action; }
     public void setAction(String action) { this.action = action; }
     public String getSeverity() { return severity; }

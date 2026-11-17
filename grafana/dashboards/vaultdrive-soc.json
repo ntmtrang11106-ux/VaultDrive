@@ -673,7 +673,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (ip, type, action, severity) (vaultdrive_security_events_total)",
+                        "expr": "sum by (detected_at, ip, type, action, severity) (vaultdrive_security_events_total)",
                         "format": "table",
                         "instant": true
                       }
@@ -697,12 +697,12 @@
                   "spec": {
                     "options": {
                       "excludeByName": {
-                        "__name__": true,
+                        "Time": true, "__name__": true,
                         "instance": true,
                         "job": true
                       },
                       "indexByName": {
-                        "Time": 0,
+                        "detected_at": 0,
                         "Value": 5,
                         "action": 3,
                         "ip": 1,
@@ -710,7 +710,7 @@
                         "type": 2
                       },
                       "renameByName": {
-                        "Time": "THỜI GIAN",
+                        "detected_at": "THỜI GIAN",
                         "Value": "SỐ LẦN PHÁT HIỆN",
                         "action": "HÀNH ĐỘNG",
                         "ip": "ĐỊA CHỈ IP TẤN CÔNG",
