@@ -15,12 +15,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- === CÁC FILE CSS: Tải theo thứ tự ưu tiên từ chung → cụ thể === -->
-  <link rel="stylesheet" href="css/layout.css?v=3.2" />
-  <link rel="stylesheet" href="css/dashboard.css?v=3.9" />
-  <link rel="stylesheet" href="css/file-actions.css?v=3.7" />
-  <link rel="stylesheet" href="css/trash.css?v=2.7" />
-  <link rel="stylesheet" href="css/soc.css" />
-  <link rel="stylesheet" href="css/settings.css?v=2.2" />
+  <link rel="stylesheet" href="css/layout.css?v=5.0" />
+  <link rel="stylesheet" href="css/dashboard.css?v=5.0" />
+  <link rel="stylesheet" href="css/file-actions.css?v=5.0" />
+  <link rel="stylesheet" href="css/trash.css?v=5.0" />
+  <link rel="stylesheet" href="css/soc.css?v=5.0" />
+  <link rel="stylesheet" href="css/settings.css?v=5.0" />
 
   <!-- Kích hoạt ngay chế độ xem trước độc lập (không hiện dashboard phía dưới) nếu URL có token hoặc fileId -->
   <script>
@@ -109,6 +109,10 @@
         <p id="dropzoneSubtitle">
           hoặc <a href="#" id="browseFileBtn">duyệt từ máy tính</a>
         </p>
+        <div class="upload-limit-note" id="uploadLimitNote">
+          <i class="ph-bold ph-info"></i>
+          <span>Tệp tối đa: <strong>4 GB</strong> &middot; Thư mục theo dung lượng trống tài khoản</span>
+        </div>
         <!-- Input file ẩn (multiple: cho chọn nhiều file cùng lúc) -->
         <input type="file" id="fileInput" multiple style="display: none" />
         <!-- Input folder ẩn (webkitdirectory: cho chọn cả thư mục) -->
@@ -295,7 +299,8 @@
       </div>
 
       <div class="action-modal-body">
-        <input type="text" id="createFolderInput" class="action-input" placeholder="Nhập tên thư mục..." value="Thư mục chưa có tên" />
+        <input type="text" id="createFolderInput" class="action-input" placeholder="Nhập tên thư mục..."
+          value="Thư mục chưa có tên" />
         <label class="field-error rename-error-label" id="createFolderErrorMsg"></label>
       </div>
 
@@ -612,12 +617,12 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
-  <script src="js/layout.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/file-actions.js"></script>
-  <script src="js/trash.js"></script>
-  <script src="js/settings.js"></script>
-  <script src="js/soc.js"></script>
-</body> 
+  <script src="js/dashboard.js?v=5.0"></script>
+  <script src="js/layout.js?v=5.0"></script>
+  <script src="js/file-actions.js?v=5.0"></script>
+  <script src="js/trash.js?v=5.0"></script>
+  <script src="js/settings.js?v=5.0"></script>
+  <script src="js/soc.js?v=5.0"></script>
+</body>
 
 </html>

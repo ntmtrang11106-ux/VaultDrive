@@ -46,6 +46,76 @@ checkAuth();
 
 
 // ================================================================
+// HỆ THỐNG THÔNG BÁO TOAST & CẢNH BÁO AN NINH (TOAST NOTIFICATIONS)
+// ================================================================
+
+function showToast(message, type = "info", title = "") {
+  let container = document.getElementById("vaultdrive-toast-container");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "vaultdrive-toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `vaultdrive-toast toast-${type}`;
+
+  let iconClass = "ph-fill ph-info";
+  let defaultTitle = "Thông báo";
+  if (type === "success") {
+    iconClass = "ph-fill ph-check-circle";
+    defaultTitle = "Thành công";
+  } else if (type === "error" || type === "danger") {
+    iconClass = "ph-fill ph-x-circle";
+    defaultTitle = "Lỗi";
+  } else if (type === "warning") {
+    iconClass = "ph-fill ph-shield-warning";
+    defaultTitle = "Cảnh báo bảo mật";
+  }
+
+  const displayTitle = title || defaultTitle;
+  const duration = (type === "warning" || type === "error" || type === "danger") ? 5000 : 4500;
+
+  toast.innerHTML = `
+    <div class="vaultdrive-toast-icon-wrap">
+      <i class="${iconClass}"></i>
+    </div>
+    <div class="vaultdrive-toast-content">
+      <div class="vaultdrive-toast-title">
+        <span>${displayTitle}</span>
+      </div>
+      <div class="vaultdrive-toast-message">${message}</div>
+    </div>
+    <button class="vaultdrive-toast-close" type="button" aria-label="Đóng">
+      <i class="ph-bold ph-x"></i>
+    </button>
+    <div class="vaultdrive-toast-progress">
+      <div class="vaultdrive-toast-progress-bar" style="animation-duration: ${duration}ms;"></div>
+    </div>
+  `;
+
+  const closeBtn = toast.querySelector(".vaultdrive-toast-close");
+  let autoDismissTimer = null;
+
+  const dismiss = () => {
+    if (autoDismissTimer) clearTimeout(autoDismissTimer);
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(115%)";
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 320);
+  };
+
+  closeBtn.addEventListener("click", dismiss);
+  container.appendChild(toast);
+
+  // Tự động đếm lùi và trượt ẩn
+  autoDismissTimer = setTimeout(dismiss, duration);
+}
+window.showToast = showToast;
+
+
+// ================================================================
 // HÀM GỌI API CÓ XÁC THỰC (fetchWithAuth)
 // ================================================================
 
@@ -88,8 +158,23 @@ async function fetchWithAuth(endpoint, options = {}) {
     localStorage.removeItem("jwt_token");   // Xóa token cũ
     localStorage.removeItem("user_role");   // Xóa role cũ
     localStorage.removeItem("user_email");  // Xóa email cũ
-    window.location.href = "login.html";    // Chuyển về trang đăng nhập
-    throw new Error(`Lỗi xác thực (401) từ Backend. Đã chuyển hướng về trang đăng nhập.`);
+    showToast("Phiên đăng nhập đã hết hạn. Đang chuyển về trang đăng nhập...", "error", "Hết phiên đăng nhập");
+    setTimeout(() => {
+      window.location.href = "login.html";
+    }, 1200);
+    return response;
+  }
+
+  // Xử lý lỗi bảo mật / phân quyền / tường lửa WAF: 403 Forbidden hoặc 429 Too Many Requests
+  // GIỮ NGUYÊN NGƯỜI DÙNG TẠI TRANG, không xóa token và không chuyển hướng login
+  if (response.status === 403 || response.status === 429) {
+    let msg = response.status === 429
+      ? "Bạn đang gửi quá nhiều yêu cầu cùng lúc. Vui lòng thử lại sau!"
+      : "Yêu cầu này bị từ chối";
+
+    // Hiển thị thẻ Toast thông báo MÀU CAM nổi ở góc DƯỚI bên phải màn hình
+    showToast(msg, "warning", "Cảnh báo bảo mật");
+    return response;
   }
 
   return response; // Trả response cho caller xử lý tiếp

@@ -771,7 +771,7 @@ async function openFilePreview(fileId, fileData = null) {
     file = window.mockData.files.find((f) => (f.fileId || f.id) == fileId);
   }
 
-  const fileName = file
+  let fileName = file
     ? file.fileName || file.name || file.originalName || `file_${fileId}`
     : `file_${fileId}`;
   const fileSizeVal = file
@@ -808,7 +808,7 @@ async function openFilePreview(fileId, fileData = null) {
   const dateText = file
     ? formatShortDate(file.updatedAt || file.createdAt)
     : "";
-  const { ext, iconClass, colorClass } = getFileCategoryAndIcon(fileName);
+  let { ext, iconClass, colorClass } = getFileCategoryAndIcon(fileName);
 
   const buildMetaString = (sizeStr, dateStr, extStr) => {
     const parts = [];
@@ -1162,7 +1162,7 @@ async function openPublicFilePreview(token) {
     const dateText = file
       ? formatShortDate(file.updatedAt || file.createdAt)
       : "";
-    const { ext, iconClass, colorClass } = getFileCategoryAndIcon(fileName);
+    let { ext, iconClass, colorClass } = getFileCategoryAndIcon(fileName);
 
     const buildMetaString = (sizeStr, dateStr, extStr) => {
       const parts = [];
@@ -4046,10 +4046,19 @@ function setupDragAndDrop() {
       });
 
       if (!initResponse.ok) {
-        if (initResponse.status === 401 || initResponse.status === 403) {
+        if (initResponse.status === 401) {
+          if (typeof showToast === "function") showToast("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", "error");
           localStorage.removeItem("jwt_token");
           localStorage.removeItem("token");
-          window.location.href = "login.html";
+          setTimeout(() => { window.location.href = "login.html"; }, 1200);
+          return false;
+        }
+        if (initResponse.status === 403 || initResponse.status === 429) {
+          let warn = initResponse.status === 429
+            ? "Bạn đang gửi quá nhiều yêu cầu cùng lúc. Vui lòng thử lại sau!"
+            : "Yêu cầu tải lên bị từ chối.";
+          if (typeof showToast === "function") showToast(warn, "warning", "Cảnh báo bảo mật");
+          return false;
         }
         console.error("Không thể khởi tạo phiên tải lên cho:", file.name);
         return false;
@@ -4124,10 +4133,18 @@ function setupDragAndDrop() {
               success = true;
               break;
             } else {
-              if (response.status === 401 || response.status === 403) {
+              if (response.status === 401) {
+                if (typeof showToast === "function") showToast("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", "error");
                 localStorage.removeItem("jwt_token");
                 localStorage.removeItem("token");
-                window.location.href = "login.html";
+                setTimeout(() => { window.location.href = "login.html"; }, 1200);
+                return false;
+              }
+              if (response.status === 403 || response.status === 429) {
+                let warn = response.status === 429
+                  ? "Bạn đang gửi quá nhiều yêu cầu cùng lúc. Vui lòng thử lại sau!"
+                  : "Yêu cầu này bị từ chối.";
+                if (typeof showToast === "function") showToast(warn, "warning", "Cảnh báo bảo mật");
                 return false;
               }
               lastError = new Error(`HTTP ${response.status}`);
@@ -4505,10 +4522,19 @@ function setupDragAndDrop() {
       });
 
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
+          if (typeof showToast === "function") showToast("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", "error");
           localStorage.removeItem("jwt_token");
           localStorage.removeItem("token");
-          window.location.href = "login.html";
+          setTimeout(() => { window.location.href = "login.html"; }, 1200);
+          throw new Error("401 Unauthorized");
+        }
+        if (response.status === 403 || response.status === 429) {
+          let warn = response.status === 429
+            ? "Bạn đang gửi quá nhiều yêu cầu cùng lúc. Vui lòng thử lại sau!"
+            : "Yêu cầu này bị từ chối.";
+          if (typeof showToast === "function") showToast(warn, "warning", "Cảnh báo bảo mật");
+          throw new Error(warn);
         }
         let errorMsg = `Lỗi tải chunk ${chunkIndex + 1} (HTTP ${response.status})`;
         try {
@@ -4745,10 +4771,18 @@ function setupDragAndDrop() {
               initData = await initResponse.json();
               break;
             } else {
-              if (initResponse.status === 401 || initResponse.status === 403) {
+              if (initResponse.status === 401) {
+                if (typeof showToast === "function") showToast("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!", "error");
                 localStorage.removeItem("jwt_token");
                 localStorage.removeItem("token");
-                window.location.href = "login.html";
+                setTimeout(() => { window.location.href = "login.html"; }, 1200);
+                return;
+              }
+              if (initResponse.status === 403 || initResponse.status === 429) {
+                let warn = initResponse.status === 429
+                  ? "Bạn đang gửi quá nhiều yêu cầu cùng lúc. Vui lòng thử lại sau!"
+                  : "Yêu cầu tải lên bị từ chối.";
+                if (typeof showToast === "function") showToast(warn, "warning", "Cảnh báo bảo mật");
                 return;
               }
               let msg = `HTTP ${initResponse.status}`;

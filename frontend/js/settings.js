@@ -162,8 +162,18 @@ async function loadUserProfile() {
       const rawGender = String(data.gender || "").trim().toUpperCase();
       let matched = false;
       for (let i = 0; i < inGender.options.length; i++) {
-        const optVal = inGender.options[i].value;
-        if (optVal && optVal.toUpperCase() === rawGender) {
+        const optVal = inGender.options[i].value ? inGender.options[i].value.toUpperCase() : "";
+        const optText = inGender.options[i].text ? inGender.options[i].text.toUpperCase() : "";
+        if (
+          optVal &&
+          (optVal === rawGender ||
+            optText === rawGender ||
+            (rawGender === "NU" && optVal === "FEMALE") ||
+            (rawGender === "NỮ" && optVal === "FEMALE") ||
+            (rawGender === "NAM" && optVal === "MALE") ||
+            (rawGender === "KHAC" && optVal === "OTHER") ||
+            (rawGender === "KHÁC" && optVal === "OTHER"))
+        ) {
           inGender.selectedIndex = i;
           matched = true;
           break;

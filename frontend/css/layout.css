@@ -1407,3 +1407,178 @@
 body.admin-mode .mobile-menu-btn {
   display: none !important;
 }
+
+/* ================================================================
+   VAULTDRIVE TOAST NOTIFICATIONS & SOC SECURITY ALERTS
+   ================================================================ */
+#vaultdrive-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999999 !important;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 14px;
+  max-width: 450px;
+  pointer-events: none;
+}
+
+.vaultdrive-toast {
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px 18px 16px;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 16px 36px -6px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  animation: vdToastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.vaultdrive-toast.toast-error {
+  border-left: 4px solid #dc2626;
+}
+.vaultdrive-toast.toast-warning {
+  border-left: 4px solid #ea580c;
+}
+.vaultdrive-toast.toast-success {
+  border-left: 4px solid #16a34a;
+}
+.vaultdrive-toast.toast-info {
+  border-left: 4px solid #0284c7;
+}
+
+.vaultdrive-toast-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.vaultdrive-toast.toast-error .vaultdrive-toast-icon-wrap {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.vaultdrive-toast.toast-warning .vaultdrive-toast-icon-wrap {
+  background: #ffedd5;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+.vaultdrive-toast.toast-success .vaultdrive-toast-icon-wrap {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+.vaultdrive-toast.toast-info .vaultdrive-toast-icon-wrap {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+}
+
+.vaultdrive-toast-content {
+  flex: 1;
+  padding-top: 1px;
+}
+
+.vaultdrive-toast-title {
+  font-weight: 700;
+  font-size: 14.5px;
+  margin-bottom: 3px;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vaultdrive-toast.toast-error .vaultdrive-toast-title {
+  color: #dc2626;
+}
+.vaultdrive-toast.toast-warning .vaultdrive-toast-title {
+  color: #ea580c;
+}
+
+.vaultdrive-toast-message {
+  font-size: 13.5px;
+  color: #475569;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.vaultdrive-toast-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  margin-left: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vaultdrive-toast-close:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+/* Thanh đếm lùi thời gian tự đóng */
+.vaultdrive-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3.5px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.vaultdrive-toast-progress-bar {
+  height: 100%;
+  width: 100%;
+  animation: vdToastProgress 5s linear forwards;
+}
+
+.vaultdrive-toast.toast-error .vaultdrive-toast-progress-bar {
+  background: linear-gradient(90deg, #dc2626, #ef4444);
+}
+.vaultdrive-toast.toast-warning .vaultdrive-toast-progress-bar {
+  background: linear-gradient(90deg, #ea580c, #f59e0b);
+}
+.vaultdrive-toast.toast-success .vaultdrive-toast-progress-bar {
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+.vaultdrive-toast.toast-info .vaultdrive-toast-progress-bar {
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+}
+
+@keyframes vdToastSlideIn {
+  from {
+    transform: translateX(115%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes vdToastProgress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}

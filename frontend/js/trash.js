@@ -33,24 +33,28 @@ window.renderTrashItems = function(folders, files) {
 
   if (!container || !trashHeader || !trashList || !emptyState) return;
 
+  // Luôn xóa sạch danh sách DOM cũ trước khi render lại
+  trashList.innerHTML = '';
+
   const totalItems = folders.length + files.length;
 
   if (totalItems === 0) {
-    if (trashHeaderRow) trashHeaderRow.style.display = "none";
-    trashHeader.style.display = "none";
-    trashList.style.display = "none";
-    emptyState.style.display = "flex";
+    if (trashHeaderRow) trashHeaderRow.style.setProperty("display", "none", "important");
+    trashHeader.style.setProperty("display", "none", "important");
+    trashList.style.setProperty("display", "none", "important");
+    emptyState.style.setProperty("display", "flex", "important");
+    if (typeof window.updateTrashBatchActionsUI === 'function') {
+      window.updateTrashBatchActionsUI();
+    }
     return;
   }
 
   if (trashHeaderRow) trashHeaderRow.style.display = "flex";
   trashHeader.style.display = "block";
   trashList.style.display = "";
-  emptyState.style.display = "none";
+  emptyState.style.setProperty("display", "none", "important");
 
   trashHeader.innerHTML = `${totalItems} mục &middot; Tự động xóa sau 30 ngày`;
-
-  trashList.innerHTML = '';
 
   const calculateDaysLeft = (dateString) => {
     if (!dateString) return 30;

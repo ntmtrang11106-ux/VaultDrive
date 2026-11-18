@@ -301,7 +301,7 @@ function initLayoutEvents() {
         if (typeof window.fetchWithAuth === "function") {
           res = await window.fetchWithAuth("/users/me");
         } else {
-          res = await fetch("http://localhost:8080/api/users/me", {
+          res = await fetch("/api/users/me", {
             headers: {
               "Authorization": `Bearer ${token}`,
               "Content-Type": "application/json"

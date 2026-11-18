@@ -99,9 +99,21 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({ email: email, password: password }),
         });
 
-        // Nếu API trả về mã lỗi (không phải 2xx), ném ra lỗi để catch xử lý
+        // Nếu API trả về mã lỗi (không phải 2xx), trích xuất thông điệp chi tiết từ backend
         if (!response.ok) {
-          throw new Error("Email hoặc mật khẩu không đúng. Vui lòng thử lại.");
+          let errorMsg = "Email hoặc mật khẩu không đúng. Vui lòng thử lại.";
+          try {
+            const errorObj = await response.json();
+            errorMsg = errorObj.error || errorObj.message || errorMsg;
+          } catch (e) {
+            try {
+              const text = await response.text();
+              if (text && !text.startsWith("{")) errorMsg = text;
+            } catch (_) {}
+          }
+          errorEl.textContent = errorMsg;
+          errorEl.style.display = "block";
+          return;
         }
 
         const data = await response.json();
@@ -416,21 +428,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (!response.ok) {
           let errData = null;
-          let errMsg = "";
+          let errMsg = "Đăng ký thất bại. Vui lòng thử lại!";
           try {
             errData = await response.json();
-            errMsg = errData.message || errData.error || "";
+            errMsg = errData.error || errData.message || errMsg;
           } catch (_) {
             try {
-              errMsg = await response.text();
+              const text = await response.text();
+              if (text) {
+                try {
+                  const parsed = JSON.parse(text);
+                  errMsg = parsed.error || parsed.message || errMsg;
+                } catch (_) {
+                  errMsg = text;
+                }
+              }
             } catch (_) {}
           }
 
           // Trích xuất chuỗi thông báo nếu errMsg vẫn là chuỗi JSON
-          if (typeof errMsg === "string" && errMsg.startsWith("{")) {
+          if (typeof errMsg === "string" && errMsg.trim().startsWith("{")) {
             try {
               const parsed = JSON.parse(errMsg);
-              errMsg = parsed.message || parsed.error || errMsg;
+              errMsg = parsed.error || parsed.message || errMsg;
             } catch (_) {}
           }
 
