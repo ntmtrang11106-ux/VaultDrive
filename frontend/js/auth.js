@@ -1,3 +1,18 @@
+(function () {
+    const isLocalDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const REMOTE_SERVER = "http://172.198.70.182";
+    window.API_BASE = isLocalDev ? REMOTE_SERVER : "";
+    if (isLocalDev && !window.__fetchIntercepted) {
+        window.__fetchIntercepted = true;
+        const originalFetch = window.fetch;
+        window.fetch = function (url, options) {
+            if (typeof url === "string" && (url.startsWith("/api/") || url.startsWith("/grafana/"))) {
+                url = REMOTE_SERVER + url;
+            }
+            return originalFetch(url, options);
+        };
+    }
+})();
 // Cấu hình đường dẫn gốc đến Backend API của phần đăng nhập/đăng ký
 const API_BASE_URL = "/api/auth";
 

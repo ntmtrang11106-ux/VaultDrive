@@ -1,3 +1,18 @@
+(function () {
+    const isLocalDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const REMOTE_SERVER = "http://172.198.70.182";
+    window.API_BASE = isLocalDev ? REMOTE_SERVER : "";
+    if (isLocalDev && !window.__fetchIntercepted) {
+        window.__fetchIntercepted = true;
+        const originalFetch = window.fetch;
+        window.fetch = function (url, options) {
+            if (typeof url === "string" && (url.startsWith("/api/") || url.startsWith("/grafana/"))) {
+                url = REMOTE_SERVER + url;
+            }
+            return originalFetch(url, options);
+        };
+    }
+})();
 // frontend/js/layout.js
 // Mục đích: Tải file layout.html (chứa HTML của Sidebar & Header) và chèn vào trang hiện tại.
 //           Sau khi chèn xong, khởi tạo các sự kiện tương tác cho Sidebar & Header.
@@ -828,3 +843,4 @@ window.fetchSharedCountBadge = async function () {
     console.warn("Không thể lấy số lượng tệp chia sẻ", error);
   }
 };
+
