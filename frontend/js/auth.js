@@ -1,13 +1,13 @@
 (function () {
-    const isLocalDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    const REMOTE_SERVER = "http://172.198.70.182";
-    window.API_BASE = isLocalDev ? REMOTE_SERVER : "";
-    if (isLocalDev && !window.__fetchIntercepted) {
+    const isLiveServer = window.location.port === "5500" || window.location.port === "5501";
+    const LOCAL_BACKEND = "http://localhost:8080";
+    window.API_BASE = isLiveServer ? LOCAL_BACKEND : "";
+    if (isLiveServer && !window.__fetchIntercepted) {
         window.__fetchIntercepted = true;
         const originalFetch = window.fetch;
         window.fetch = function (url, options) {
-            if (typeof url === "string" && (url.startsWith("/api/") || url.startsWith("/grafana/"))) {
-                url = REMOTE_SERVER + url;
+            if (typeof url === "string" && url.startsWith("/api/")) {
+                url = LOCAL_BACKEND + url;
             }
             return originalFetch(url, options);
         };
